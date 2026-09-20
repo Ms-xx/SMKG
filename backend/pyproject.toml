@@ -1,0 +1,33 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [".venv", "__pycache__", "storage"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "C4"]
+ignore = ["E501"] # 行长度由 Black 统一处理
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+# FastAPI 的 Depends/Query 等是框架约定的"默认值调用"，不视为 B008
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Header",
+    "fastapi.Cookie",
+    "fastapi.Body",
+    "fastapi.Form",
+    "fastapi.File",
+    "fastapi.Security",
+    # 项目自研的权限依赖工厂，与 fastapi.Depends 同属框架约定
+    "app.core.permissions.require_permission",
+    "app.core.security.require_role",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+exclude = "storage"

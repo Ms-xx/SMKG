@@ -1,0 +1,1801 @@
+﻿node.exe : $ vitest run --coverage
+At D:\workapp\Node\node_global\pnpm.ps1:24 char:5
++     & "node$exe"  "$basedir/node_modules/pnpm/bin/pnpm.mjs" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ($ vitest run --coverage:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mD:/work/VSCodeWork/LX/frontend[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
+ [32m✓[39m src/store/authStore.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m src/store/documentStore.test.ts [2m([22m[2m8 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/hooks/useWebSocket.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 54[2mms[22m[39m
+[90mstderr[2m | src/router/guards.test.tsx[2m > [22m[2m路由守卫[2m > [22m[2mauthGuard 未登录时跳转 /login
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition
+` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactroute
+r.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+
+ [32m✓[39m src/router/guards.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[90m 186[2mms[22m[39m
+ [32m✓[39m src/api/index.test.ts [2m([22m[2m6 tests[22m[2m)[22m[90m 147[2mms[22m[39m
+[90mstderr[2m | src/pages/Annotation/AnnotationWorkspace.test.tsx[2m > [22m[2mAnnotationWorkspace[2m > [22m[2m加
+载中显示 Spin
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition
+` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactroute
+r.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+Warning: An update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+
+ [32m✓[39m src/pages/Annotation/components/AnnotationHistory.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 2094[2mms[22m[39m
+   [33m[2m✓[22m[39m AnnotationHistory[2m > [22m加载中显示 Spin [33m1018[2mms[22m[39m
+   [33m[2m✓[22m[39m AnnotationHistory[2m > [22m渲染标注列表与状态标签 [33m894[2mms[22m[39m
+[90mstderr[2m | src/pages/Annotation/components/CommentPanel.test.tsx[2m > [22m[2mCommentPanel[2m > [22m[2m空评论显
+示空态
+[22m[39mWarning: An update to Root inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+
+[90mstderr[2m | src/pages/Dashboard/DashboardPage.test.tsx[2m > [22m[2mDashboardPage[2m > [22m[2m渲染欢迎语、统计卡片与图谱概
+览
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition
+` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactroute
+r.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+
+[90mstderr[2m | src/pages/Annotation/AnnotationWorkspace.test.tsx[2m > [22m[2mAnnotationWorkspace[2m > [22m[2m加
+载完成后渲染标题按钮与四个标签页
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/KnowledgeGraph/GraphRAGPage.test.tsx[2m > [22m[2mGraphRAGPage[2m > [22m[2m渲染标题、连接状态与图
+谱统计
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition
+` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactroute
+r.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+
+[90mstderr[2m | src/pages/Annotation/AnnotationWorkspace.test.tsx[2m > [22m[2mAnnotationWorkspace[2m > [22m[2m加
+载完成后渲染标题按钮与四个标签页
+[22m[39mWarning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+
+[90mstderr[2m | src/pages/KnowledgeGraph/GraphExplorer.test.tsx[2m > [22m[2mGraphExplorer[2m > [22m[2m渲染页面标题与统计
+卡片
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition
+` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactroute
+r.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+
+[90mstderr[2m | src/pages/Annotation/components/CommentPanel.test.tsx[2m > [22m[2mCommentPanel[2m > [22m[2m渲染评论
+列表与提及高亮
+[22m[39mWarning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+
+[90mstderr[2m | src/pages/Tasks/TaskListPage.test.tsx[2m > [22m[2mTaskListPage[2m > [22m[2m渲染标题与空状态
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Settings/ProfilePage.test.tsx[2m > [22m[2mProfilePage[2m > [22m[2m渲染个人信息与用户数据
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition
+` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactroute
+r.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+
+[90mstderr[2m | src/pages/Statistics/WorkloadPage.test.tsx[2m > [22m[2mWorkloadPage[2m > [22m[2m渲染标题与各区块
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. Y
+ou can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/u
+pgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+Warning: An update to WorkloadPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at WorkloadPage (D:\work\VSCodeWork\LX\frontend\src\pages\Statistics\WorkloadPage.tsx:19:57)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+Warning: An update to WorkloadPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at WorkloadPage (D:\work\VSCodeWork\LX\frontend\src\pages\Statistics\WorkloadPage.tsx:19:57)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+Warning: An update to WorkloadPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at WorkloadPage (D:\work\VSCodeWork\LX\frontend\src\pages\Statistics\WorkloadPage.tsx:19:57)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+
+[90mstderr[2m | src/pages/Statistics/WorkloadPage.test.tsx[2m > [22m[2mWorkloadPage[2m > [22m[2m加载并展示个人统计卡片与团队看
+板
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Annotation/components/CommentPanel.test.tsx[2m > [22m[2mCommentPanel[2m > [22m[2m提交空内
+容时提示
+[22m[39mWarning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to Notifications inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-notification@5.6.4_react_4c4d643d02667c590803e33b81c2ec6f\n
+ode_modules\rc-notification\lib\Notifications.js:19:32
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+
+[90mstderr[2m | src/pages/Annotation/AnnotationWorkspace.test.tsx[2m > [22m[2mAnnotationWorkspace[2m > [22m[2mg
+etByDocument 返回数组时也能正常渲染
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Dashboard/DashboardPage.test.tsx[2m > [22m[2mDashboardPage[2m > [22m[2m有文档与任务时展示最近文档和
+最近任务
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Annotation/components/CommentPanel.test.tsx[2m > [22m[2mCommentPanel[2m > [22m[2m有标注但
+未选择时提示选择标注
+[22m[39mWarning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to Notifications inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-notification@5.6.4_react_4c4d643d02667c590803e33b81c2ec6f\n
+ode_modules\rc-notification\lib\Notifications.js:19:32
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+
+[90mstderr[2m | src/pages/Statistics/WorkloadPage.test.tsx[2m > [22m[2mWorkloadPage[2m > [22m[2m无团队数据时展示空态
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Annotation/AnnotationWorkspace.test.tsx[2m > [22m[2mAnnotationWorkspace[2m > [22m[2mg
+etByDocument 返回数组时也能正常渲染
+[22m[39mWarning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+
+[90mstderr[2m | src/pages/Annotation/AnnotationWorkspace.test.tsx[2m > [22m[2mAnnotationWorkspace[2m > [22m[2mg
+etByDocument 失败时回退为空标注列表
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ [32m✓[39m src/pages/Statistics/WorkloadPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 6454[2mms[22m[39m
+   [33m[2m✓[22m[39m WorkloadPage[2m > [22m渲染标题与各区块 [33m4708[2mms[22m[39m
+   [33m[2m✓[22m[39m WorkloadPage[2m > [22m加载并展示个人统计卡片与团队看板 [33m977[2mms[22m[39m
+   [33m[2m✓[22m[39m WorkloadPage[2m > [22m无团队数据时展示空态 [33m766[2mms[22m[39m
+ [32m✓[39m src/pages/Dashboard/DashboardPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 6986[2mms[22m[39m
+   [33m[2m✓[22m[39m DashboardPage[2m > [22m渲染欢迎语、统计卡片与图谱概览 [33m4395[2mms[22m[39m
+   [33m[2m✓[22m[39m DashboardPage[2m > [22m有文档与任务时展示最近文档和最近任务 [33m1940[2mms[22m[39m
+   [33m[2m✓[22m[39m DashboardPage[2m > [22m点击快捷操作跳转 [33m648[2mms[22m[39m
+[90mstderr[2m | src/pages/Tasks/TaskListPage.test.tsx[2m > [22m[2mTaskListPage[2m > [22m[2m渲染任务列表与各状态标签
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Annotation/components/CommentPanel.test.tsx[2m > [22m[2mCommentPanel[2m > [22m[2m删除自己
+的评论
+[22m[39mWarning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to Notifications inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-notification@5.6.4_react_4c4d643d02667c590803e33b81c2ec6f\n
+ode_modules\rc-notification\lib\Notifications.js:19:32
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+
+ [32m✓[39m src/pages/Annotation/components/CommentPanel.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 7601[2mms[22m[39m
+   [33m[2m✓[22m[39m CommentPanel[2m > [22m空评论显示空态 [33m3717[2mms[22m[39m
+   [33m[2m✓[22m[39m CommentPanel[2m > [22m渲染评论列表与提及高亮 [33m880[2mms[22m[39m
+   [33m[2m✓[22m[39m CommentPanel[2m > [22m提交空内容时提示 [33m535[2mms[22m[39m
+   [33m[2m✓[22m[39m CommentPanel[2m > [22m有标注但未选择时提示选择标注 [33m520[2mms[22m[39m
+   [33m[2m✓[22m[39m CommentPanel[2m > [22m删除自己的评论 [33m1946[2mms[22m[39m
+[90mstderr[2m | src/pages/Annotation/components/RelationEditor.test.tsx[2m > [22m[2mRelationEditor[2m > [22m[2m
+空列表显示空态且添加按钮禁用
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Annotation/components/RelationEditor.test.tsx[2m > [22m[2mRelationEditor[2m > [22m[2m
+渲染关系列表
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Annotation/components/RelationEditor.test.tsx[2m > [22m[2mRelationEditor[2m > [22m[2m
+点击关系类型筛选标签进行过滤
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Annotation/components/RelationEditor.test.tsx[2m > [22m[2mRelationEditor[2m > [22m[2m
+未选择源/关系/目标时添加按钮保持禁用
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Annotation/AnnotationWorkspace.test.tsx[2m > [22m[2mAnnotationWorkspace[2m > [22m[2mg
+etByDocument 失败时回退为空标注列表
+[22m[39mWarning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+
+[90mstderr[2m | src/pages/Annotation/AnnotationWorkspace.test.tsx[2m > [22m[2mAnnotationWorkspace[2m > [22m[2m没
+有新标注时点击保存提示无需保存
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ [32m✓[39m src/pages/Annotation/components/RelationEditor.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 7837[2mms[22m[39m
+   [33m[2m✓[22m[39m RelationEditor[2m > [22m空列表显示空态且添加按钮禁用 [33m4897[2mms[22m[39m
+   [33m[2m✓[22m[39m RelationEditor[2m > [22m渲染关系列表 [33m1148[2mms[22m[39m
+   [33m[2m✓[22m[39m RelationEditor[2m > [22m点击关系类型筛选标签进行过滤 [33m869[2mms[22m[39m
+   [33m[2m✓[22m[39m RelationEditor[2m > [22m未选择源/关系/目标时添加按钮保持禁用 [33m917[2mms[22m[39m
+[90mstderr[2m | src/pages/Annotation/components/EntityExtractor.test.tsx[2m > [22m[2mEntityExtractor[2m > [22m[
+2m空列表显示空态与筛选标签
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Annotation/components/EntityExtractor.test.tsx[2m > [22m[2mEntityExtractor[2m > [22m[
+2m渲染实体列表字段
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Tasks/TaskListPage.test.tsx[2m > [22m[2mTaskListPage[2m > [22m[2m点击刷新重新加载
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Annotation/components/EntityExtractor.test.tsx[2m > [22m[2mEntityExtractor[2m > [22m[
+2m点击类型筛选标签进行过滤
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Annotation/components/EntityExtractor.test.tsx[2m > [22m[2mEntityExtractor[2m > [22m[
+2m未选择类型时点击添加不回调
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Annotation/components/EntityExtractor.test.tsx[2m > [22m[2mEntityExtractor[2m > [22m[
+2m添加新实体回调携带新标注
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ [32m✓[39m src/pages/Settings/ProfilePage.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 8386[2mms[22m[39m
+   [33m[2m✓[22m[39m ProfilePage[2m > [22m渲染个人信息与用户数据 [33m3685[2mms[22m[39m
+   [33m[2m✓[22m[39m ProfilePage[2m > [22m提交个人信息表单调用 updateProfile [33m1879[2mms[22m[39m
+   [33m[2m✓[22m[39m ProfilePage[2m > [22m切换修改密码标签并提交调用 changePassword [33m1852[2mms[22m[39m
+   [33m[2m✓[22m[39m ProfilePage[2m > [22m账户统计标签展示各维度统计 [33m967[2mms[22m[39m
+ [32m✓[39m src/pages/Annotation/components/EntityExtractor.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 8495[2mms[22m[39m
+   [33m[2m✓[22m[39m EntityExtractor[2m > [22m空列表显示空态与筛选标签 [33m4512[2mms[22m[39m
+   [33m[2m✓[22m[39m EntityExtractor[2m > [22m渲染实体列表字段 [33m1031[2mms[22m[39m
+   [33m[2m✓[22m[39m EntityExtractor[2m > [22m点击类型筛选标签进行过滤 [33m805[2mms[22m[39m
+   [33m[2m✓[22m[39m EntityExtractor[2m > [22m未选择类型时点击添加不回调 [33m541[2mms[22m[39m
+   [33m[2m✓[22m[39m EntityExtractor[2m > [22m添加新实体回调携带新标注 [33m1602[2mms[22m[39m
+[90mstderr[2m | src/pages/Annotation/AnnotationWorkspace.test.tsx[2m > [22m[2mAnnotationWorkspace[2m > [22m[2m没
+有新标注时点击保存提示无需保存
+[22m[39mWarning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to Notifications inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-notification@5.6.4_react_4c4d643d02667c590803e33b81c2ec6f\n
+ode_modules\rc-notification\lib\Notifications.js:19:32
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+
+[90mstderr[2m | src/pages/Annotation/AnnotationWorkspace.test.tsx[2m > [22m[2mAnnotationWorkspace[2m > [22m[2m保
+存临时标注并替换真实ID
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/components/Graph/ForceGraph.test.tsx[2m > [22m[2mForceGraph[2m > [22m[2m渲染力导向图并生成节点/边数据
+[22m[39mWarning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use
+ React.forwardRef()?
+
+Check the render method of `ForceGraph`.
+    at default
+    at div
+    at ForceGraph (D:\work\VSCodeWork\LX\frontend\src\components\Graph\ForceGraph.tsx:17:23)
+
+ [32m✓[39m src/components/Graph/ForceGraph.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 718[2mms[22m[39m
+   [33m[2m✓[22m[39m ForceGraph[2m > [22mloading 时显示加载指示器 [33m586[2mms[22m[39m
+[90mstderr[2m | src/pages/Tasks/TaskListPage.test.tsx[2m > [22m[2mTaskListPage[2m > [22m[2m点击详情打开抽屉
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Settings/RolePermissionPage.test.tsx[2m > [22m[2mRolePermissionPage[2m > [22m[2m渲染标题与
+刷新按钮
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. Y
+ou can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/u
+pgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+Warning: An update to RolePermissionPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at RolePermissionPage (D:\work\VSCodeWork\LX\frontend\src\pages\Settings\RolePermissionPage.tsx:19:51)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+Warning: An update to RolePermissionPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at RolePermissionPage (D:\work\VSCodeWork\LX\frontend\src\pages\Settings\RolePermissionPage.tsx:19:51)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+Warning: An update to RolePermissionPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at RolePermissionPage (D:\work\VSCodeWork\LX\frontend\src\pages\Settings\RolePermissionPage.tsx:19:51)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+
+[90mstderr[2m | src/pages/Settings/RolePermissionPage.test.tsx[2m > [22m[2mRolePermissionPage[2m > [22m[2m加载并展示
+角色与权限码
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Annotation/AnnotationWorkspace.test.tsx[2m > [22m[2mAnnotationWorkspace[2m > [22m[2m保
+存临时标注并替换真实ID
+[22m[39mWarning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to Notifications inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-notification@5.6.4_react_4c4d643d02667c590803e33b81c2ec6f\n
+ode_modules\rc-notification\lib\Notifications.js:19:32
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+
+[90mstderr[2m | src/pages/Annotation/AnnotationWorkspace.test.tsx[2m > [22m[2mAnnotationWorkspace[2m > [22m[2m存
+在未保存标注时提交提示先保存
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Tasks/TaskListPage.test.tsx[2m > [22m[2mTaskListPage[2m > [22m[2m点击详情打开抽屉
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Settings/OperationLogsPage.test.tsx[2m > [22m[2mOperationLogsPage[2m > [22m[2m渲染标题、副标
+题与刷新按钮
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. Y
+ou can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/u
+pgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+Warning: An update to OperationLogsPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at OperationLogsPage (D:\work\VSCodeWork\LX\frontend\src\pages\Settings\OperationLogsPage.tsx:29:49)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+Warning: An update to OperationLogsPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at OperationLogsPage (D:\work\VSCodeWork\LX\frontend\src\pages\Settings\OperationLogsPage.tsx:29:49)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+Warning: An update to OperationLogsPage inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at OperationLogsPage (D:\work\VSCodeWork\LX\frontend\src\pages\Settings\OperationLogsPage.tsx:29:49)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+
+[90mstderr[2m | src/pages/Settings/OperationLogsPage.test.tsx[2m > [22m[2mOperationLogsPage[2m > [22m[2m加载并展示日志
+列表数据
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Settings/RolePermissionPage.test.tsx[2m > [22m[2mRolePermissionPage[2m > [22m[2m编辑非管理
+员角色并保存权限
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ [32m✓[39m src/pages/Tasks/TaskListPage.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 10303[2mms[22m[39m
+   [33m[2m✓[22m[39m TaskListPage[2m > [22m渲染标题与空状态 [33m5243[2mms[22m[39m
+   [33m[2m✓[22m[39m TaskListPage[2m > [22m渲染任务列表与各状态标签 [33m2135[2mms[22m[39m
+   [33m[2m✓[22m[39m TaskListPage[2m > [22m点击刷新重新加载 [33m1121[2mms[22m[39m
+   [33m[2m✓[22m[39m TaskListPage[2m > [22m点击详情打开抽屉 [33m1801[2mms[22m[39m
+[90mstderr[2m | src/pages/Annotation/AnnotationWorkspace.test.tsx[2m > [22m[2mAnnotationWorkspace[2m > [22m[2m存
+在未保存标注时提交提示先保存
+[22m[39mWarning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to Notifications inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-notification@5.6.4_react_4c4d643d02667c590803e33b81c2ec6f\n
+ode_modules\rc-notification\lib\Notifications.js:19:32
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+
+[90mstderr[2m | src/pages/Annotation/AnnotationWorkspace.test.tsx[2m > [22m[2mAnnotationWorkspace[2m > [22m[2m没
+有待提交标注时提示
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Annotation/AnnotationWorkspace.test.tsx[2m > [22m[2mAnnotationWorkspace[2m > [22m[2m没
+有待提交标注时提示
+[22m[39mWarning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-tabs\lib\TabNavList\index.js:80:25
+    at TabNavListWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.
+1__react@18.3.1\node_modules\rc-tabs\lib\TabNavList\Wrapper.js:22:27)
+    at div
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-tabs\lib\Tabs.js:40:18
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\tabs\index.js:35:7
+    at div
+    at AnnotationWorkspace (D:\work\VSCodeWork\LX\frontend\src\pages\Annotation\AnnotationWorkspace.tsx:24:48)
+    at RenderedRoute (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\r
+eact-router\dist\umd\react-router.development.js:539:7)
+    at Routes (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1273:7)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-tabs\lib\TabNavList\index.js:80:25
+    at TabNavListWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.
+1__react@18.3.1\node_modules\rc-tabs\lib\TabNavList\Wrapper.js:22:27)
+    at div
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-tabs\lib\Tabs.js:40:18
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\tabs\index.js:35:7
+    at div
+    at AnnotationWorkspace (D:\work\VSCodeWork\LX\frontend\src\pages\Annotation\AnnotationWorkspace.tsx:24:48)
+    at RenderedRoute (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\r
+eact-router\dist\umd\react-router.development.js:539:7)
+    at Routes (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1273:7)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-tabs\lib\TabNavList\index.js:80:25
+    at TabNavListWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.
+1__react@18.3.1\node_modules\rc-tabs\lib\TabNavList\Wrapper.js:22:27)
+    at div
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-tabs\lib\Tabs.js:40:18
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\tabs\index.js:35:7
+    at div
+    at AnnotationWorkspace (D:\work\VSCodeWork\LX\frontend\src\pages\Annotation\AnnotationWorkspace.tsx:24:48)
+    at RenderedRoute (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\r
+eact-router\dist\umd\react-router.development.js:539:7)
+    at Routes (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1273:7)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-tabs\lib\TabNavList\index.js:80:25
+    at TabNavListWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.
+1__react@18.3.1\node_modules\rc-tabs\lib\TabNavList\Wrapper.js:22:27)
+    at div
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-tabs\lib\Tabs.js:40:18
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\tabs\index.js:35:7
+    at div
+    at AnnotationWorkspace (D:\work\VSCodeWork\LX\frontend\src\pages\Annotation\AnnotationWorkspace.tsx:24:48)
+    at RenderedRoute (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\r
+eact-router\dist\umd\react-router.development.js:539:7)
+    at Routes (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1273:7)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-tabs\lib\TabNavList\index.js:80:25
+    at TabNavListWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.
+1__react@18.3.1\node_modules\rc-tabs\lib\TabNavList\Wrapper.js:22:27)
+    at div
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-tabs\lib\Tabs.js:40:18
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\tabs\index.js:35:7
+    at div
+    at AnnotationWorkspace (D:\work\VSCodeWork\LX\frontend\src\pages\Annotation\AnnotationWorkspace.tsx:24:48)
+    at RenderedRoute (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\r
+eact-router\dist\umd\react-router.development.js:539:7)
+    at Routes (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1273:7)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-tabs\lib\TabNavList\index.js:80:25
+    at TabNavListWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.
+1__react@18.3.1\node_modules\rc-tabs\lib\TabNavList\Wrapper.js:22:27)
+    at div
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-tabs@15.7.0_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-tabs\lib\Tabs.js:40:18
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\tabs\index.js:35:7
+    at div
+ [32m✓[39m src/pages/Annotation/AnnotationWorkspace.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 10952[2mms[22m[39m
+   [33m[2m✓[22m[39m AnnotationWorkspace[2m > [22m加载中显示 Spin [33m636[2mms[22m[39m
+   [33m[2m✓[22m[39m AnnotationWorkspace[2m > [22m加载完成后渲染标题按钮与四个标签页 [33m4146[2mms[22m[39m
+   [33m[2m✓[22m[39m AnnotationWorkspace[2m > [22mgetByDocument 返回数组时也能正常渲染 [33m1130[2mms[22m[39m
+   [33m[2m✓[22m[39m AnnotationWorkspace[2m > [22mgetByDocument 失败时回退为空标注列表 [33m801[2mms[22m[39m
+   [33m[2m✓[22m[39m AnnotationWorkspace[2m > [22m没有新标注时点击保存提示无需保存 [33m1237[2mms[22m[39m
+   [33m[2m✓[22m[39m AnnotationWorkspace[2m > [22m保存临时标注并替换真实ID [33m1337[2mms[22m[39m
+   [33m[2m✓[22m[39m AnnotationWorkspace[2m > [22m存在未保存标注时提交提示先保存 [33m801[2mms[22m[39m
+   [33m[2m✓[22m[39m AnnotationWorkspace[2m > [22m没有待提交标注时提示 [33m860[2mms[22m[39m
+    at AnnotationWorkspace (D:\work\VSCodeWork\LX\frontend\src\pages\Annotation\AnnotationWorkspace.tsx:24:48)
+    at RenderedRoute (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\r
+eact-router\dist\umd\react-router.development.js:539:7)
+    at Routes (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1273:7)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to Notifications inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-notification@5.6.4_react_4c4d643d02667c590803e33b81c2ec6f\n
+ode_modules\rc-notification\lib\Notifications.js:19:32
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\useMessage.js:52:5
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:41:5
+    at MotionWrapper (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__reac
+t@18.3.1\node_modules\antd\lib\config-provider\MotionWrapper.js:17:30)
+    at ProviderChildren (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__r
+eact@18.3.1\node_modules\antd\lib\config-provider\index.js:142:5)
+    at ConfigProvider (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__rea
+ct@18.3.1\node_modules\antd\lib\config-provider\index.js:444:25)
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\message\index.js:68:60
+
+[90mstderr[2m | src/pages/Settings/OperationLogsPage.test.tsx[2m > [22m[2mOperationLogsPage[2m > [22m[2m无数据时展示空
+态
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Settings/RolePermissionPage.test.tsx[2m > [22m[2mRolePermissionPage[2m > [22m[2m编辑非管理
+员角色并保存权限
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/KnowledgeGraph/GraphExplorer.test.tsx[2m > [22m[2mGraphExplorer[2m > [22m[2m点击节点打开实体详
+情抽屉
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+[90mstderr[2m | src/pages/Settings/OperationLogsPage.test.tsx[2m > [22m[2mOperationLogsPage[2m > [22m[2m点击详情按钮打
+开操作日志详情抽屉
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ [32m✓[39m src/utils/index.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 78[2mms[22m[39m
+ [32m✓[39m src/pages/KnowledgeGraph/GraphExplorer.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 12018[2mms[22m[39m
+   [33m[2m✓[22m[39m GraphExplorer[2m > [22m渲染页面标题与统计卡片 [33m4959[2mms[22m[39m
+   [33m[2m✓[22m[39m GraphExplorer[2m > [22m加载实体后将数据传入 ForceGraph [33m943[2mms[22m[39m
+   [33m[2m✓[22m[39m GraphExplorer[2m > [22m点击初始化示例数据调用 seed 接口 [33m2946[2mms[22m[39m
+   [33m[2m✓[22m[39m GraphExplorer[2m > [22m搜索节点调用 ragSearchNodes [33m1823[2mms[22m[39m
+   [33m[2m✓[22m[39m GraphExplorer[2m > [22m点击节点打开实体详情抽屉 [33m1344[2mms[22m[39m
+[90mstderr[2m | src/pages/Settings/OperationLogsPage.test.tsx[2m > [22m[2mOperationLogsPage[2m > [22m[2m点击详情按钮打
+开操作日志详情抽屉
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ [32m✓[39m src/pages/Settings/RolePermissionPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 6794[2mms[22m[39m
+   [33m[2m✓[22m[39m RolePermissionPage[2m > [22m渲染标题与刷新按钮 [33m3585[2mms[22m[39m
+   [33m[2m✓[22m[39m RolePermissionPage[2m > [22m加载并展示角色与权限码 [33m661[2mms[22m[39m
+   [33m[2m✓[22m[39m RolePermissionPage[2m > [22m编辑非管理员角色并保存权限 [33m2543[2mms[22m[39m
+ [32m✓[39m src/pages/Settings/OperationLogsPage.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 7831[2mms[22m[39m
+   [33m[2m✓[22m[39m OperationLogsPage[2m > [22m渲染标题、副标题与刷新按钮 [33m4503[2mms[22m[39m
+   [33m[2m✓[22m[39m OperationLogsPage[2m > [22m加载并展示日志列表数据 [33m1173[2mms[22m[39m
+   [33m[2m✓[22m[39m OperationLogsPage[2m > [22m无数据时展示空态 [33m814[2mms[22m[39m
+   [33m[2m✓[22m[39m OperationLogsPage[2m > [22m点击详情按钮打开操作日志详情抽屉 [33m1337[2mms[22m[39m
+ [32m✓[39m src/hooks/usePagination.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 61[2mms[22m[39m
+ [32m✓[39m src/pages/KnowledgeGraph/GraphRAGPage.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 13583[2mms[22m[39m
+   [33m[2m✓[22m[39m GraphRAGPage[2m > [22m渲染标题、连接状态与图谱统计 [33m5246[2mms[22m[39m
+   [33m[2m✓[22m[39m GraphRAGPage[2m > [22m服务未连接时显示警告 [33m689[2mms[22m[39m
+   [33m[2m✓[22m[39m GraphRAGPage[2m > [22m输入问题并发送调用 ragQuery 并展示回答 [33m3734[2mms[22m[39m
+   [33m[2m✓[22m[39m GraphRAGPage[2m > [22m清空对话回到空状态 [33m3912[2mms[22m[39m
+ [32m✓[39m src/router/index.test.tsx [2m([22m[2m1 test[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m src/pages/Annotation/components/DualPaneView.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 598[2mms[22m[39m
+   [33m[2m✓[22m[39m DualPaneView[2m > [22m渲染 PDF 视图与标注面板 [33m538[2mms[22m[39m
+ [32m✓[39m src/store/uiStore.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+[90mstderr[2m | src/components/Layout/Sidebar.test.tsx[2m > [22m[2mAppSidebar 菜单权限[2m > [22m[2m管理员显示全部菜单
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition
+` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactroute
+r.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-menu@9.16.1_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-menu\lib\Menu.js:56:27
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\menu\menu.js:46:26
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\menu\index.js:19:37
+    at div
+    at aside
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\layout\Sider.js:48:18
+    at AppSidebar (D:\work\VSCodeWork\LX\frontend\src\components\Layout\Sidebar.tsx:15:42)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+
+[90mstderr[2m | src/components/Layout/Sidebar.test.tsx[2m > [22m[2mAppSidebar 菜单权限[2m > [22m[2m无权限普通用户隐藏受控菜单
+[22m[39mWarning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-menu@9.16.1_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-menu\lib\Menu.js:56:27
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\menu\menu.js:46:26
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\menu\index.js:19:37
+    at div
+    at aside
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\layout\Sider.js:48:18
+    at AppSidebar (D:\work\VSCodeWork\LX\frontend\src\components\Layout\Sidebar.tsx:15:42)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+
+[90mstderr[2m | src/components/Layout/Sidebar.test.tsx[2m > [22m[2mAppSidebar 菜单权限[2m > [22m[2m按权限码显示对应菜单
+[22m[39mWarning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-menu@9.16.1_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-menu\lib\Menu.js:56:27
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\menu\menu.js:46:26
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\menu\index.js:19:37
+    at div
+    at aside
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\layout\Sider.js:48:18
+    at AppSidebar (D:\work\VSCodeWork\LX\frontend\src\components\Layout\Sidebar.tsx:15:42)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+
+ [32m✓[39m src/components/Layout/Sidebar.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1301[2mms[22m[39m
+   [33m[2m✓[22m[39m AppSidebar 菜单权限[2m > [22m管理员显示全部菜单 [33m1049[2mms[22m[39m
+ [32m✓[39m src/components/Annotation/AnnotationPanel.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1125[2mms[22m[39m
+   [33m[2m✓[22m[39m AnnotationPanel[2m > [22m渲染元素列表并展示类型标签 [33m1006[2mms[22m[39m
+[90mstderr[2m | src/App.test.tsx[2m > [22m[2mApp[2m > [22m[2m有 token 时调用 fetchUser
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition
+` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactroute
+r.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+
+ [32m✓[39m src/App.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 41[2mms[22m[39m
+ [32m✓[39m src/components/Layout/MainLayout.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 410[2mms[22m[39m
+   [33m[2m✓[22m[39m MainLayout[2m > [22m渲染侧边栏、头部和内容区 [33m408[2mms[22m[39m
+[90mstderr[2m | src/pages/NotFound/NotFoundPage.test.tsx[2m > [22m[2mNotFoundPage[2m > [22m[2m渲染 404 提示与返回首页按钮
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition
+` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactroute
+r.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+
+ [32m✓[39m src/pages/NotFound/NotFoundPage.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1329[2mms[22m[39m
+   [33m[2m✓[22m[39m NotFoundPage[2m > [22m渲染 404 提示与返回首页按钮 [33m1268[2mms[22m[39m
+[90mstderr[2m | src/pages/Documents/DocumentDetailPage.test.tsx[2m > [22m[2mDocumentDetailPage[2m > [22m[2m无当前文
+档时显示加载态
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition
+` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactroute
+r.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+
+ [32m✓[39m src/components/Layout/Header.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 915[2mms[22m[39m
+   [33m[2m✓[22m[39m AppHeader[2m > [22m渲染平台标题与用户名 [33m826[2mms[22m[39m
+ [32m✓[39m src/pages/Documents/DocumentDetailPage.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1398[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentDetailPage[2m > [22m无当前文档时显示加载态 [33m374[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentDetailPage[2m > [22m展示文档详情与字段 [33m1022[2mms[22m[39m
+ [32m✓[39m src/components/PDFViewer/PDFViewer.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1003[2mms[22m[39m
+   [33m[2m✓[22m[39m PDFViewer[2m > [22m渲染工具栏和初始页码 [33m948[2mms[22m[39m
+[90mstderr[2m | src/pages/Documents/DocumentListPage.test.tsx[2m > [22m[2mDocumentListPage[2m > [22m[2m渲染文档列表与状
+态标签
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. Y
+ou can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/u
+pgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+
+[90mstderr[2m | src/pages/Login/LoginPage.test.tsx[2m > [22m[2mLoginPage[2m > [22m[2m渲染登录表单
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition
+` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactroute
+r.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+
+[90mstderr[2m | src/pages/Login/LoginPage.test.tsx[2m > [22m[2mLoginPage[2m > [22m[2m点击注册链接打开注册弹窗
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ [32m✓[39m src/pages/Documents/DocumentListPage.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 1265[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentListPage[2m > [22m渲染文档列表与状态标签 [33m1264[2mms[22m[39m
+ [32m✓[39m src/pages/Login/LoginPage.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1307[2mms[22m[39m
+   [33m[2m✓[22m[39m LoginPage[2m > [22m渲染登录表单 [33m1095[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m34 passed[39m[22m[90m (34)[39m
+[2m      Tests [22m [1m[32m138 passed[39m[22m[90m (138)[39m
+[2m   Start at [22m 11:50:21
+[2m   Duration [22m 43.01s[2m (transform 2.90s, setup 21.14s, collect 281.91s, tests 121.32s, environment 89.40s, prepare 9.82s)[22m
+
+[34m % [39m[2mCoverage report from [22m[33mv8[39m
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   87.66 |    72.33 |   51.16 |   87.66 |                   
+ src               |     100 |      100 |     100 |     100 |                   
+  App.tsx          |     100 |      100 |     100 |     100 |                   
+ src/api           |   80.64 |    66.66 |    1.53 |   80.64 |                   
+  index.ts         |   88.37 |    66.66 |     100 |   88.37 | 35-39             
+  modules.ts       |   77.67 |      100 |       0 |   77.67 | ...17,119,121,123 
+ ...nts/Annotation |     100 |    83.33 |     100 |     100 |                   
+  ...tionPanel.tsx |     100 |    83.33 |     100 |     100 | 20                
+ ...mponents/Graph |     100 |    93.33 |     100 |     100 |                   
+  ForceGraph.tsx   |     100 |    93.33 |     100 |     100 | 87                
+ ...ponents/Layout |   82.48 |    89.65 |   41.66 |   82.48 |                   
+  Header.tsx       |   71.42 |    72.72 |   28.57 |   71.42 | 35-42,66-81       
+  MainLayout.tsx   |     100 |      100 |     100 |     100 |                   
+  Sidebar.tsx      |     100 |      100 |      50 |     100 |                   
+ ...ents/PDFViewer |     100 |       90 |   71.42 |     100 |                   
+  PDFViewer.tsx    |     100 |       90 |   71.42 |     100 | 29                
+ src/hooks         |     100 |    93.75 |      75 |     100 |                   
+  usePagination.ts |     100 |      100 |   66.66 |     100 |                   
+  useWebSocket.ts  |     100 |    91.66 |      80 |     100 | 13                
+ ...ges/Annotation |   83.16 |       80 |      75 |   83.16 |                   
+  ...Workspace.tsx |   83.16 |       80 |      75 |   83.16 | 67,85-101         
+ ...ion/components |   85.71 |    69.67 |      70 |   85.71 |                   
+  ...onHistory.tsx |   71.95 |    71.42 |      50 |   71.95 | 30-57             
+  CommentPanel.tsx |   86.06 |    66.66 |   81.81 |   86.06 | ...12,142-144,176 
+  DualPaneView.tsx |     100 |      100 |     100 |     100 |                   
+  ...Extractor.tsx |    98.3 |    79.16 |   69.23 |    98.3 | 57-58             
+  ...ionEditor.tsx |   82.06 |       60 |   58.33 |   82.06 | 43-74,77-78       
+ ...ages/Dashboard |   97.91 |    70.96 |      50 |   97.91 |                   
+  ...boardPage.tsx |   97.91 |    70.96 |      50 |   97.91 | ...37,150-153,412 
+ ...ages/Documents |   89.36 |    65.51 |   38.88 |   89.36 |                   
+  ...etailPage.tsx |   97.43 |    52.63 |      25 |   97.43 | 31                
+  ...tListPage.tsx |   83.63 |       90 |   42.85 |   83.63 | 24-31,47          
+ ...KnowledgeGraph |   83.39 |    68.42 |   58.33 |   83.39 |                   
+  ...hExplorer.tsx |   84.44 |    58.33 |   57.14 |   84.44 | ...62-365,510-514 
+  GraphRAGPage.tsx |   81.84 |    76.71 |      60 |   81.84 | ...30-149,327-350 
+ src/pages/Login   |   75.42 |    66.66 |   33.33 |   75.42 |                   
+  LoginPage.tsx    |   75.42 |    66.66 |   33.33 |   75.42 | ...,28-42,120-126 
+ ...pages/NotFound |     100 |      100 |     100 |     100 |                   
+  NotFoundPage.tsx |     100 |      100 |     100 |     100 |                   
+ ...pages/Settings |   97.77 |    58.51 |   77.14 |   97.77 |                   
+  ...nLogsPage.tsx |     100 |    58.06 |    62.5 |     100 | ...94,102,205-220 
+  ProfilePage.tsx  |   93.16 |    51.42 |     100 |   93.16 | 36,91,112,140-147 
+  ...ssionPage.tsx |     100 |    67.85 |   81.81 |     100 | ...0,69-74,81,136 
+ ...ges/Statistics |     100 |    85.71 |     100 |     100 |                   
+  WorkloadPage.tsx |     100 |    85.71 |     100 |     100 | ...,74-75,131,142 
+ src/pages/Tasks   |   73.06 |    54.05 |   35.71 |   73.06 |                   
+  TaskListPage.tsx |   73.06 |    54.05 |   35.71 |   73.06 | ...79-585,588-598 
+ src/router        |     100 |      100 |     100 |     100 |                   
+  guards.tsx       |     100 |      100 |     100 |     100 |                   
+  index.tsx        |     100 |      100 |     100 |     100 |                   
+ src/store         |   98.21 |    88.88 |     100 |   98.21 |                   
+  authStore.ts     |   96.77 |     82.6 |     100 |   96.77 | 85-86             
+  documentStore.ts |     100 |      100 |     100 |     100 |                   
+  uiStore.ts       |     100 |      100 |     100 |     100 |                   
+ src/utils         |     100 |      100 |     100 |     100 |                   
+  index.ts         |     100 |      100 |     100 |     100 |                   
+-------------------|---------|----------|---------|---------|-------------------

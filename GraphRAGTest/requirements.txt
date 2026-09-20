@@ -1,0 +1,19 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+python-dotenv>=1.0.0
+httpx>=0.27.0
+
+# Neo4j
+neo4j>=5.16.0
+
+# Text embedding (BGE-M3)
+# 说明: sentence-transformers / faiss 均可选，vector_store.py 在缺失时会自动降级为
+# 哈希向量 + numpy 暴力检索，接口不受影响。
+sentence-transformers>=2.2.0,<3.0  # 上限锁 <3.0，兼容 transformers==4.37.0 / torch==2.1.2（避免解析到需 transformers>=4.41 的 3.x）
+faiss-cpu>=1.7.4
+
+# Utilities
+tenacity>=8.2.0
+loguru>=0.7.0

@@ -1,0 +1,74 @@
+# Prometheus 告警规则
+groups:
+  - name: backend-availability
+    rules:
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "后端服务不可用"
+          description: "后端 {{ $labels.instance }} 已宕机超过 1 分钟。"
+
+  - name: backend-http
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{job="backend", status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{job="backend"}[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "后端 5xx 错误率过高"
+          description: "后端 5 分钟内 5xx 错误占比 {{ $value | humanizePercentage }}，超过 5% 阈值。"
+
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="backend"}[5m])) by (le)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "后端 P95 响应延迟过高"
+          description: "后端 P95 延迟为 {{ $value }}s，超过 2s 阈值。"
+
+      - alert: TooManyInFlightRequests
+        expr: http_requests_inprogress{job="backend"} > 50
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "后端在途请求数过多"
+          description: "后端在途请求数 {{ $value }}，超过 50。"
+
+  - name: backend-business
+    rules:
+      - alert: SlowModelInference
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(model_inference_duration_seconds_bucket{job="backend-business"}[5m])) by (le, model)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "模型推理延迟过高"
+          description: "模型 {{ $labels.model }} P95 推理耗时 {{ $value }}s，超过 2s 阈值。"
+
+      - alert: CeleryQueueBacklog
+        expr: celery_queue_length{job="backend-business"} > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Celery 队列积压过高"
+          description: "队列 {{ $labels.queue }} 待处理任务 {{ $value }}，超过 1000。"

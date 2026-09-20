@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Backend (lint & test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install -r backend/requirements-dev.txt
+
+      - name: Ruff lint
+        working-directory: backend
+        run: ruff check .
+
+      - name: Black format check
+        working-directory: backend
+        run: black --check .
+
+      - name: Run tests
+        run: python -m pytest test -v --cov=app --cov-report=term-missing
+
+  frontend:
+    name: Frontend (lint, type-check & test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: ESLint
+        working-directory: frontend
+        run: pnpm lint
+
+      - name: Prettier check
+        working-directory: frontend
+        run: pnpm exec prettier --check "src/**/*.{ts,tsx,css,json}"
+
+      - name: Type check
+        working-directory: frontend
+        run: pnpm type-check
+
+      - name: Run tests
+        working-directory: frontend
+        run: pnpm test
+
+  docker:
+    name: Build Docker images
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t sdp-backend:ci ./backend
+
+      - name: Build frontend image
+        run: docker build -t sdp-frontend:ci ./frontend
+
+  # ── 自动部署：未配置镜像仓库与部署目标，暂不启用 ──────────────────────────
+  # 启用步骤：
+  #   1) 在 GitHub 仓库 Settings → Secrets and variables → Actions 配置
+  #      CONTAINER_REGISTRY_USER / CONTAINER_REGISTRY_PASSWORD；
+  #   2) 将下方 Push images 中的镜像地址替换为你的镜像仓库（如 ghcr.io/<owner>/<image>）；
+  #   3) 在 Deploy 步骤接入实际部署方式（ssh 到服务器 / kubectl apply / 云服务 CLI）。
+  # 完成后把 `if: false` 改为需要的触发条件（仅 main 分支等）。
+  deploy:
+    name: Deploy (暂不启用)
+    needs: [docker]
+    runs-on: ubuntu-latest
+    if: false
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to container registry
+        run: |
+          echo "${{ secrets.CONTAINER_REGISTRY_PASSWORD }}" | docker login ghcr.io -u "${{ secrets.CONTAINER_REGISTRY_USER }}" --password-stdin
+
+      - name: Push images
+        run: |
+          docker tag sdp-backend:ci ghcr.io/${{ github.repository_owner }}/sdp-backend:${{ github.sha }}
+          docker tag sdp-frontend:ci ghcr.io/${{ github.repository_owner }}/sdp-frontend:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner }}/sdp-backend:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner }}/sdp-frontend:${{ github.sha }}
+
+      - name: Deploy
+        run: echo "在此接入实际部署（如 ssh 到服务器 / kubectl apply / 云服务 CLI）"
