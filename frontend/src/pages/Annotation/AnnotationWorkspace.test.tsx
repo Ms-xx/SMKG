@@ -111,7 +111,7 @@ describe("AnnotationWorkspace", () => {
     await waitFor(() =>
       expect(vi.mocked(annotationApi.create)).toHaveBeenCalledWith({
         document_id: "d1",
-        element_id: null,
+        element_id: undefined,
         annotation_type: "ner",
         content: { text: "钛酸钡", entity_type: "Material" },
         confidence: 0.9,

@@ -27,6 +27,7 @@ node_modules/
 dist/
 build/
 .pnpm-store/
+.vite/
 *.tsbuildinfo
 *.local
 

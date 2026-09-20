@@ -51,9 +51,7 @@ describe("useDocumentStore", () => {
   });
 
   it("fetchDocuments 兼容直接返回 data 的场景", async () => {
-    mockGetList.mockResolvedValue({
-      data: { items: [{ id: "d2", title: "Paper B" }], total: 1 },
-    });
+    mockGetList.mockResolvedValue({ items: [{ id: "d2", title: "Paper B" }], total: 1 });
 
     await useDocumentStore.getState().fetchDocuments();
 

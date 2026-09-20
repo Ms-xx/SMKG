@@ -139,9 +139,7 @@ class ExtractionService:
             merged[(r["source"], r["target"], r["relation_type"])] = r
         return list(merged.values())
 
-    def _extract_relations_by_rebel(
-        self, text: str, entities: List[Dict]
-    ) -> List[Dict]:
+    def _extract_relations_by_rebel(self, text: str, entities: List[Dict]) -> List[Dict]:
         """调用 REBEL 关系抽取（模型缺失时返回空列表，由规则/LLM 兜底）。"""
         if not settings.RELATION_EXTRACTION_ENABLED:
             return []
@@ -176,9 +174,7 @@ class ExtractionService:
         elements_result = await db.execute(
             select(DocumentElement).where(
                 DocumentElement.page_id.in_(
-                    select(DocumentPage.id).where(
-                        DocumentPage.document_id == document_id
-                    )
+                    select(DocumentPage.id).where(DocumentPage.document_id == document_id)
                 )
             )
         )
@@ -189,10 +185,7 @@ class ExtractionService:
 
         # 处理每个文本元素
         for element in elements:
-            if (
-                element.element_type in ("text", "paragraph", "title", "list")
-                and element.content
-            ):
+            if element.element_type in ("text", "paragraph", "title", "list") and element.content:
                 entities = await self.extract_entities(element.content)
                 relations = await self.extract_relations(element.content, entities)
 

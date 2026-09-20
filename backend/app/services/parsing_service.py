@@ -14,9 +14,7 @@ class ParsingService:
         # 可注入 mock 便于测试；默认使用全局单例（懒加载 PaddleOCR）
         self.ocr = ocr if ocr is not None else ocr_service
 
-    def extract_text_with_pymupdf(
-        self, file_path: str, enable_ocr: bool = True
-    ) -> Dict:
+    def extract_text_with_pymupdf(self, file_path: str, enable_ocr: bool = True) -> Dict:
         doc = fitz.open(file_path)
         result = {
             "metadata": {
@@ -172,9 +170,7 @@ class ParsingService:
             try:
                 detections = self.detect_figures(image_path)
                 for det in detections:
-                    region = self._crop_region(
-                        image_path, det.get("bbox") or [0, 0, 0, 0]
-                    )
+                    region = self._crop_region(image_path, det.get("bbox") or [0, 0, 0, 0])
                     if not region:
                         continue
                     try:

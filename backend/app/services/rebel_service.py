@@ -110,9 +110,7 @@ class RebelService:
             self._load_error = "RELATION_EXTRACTION_ENABLED 为 False"
             logger.warning("REBEL 未启用，关系抽取将回退到规则/LLM")
             return
-        model_source = resolve_model_source(
-            settings.REBEL_MODEL, settings.REBEL_MODEL_PATH
-        )
+        model_source = resolve_model_source(settings.REBEL_MODEL, settings.REBEL_MODEL_PATH)
         try:
             from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 

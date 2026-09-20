@@ -29,9 +29,7 @@ def parse_document_task(self, document_id: str):
 
     try:
         # 步骤1: 下载文件
-        self.update_state(
-            state="PROGRESS", meta={"progress": 10, "step": "downloading"}
-        )
+        self.update_state(state="PROGRESS", meta={"progress": 10, "step": "downloading"})
 
         # 从数据库获取文档信息
         with get_db_context() as db:
@@ -138,9 +136,7 @@ def parse_document_task(self, document_id: str):
                         element = DocumentElement(
                             page_id=page.id,
                             element_type="text",
-                            bbox=json.dumps(
-                                [0, 0, page_info["width"], page_info["height"]]
-                            ),
+                            bbox=json.dumps([0, 0, page_info["width"], page_info["height"]]),
                             content=page_info["text"],
                             confidence=0.95,
                         )

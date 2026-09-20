@@ -16,6 +16,7 @@ export function useWebSocket({
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const connect = useCallback(() => {
+    if (!url) return;
     const ws = new WebSocket(url);
     wsRef.current = ws;
     ws.onopen = () => {
@@ -46,9 +47,10 @@ export function useWebSocket({
   }, []);
 
   useEffect(() => {
+    if (!url) return;
     connect();
     return () => disconnect();
-  }, [connect, disconnect]);
+  }, [connect, disconnect, url]);
 
   return { isConnected, sendMessage, disconnect };
 }

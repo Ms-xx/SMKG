@@ -27,7 +27,5 @@ def setup_metrics(app) -> None:
             "prometheus-fastapi-instrumentator 未安装，跳过 /metrics 暴露（监控能力降级）"
         )
         return
-    _INSTRUMENTATOR.instrument(app).expose(
-        app, endpoint="/metrics", include_in_schema=False
-    )
+    _INSTRUMENTATOR.instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
     logger.info("Prometheus 指标已暴露于 /metrics")

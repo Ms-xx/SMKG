@@ -103,14 +103,18 @@ export const annotationApi = {
     confidence?: number;
   }) => api.post("/annotations/", data),
   getByDocument: async (documentId: string) => api.get(`/annotations/document/${documentId}`),
-  update: async (id: string, data: { content?: Record<string, any>; confidence?: number }) =>
-    api.put(`/annotations/${id}`, data),
+  update: async (
+    id: string,
+    data: { content?: Record<string, any>; confidence?: number; base_updated_at?: string },
+  ) => api.put(`/annotations/${id}`, data),
   submit: async (id: string) => api.post(`/annotations/${id}/submit`),
   firstReview: async (id: string, approved: boolean, comment?: string) =>
     api.post(`/annotations/${id}/first-review`, { approved, comment }),
   finalReview: async (id: string, approved: boolean, comment?: string) =>
     api.post(`/annotations/${id}/final-review`, { approved, comment }),
   getVersions: async (id: string) => api.get(`/annotations/${id}/versions`),
+  lock: async (id: string) => api.post(`/annotations/${id}/lock`),
+  unlock: async (id: string) => api.post(`/annotations/${id}/unlock`),
 };
 
 export const operationLogApi = {

@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { Tabs, Button, Space, message, Spin } from "antd";
+import { Tabs, Button, Space, message, Spin, Badge } from "antd";
 import { SaveOutlined, SendOutlined } from "@ant-design/icons";
 import DualPaneView from "./components/DualPaneView";
 import EntityExtractor from "./components/EntityExtractor";
@@ -8,6 +8,9 @@ import RelationEditor from "./components/RelationEditor";
 import AnnotationHistory from "./components/AnnotationHistory";
 import CommentPanel from "./components/CommentPanel";
 import { annotationApi } from "@api/modules";
+import { buildAnnotationWsUrl } from "@api/ws";
+import { useWebSocket } from "@/hooks/useWebSocket";
+import { useAuthStore } from "@/store/authStore";
 import type { Annotation } from "@/types";
 
 export default function AnnotationWorkspace() {
@@ -17,6 +20,75 @@ export default function AnnotationWorkspace() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // ── 实时协作：WebSocket 订阅文档频道，接收他人标注变更并实时同步 ──
+  const meId = useAuthStore((s) => s.user?.id);
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+
+  const applyRemoteAnnotation = useCallback((incoming: Annotation) => {
+    setAnnotations((prev) => {
+      const exists = prev.some((a) => a.id === incoming.id);
+      if (exists) {
+        return prev.map((a) => (a.id === incoming.id ? incoming : a));
+      }
+      return [...prev, incoming];
+    });
+  }, []);
+
+  const handleWsMessage = useCallback(
+    (data: any) => {
+      const type: string | undefined = data?.type;
+      const ann = data?.annotation as Annotation | undefined;
+      const actorId = data?.user_id as string | undefined;
+      const annId = data?.annotation_id as string | undefined;
+      switch (type) {
+        case "subscribed":
+          setOnlineUsers(data?.online_users || []);
+          break;
+        case "presence.joined":
+          if (actorId && actorId !== meId) {
+            setOnlineUsers((prev) => (prev.includes(actorId) ? prev : [...prev, actorId]));
+          }
+          break;
+        case "presence.left":
+          setOnlineUsers((prev) => prev.filter((id) => id !== actorId));
+          break;
+        case "annotation.created":
+          if (ann && actorId !== meId) {
+            applyRemoteAnnotation(ann);
+            message.info("收到他人的新标注");
+          }
+          break;
+        case "annotation.updated":
+          if (ann) {
+            applyRemoteAnnotation(ann);
+            if (actorId !== meId) message.info("标注已被他人更新");
+          }
+          break;
+        case "annotation.submitted":
+        case "annotation.reviewed":
+          if (ann) applyRemoteAnnotation(ann);
+          break;
+        case "annotation.deleted":
+          if (annId) setAnnotations((prev) => prev.filter((a) => a.id !== annId));
+          break;
+        case "annotation.locked":
+          if (actorId !== meId) message.info("标注已被他人锁定");
+          break;
+        case "annotation.unlocked":
+          if (actorId !== meId) message.info("标注已解锁");
+          break;
+        default:
+          break;
+      }
+    },
+    [meId, applyRemoteAnnotation],
+  );
+
+  const { isConnected } = useWebSocket({
+    url: documentId ? buildAnnotationWsUrl(documentId) : "",
+    onMessage: handleWsMessage,
+  });
 
   // 加载已有标注
   useEffect(() => {
@@ -132,7 +204,22 @@ export default function AnnotationWorkspace() {
 
   return (
     <div>
-      <div style={{ marginBottom: 16, display: "flex", justifyContent: "flex-end" }}>
+      <div
+        style={{
+          marginBottom: 16,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <Badge
+          status={isConnected ? "success" : "default"}
+          text={
+            isConnected
+              ? `实时协作已连接（${Math.max(0, onlineUsers.length - 1)} 位协作者）`
+              : "实时协作未连接"
+          }
+        />
         <Space>
           <Button icon={<SaveOutlined />} onClick={handleSave} loading={saving}>
             保存

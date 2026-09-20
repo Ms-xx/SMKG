@@ -259,9 +259,7 @@ def _extract_fields(entry: str) -> Dict:
     }
 
     # 用文献类型标记切分 head（作者+标题）与 tail（期刊/会议+年卷期页）
-    mark_match = re.search(
-        r"\[(?:J|C|M|D|R|P|S|EB/OL|DB/OL|J/OL|Book|Conference|Journal)\]", entry
-    )
+    mark_match = re.search(r"\[(?:J|C|M|D|R|P|S|EB/OL|DB/OL|J/OL|Book|Conference|Journal)\]", entry)
     if mark_match:
         head = entry[: mark_match.start()]
         tail = entry[mark_match.end() :]
@@ -283,9 +281,7 @@ def _extract_fields(entry: str) -> Dict:
                 fields["journal"] = tail[:year_idx].strip(" .,;:")
     if not fields["journal"]:
         fields["journal"] = (
-            re.sub(r"[:：].*$", "", tail or head.split(".")[-1:]).strip()
-            if tail
-            else ""
+            re.sub(r"[:：].*$", "", tail or head.split(".")[-1:]).strip() if tail else ""
         )
 
     vol, issue = _extract_volume_issue(entry)

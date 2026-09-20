@@ -16,6 +16,7 @@ from app.api.v1 import (
     tasks,
     users,
     version_management,
+    ws,
 )
 from app.api.v1 import models as model_api
 
@@ -39,3 +40,4 @@ router.include_router(
 )
 router.include_router(model_api.router, prefix="/models", tags=["Models"])
 router.include_router(alerts.router, prefix="/alerts", tags=["告警"])
+router.include_router(ws.router, prefix="/ws", tags=["实时协作"])

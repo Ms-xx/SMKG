@@ -19,8 +19,9 @@ from app.schemas.annotation import (
     ReviewRequest,
 )
 from app.services.annotation_agreement_service import annotation_agreement_service
-from app.services.annotation_service import AnnotationService
+from app.services.annotation_service import AnnotationConflict, AnnotationService
 from app.services.operation_log_service import OperationLogService
+from app.services.realtime_service import broadcast_annotation_event, lock_manager
 
 router = APIRouter()
 annotation_service = AnnotationService()
@@ -35,7 +36,14 @@ async def create_annotation(
     db: AsyncSession = Depends(get_db),
 ):
     ip = request.client.host if request.client else None
-    return await annotation_service.create_annotation(db, annotation, current_user["user_id"], ip)
+    result = await annotation_service.create_annotation(db, annotation, current_user["user_id"], ip)
+    await broadcast_annotation_event(
+        result.document_id,
+        "annotation.created",
+        annotation=result,
+        user_id=current_user["user_id"],
+    )
+    return result
 
 
 @router.get("/", response_model=list[AnnotationResponse])
@@ -69,11 +77,23 @@ async def update_annotation(
     db: AsyncSession = Depends(get_db),
 ):
     ip = request.client.host if request.client else None
-    result = await annotation_service.update_annotation(
-        db, annotation_id, annotation, current_user["user_id"], ip
-    )
+    try:
+        result = await annotation_service.update_annotation(
+            db, annotation_id, annotation, current_user["user_id"], ip
+        )
+    except AnnotationConflict:
+        raise HTTPException(
+            status_code=409,
+            detail="标注已被他人修改，请刷新后重试",
+        ) from None
     if not result:
         raise HTTPException(status_code=404, detail="Annotation not found")
+    await broadcast_annotation_event(
+        result.document_id,
+        "annotation.updated",
+        annotation=result,
+        user_id=current_user["user_id"],
+    )
     return result
 
 
@@ -90,7 +110,55 @@ async def submit_annotation(
     )
     if not result:
         raise HTTPException(status_code=404, detail="Annotation not found")
+    await broadcast_annotation_event(
+        result.document_id,
+        "annotation.submitted",
+        annotation=result,
+        user_id=current_user["user_id"],
+    )
     return {"message": "Annotation submitted for review"}
+
+
+@router.post("/{annotation_id}/lock")
+async def lock_annotation(
+    annotation_id: str,
+    current_user: dict = Depends(require_permission(ANNOTATION_WRITE)),
+    db: AsyncSession = Depends(get_db),
+):
+    """锁定标注：同一时刻仅允许一个用户编辑（Redis SET NX + TTL，可降级内存）。"""
+    annotation = await annotation_service.get_annotation(db, annotation_id)
+    if not annotation:
+        raise HTTPException(status_code=404, detail="Annotation not found")
+    acquired = await lock_manager.acquire(annotation_id, current_user["user_id"])
+    if not acquired:
+        owner = await lock_manager.owner(annotation_id)
+        raise HTTPException(status_code=409, detail=f"标注已被用户 {owner} 锁定")
+    await broadcast_annotation_event(
+        annotation.document_id,
+        "annotation.locked",
+        annotation_id=annotation_id,
+        user_id=current_user["user_id"],
+    )
+    return {"locked": True, "owner": current_user["user_id"]}
+
+
+@router.post("/{annotation_id}/unlock")
+async def unlock_annotation(
+    annotation_id: str,
+    current_user: dict = Depends(require_permission(ANNOTATION_WRITE)),
+    db: AsyncSession = Depends(get_db),
+):
+    annotation = await annotation_service.get_annotation(db, annotation_id)
+    if not annotation:
+        raise HTTPException(status_code=404, detail="Annotation not found")
+    await lock_manager.release(annotation_id, current_user["user_id"])
+    await broadcast_annotation_event(
+        annotation.document_id,
+        "annotation.unlocked",
+        annotation_id=annotation_id,
+        user_id=current_user["user_id"],
+    )
+    return {"locked": False}
 
 
 @router.post("/{annotation_id}/first-review")
@@ -109,6 +177,13 @@ async def first_review_annotation(
         raise HTTPException(
             status_code=409, detail="Annotation not found or not in 'submitted' state"
         )
+    await broadcast_annotation_event(
+        result.document_id,
+        "annotation.reviewed",
+        annotation=result,
+        user_id=current_user["user_id"],
+        extra={"review_stage": "first_review", "approved": review.approved},
+    )
     return {"message": "Annotation passed/rejected in first review", "annotation": result}
 
 
@@ -128,6 +203,13 @@ async def final_review_annotation(
         raise HTTPException(
             status_code=409, detail="Annotation not found or not in 'pending_final' state"
         )
+    await broadcast_annotation_event(
+        result.document_id,
+        "annotation.reviewed",
+        annotation=result,
+        user_id=current_user["user_id"],
+        extra={"review_stage": "final_review", "approved": review.approved},
+    )
     return {"message": "Annotation approved/rejected in final review", "annotation": result}
 
 
@@ -150,6 +232,7 @@ async def delete_annotation(
     annotation = await annotation_service.get_annotation(db, annotation_id)
     if not annotation:
         raise HTTPException(status_code=404, detail="Annotation not found")
+    document_id = annotation.document_id
     await db.delete(annotation)
     ip = request.client.host if request.client else None
     await operation_log_service.log_operation(
@@ -158,8 +241,14 @@ async def delete_annotation(
         "delete",
         "annotation",
         annotation_id,
-        {"annotation_type": annotation.annotation_type, "document_id": annotation.document_id},
+        {"annotation_type": annotation.annotation_type, "document_id": document_id},
         ip,
+    )
+    await broadcast_annotation_event(
+        document_id,
+        "annotation.deleted",
+        annotation_id=annotation_id,
+        user_id=current_user["user_id"],
     )
 
 

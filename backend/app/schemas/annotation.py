@@ -19,6 +19,9 @@ class AnnotationCreate(AnnotationBase):
 class AnnotationUpdate(BaseModel):
     content: Optional[dict] = None
     confidence: Optional[float] = None
+    # 乐观锁基数：客户端提交其最后看到该标注的 updated_at；
+    # 与库中当前值不一致时判定冲突（409），避免覆盖他人修改。
+    base_updated_at: Optional[datetime] = None
 
 
 class AnnotationResponse(BaseModel):

@@ -36,9 +36,7 @@ describe("useAuthStore", () => {
         access_token: "access-1",
         refresh_token: "refresh-1",
       });
-      mockGetCurrentUser.mockResolvedValue({
-        data: { id: "u1", username: "alice", role: "admin" },
-      });
+      mockGetCurrentUser.mockResolvedValue({ id: "u1", username: "alice", role: "admin" });
       mockGetMy.mockResolvedValue({ permissions: ["document:read"] });
 
       await useAuthStore.getState().login("alice", "secret");
@@ -92,9 +90,7 @@ describe("useAuthStore", () => {
     it("有 token 时拉取用户；权限接口失败时降级为空数组", async () => {
       localStorage.setItem("access_token", "tok");
       useAuthStore.setState({ token: "tok" });
-      mockGetCurrentUser.mockResolvedValue({
-        data: { id: "u1", username: "bob", role: "annotator" },
-      });
+      mockGetCurrentUser.mockResolvedValue({ id: "u1", username: "bob", role: "annotator" });
       mockGetMy.mockRejectedValue(new Error("no permission"));
 
       await useAuthStore.getState().fetchUser();

@@ -8,6 +8,23 @@ from app.schemas.annotation import AnnotationCreate, AnnotationUpdate
 from app.services.operation_log_service import OperationLogService
 
 
+class AnnotationConflict(Exception):
+    """标注乐观锁冲突：提交的 base_updated_at 与库中当前 updated_at 不一致。"""
+
+    def __init__(self, annotation_id: str) -> None:
+        self.annotation_id = annotation_id
+        super().__init__(f"Annotation {annotation_id} was modified by someone else")
+
+
+def _normalize_dt(value):
+    """纳秒/时区归一化，便于乐观锁时间戳比对（DATETIME 精度为秒级）。"""
+    if value is None:
+        return None
+    if getattr(value, "tzinfo", None) is not None:
+        value = value.replace(tzinfo=None)
+    return value.replace(microsecond=0)
+
+
 class AnnotationService:
     def __init__(self):
         self.log_service = OperationLogService()
@@ -65,7 +82,15 @@ class AnnotationService:
         annotation = await self.get_annotation(db, annotation_id)
         if not annotation:
             return None
-        changed_fields = update_data.model_dump(exclude_unset=True)
+
+        # 乐观锁：提交基数与库中不一致 → 冲突（不覆盖他人修改）
+        base_updated_at = update_data.base_updated_at
+        if base_updated_at is not None and _normalize_dt(annotation.updated_at) != _normalize_dt(
+            base_updated_at
+        ):
+            raise AnnotationConflict(annotation_id)
+
+        changed_fields = update_data.model_dump(exclude_unset=True, exclude={"base_updated_at"})
         for field, value in changed_fields.items():
             setattr(annotation, field, value)
 
