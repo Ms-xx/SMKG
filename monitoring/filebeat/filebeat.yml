@@ -1,0 +1,23 @@
+# Filebeat 日志采集配置
+# 采集后端写入的 JSON 日志文件，发送到 Logstash。
+filebeat.inputs:
+  - type: filestream
+    id: backend-json
+    enabled: true
+    paths:
+      - /var/log/app/*.log
+    parsers:
+      - ndjson:
+          target: ""
+          add_error_key: true
+
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+
+output.logstash:
+  hosts: ["logstash:5044"]
+
+# 开发调试时可打开，直接打印采集到的事件
+# logging.level: debug
+# logging.to_files: false

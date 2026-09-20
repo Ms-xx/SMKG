@@ -1,0 +1,244 @@
+﻿node.exe : $ vitest run --coverage
+At D:\workapp\Node\node_global\pnpm.ps1:24 char:5
++     & "node$exe"  "$basedir/node_modules/pnpm/bin/pnpm.mjs" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ($ vitest run --coverage:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mD:/work/VSCodeWork/LX/frontend[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
+ [32m✓[39m src/utils/index.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 37[2mms[22m[39m
+ [32m✓[39m src/store/uiStore.test.ts [2m([22m[2m3 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m src/store/documentStore.test.ts [2m([22m[2m8 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/store/authStore.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m src/hooks/useWebSocket.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 51[2mms[22m[39m
+ [32m✓[39m src/hooks/usePagination.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 49[2mms[22m[39m
+[90mstderr[2m | src/router/guards.test.tsx[2m > [22m[2m路由守卫[2m > [22m[2mauthGuard 未登录时跳转 /login
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition
+` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactroute
+r.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+
+ [32m✓[39m src/router/guards.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[90m 76[2mms[22m[39m
+[90mstderr[2m | src/pages/NotFound/NotFoundPage.test.tsx[2m > [22m[2mNotFoundPage[2m > [22m[2m渲染 404 提示与返回首页按钮
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition
+` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactroute
+r.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+
+ [32m✓[39m src/pages/NotFound/NotFoundPage.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1045[2mms[22m[39m
+   [33m[2m✓[22m[39m NotFoundPage[2m > [22m渲染 404 提示与返回首页按钮 [33m987[2mms[22m[39m
+[90mstderr[2m | src/components/Layout/Sidebar.test.tsx[2m > [22m[2mAppSidebar 菜单权限[2m > [22m[2m管理员显示全部菜单
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition
+` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactroute
+r.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+Warning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-menu@9.16.1_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-menu\lib\Menu.js:56:27
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\menu\menu.js:46:26
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\menu\index.js:19:37
+    at div
+    at aside
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\layout\Sider.js:48:18
+    at AppSidebar (D:\work\VSCodeWork\LX\frontend\src\components\Layout\Sidebar.tsx:15:42)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+
+[90mstderr[2m | src/components/Layout/Sidebar.test.tsx[2m > [22m[2mAppSidebar 菜单权限[2m > [22m[2m无权限普通用户隐藏受控菜单
+[22m[39mWarning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-menu@9.16.1_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-menu\lib\Menu.js:56:27
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\menu\menu.js:46:26
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\menu\index.js:19:37
+    at div
+    at aside
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\layout\Sider.js:48:18
+    at AppSidebar (D:\work\VSCodeWork\LX\frontend\src\components\Layout\Sidebar.tsx:15:42)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+
+[90mstderr[2m | src/components/Layout/Sidebar.test.tsx[2m > [22m[2mAppSidebar 菜单权限[2m > [22m[2m按权限码显示对应菜单
+[22m[39mWarning: An update to ForwardRef inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link
+/wrap-tests-with-act
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\rc-menu@9.16.1_react-dom@18.3.1_react@18.3.1__react@18.3.1\nod
+e_modules\rc-menu\lib\Menu.js:56:27
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\menu\menu.js:46:26
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\menu\index.js:19:37
+    at div
+    at aside
+    at D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\antd@5.29.3_react-dom@18.3.1_react@18.3.1__react@18.3.1\node_m
+odules\antd\lib\layout\Sider.js:48:18
+    at AppSidebar (D:\work\VSCodeWork\LX\frontend\src\components\Layout\Sidebar.tsx:15:42)
+    at Router (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\react-ro
+uter\dist\umd\react-router.development.js:1207:17)
+    at MemoryRouter (D:\work\VSCodeWork\LX\frontend\node_modules\.pnpm\react-router@6.30.3_react@18.3.1\node_modules\re
+act-router\dist\umd\react-router.development.js:1101:7)
+
+[90mstderr[2m | src/pages/Documents/DocumentDetailPage.test.tsx[2m > [22m[2mDocumentDetailPage[2m > [22m[2m无当前文
+档时显示加载态
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition
+` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactroute
+r.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+
+ [32m✓[39m src/components/Layout/Sidebar.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 843[2mms[22m[39m
+   [33m[2m✓[22m[39m AppSidebar 菜单权限[2m > [22m管理员显示全部菜单 [33m693[2mms[22m[39m
+ [32m✓[39m src/pages/Documents/DocumentDetailPage.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1070[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentDetailPage[2m > [22m无当前文档时显示加载态 [33m322[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentDetailPage[2m > [22m展示文档详情与字段 [33m746[2mms[22m[39m
+[90mstderr[2m | src/pages/Documents/DocumentListPage.test.tsx[2m > [22m[2mDocumentListPage[2m > [22m[2m渲染文档列表与状
+态标签
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. Y
+ou can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/u
+pgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+
+[90mstderr[2m | src/pages/Login/LoginPage.test.tsx[2m > [22m[2mLoginPage[2m > [22m[2m渲染登录表单
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition
+` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactroute
+r.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `
+v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/futur
+e#v7_relativesplatpath.
+
+[90mstderr[2m | src/pages/Login/LoginPage.test.tsx[2m > [22m[2mLoginPage[2m > [22m[2m点击注册链接打开注册弹窗
+[22m[39mNot implemented: Window's getComputedStyle() method: with pseudo-elements
+
+ [32m✓[39m src/pages/Documents/DocumentListPage.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 1973[2mms[22m[39m
+   [33m[2m✓[22m[39m DocumentListPage[2m > [22m渲染文档列表与状态标签 [33m1971[2mms[22m[39m
+ [32m✓[39m src/pages/Login/LoginPage.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 2028[2mms[22m[39m
+   [33m[2m✓[22m[39m LoginPage[2m > [22m渲染登录表单 [33m1741[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m12 passed[39m[22m[90m (12)[39m
+[2m      Tests [22m [1m[32m58 passed[39m[22m[90m (58)[39m
+[2m   Start at [22m 11:13:49
+[2m   Duration [22m 29.94s[2m (transform 1.63s, setup 27.95s, collect 86.92s, tests 7.21s, environment 80.54s, prepare 6.32s)[22m
+
+[34m % [39m[2mCoverage report from [22m[33mv8[39m
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   26.48 |    86.29 |   33.96 |   26.48 |                   
+ src               |       0 |        0 |       0 |       0 |                   
+  App.tsx          |       0 |        0 |       0 |       0 | 1-16              
+ src/api           |   65.16 |      100 |       0 |   65.16 |                   
+  index.ts         |   32.55 |      100 |       0 |   32.55 | 11-15,17-18,23-44 
+  modules.ts       |   77.67 |      100 |       0 |   77.67 | ...17,119,121,123 
+ ...nts/Annotation |       0 |        0 |       0 |       0 |                   
+  ...tionPanel.tsx |       0 |        0 |       0 |       0 | 1-35              
+ ...mponents/Graph |       0 |        0 |       0 |       0 |                   
+  ForceGraph.tsx   |       0 |        0 |       0 |       0 | 1-116             
+ ...ponents/Layout |   48.42 |       92 |   42.85 |   48.42 |                   
+  Header.tsx       |       0 |        0 |       0 |       0 | 1-106             
+  MainLayout.tsx   |       0 |        0 |       0 |       0 | 1-20              
+  Sidebar.test.tsx |     100 |      100 |     100 |     100 |                   
+  Sidebar.tsx      |     100 |      100 |      50 |     100 |                   
+ ...ents/PDFViewer |       0 |        0 |       0 |       0 |                   
+  PDFViewer.tsx    |       0 |        0 |       0 |       0 | 1-41              
+ src/hooks         |     100 |    98.24 |   84.61 |     100 |                   
+  ...ation.test.ts |     100 |      100 |     100 |     100 |                   
+  usePagination.ts |     100 |      100 |   66.66 |     100 |                   
+  ...ocket.test.ts |     100 |      100 |     100 |     100 |                   
+  useWebSocket.ts  |     100 |    91.66 |      80 |     100 | 13                
+ ...ges/Annotation |       0 |        0 |       0 |       0 |                   
+  ...Workspace.tsx |       0 |        0 |       0 |       0 | 1-125             
+ ...ion/components |       0 |        0 |       0 |       0 |                   
+  ...onHistory.tsx |       0 |        0 |       0 |       0 | 1-105             
+  CommentPanel.tsx |       0 |        0 |       0 |       0 | 1-204             
+  DualPaneView.tsx |       0 |        0 |       0 |       0 | 1-31              
+  ...Extractor.tsx |       0 |        0 |       0 |       0 | 1-145             
+  ...ionEditor.tsx |       0 |        0 |       0 |       0 | 1-215             
+ ...ages/Dashboard |       0 |        0 |       0 |       0 |                   
+  ...boardPage.tsx |       0 |        0 |       0 |       0 | 1-500             
+ ...ages/Documents |   94.47 |    72.97 |    42.1 |   94.47 |                   
+  ...Page.test.tsx |     100 |      100 |     100 |     100 |                   
+  ...etailPage.tsx |   97.43 |    52.63 |      25 |   97.43 | 31                
+  ...Page.test.tsx |     100 |      100 |     100 |     100 |                   
+  ...tListPage.tsx |   83.63 |       90 |   42.85 |   83.63 | 24-31,47          
+ ...KnowledgeGraph |       0 |        0 |       0 |       0 |                   
+  ...hExplorer.tsx |       0 |        0 |       0 |       0 | 1-534             
+  GraphRAGPage.tsx |       0 |        0 |       0 |       0 | 1-380             
+ src/pages/Login   |   79.86 |     87.5 |   42.85 |   79.86 |                   
+  ...Page.test.tsx |     100 |      100 |     100 |     100 |                   
+  LoginPage.tsx    |   75.42 |    66.66 |   33.33 |   75.42 | ...,28-42,120-126 
+ ...pages/NotFound |     100 |      100 |     100 |     100 |                   
+  ...Page.test.tsx |     100 |      100 |     100 |     100 |                   
+  NotFoundPage.tsx |     100 |      100 |     100 |     100 |                   
+ ...pages/Settings |       0 |        0 |       0 |       0 |                   
+  ...nLogsPage.tsx |       0 |        0 |       0 |       0 | 1-228             
+  ProfilePage.tsx  |       0 |        0 |       0 |       0 | 1-192             
+  ...ssionPage.tsx |       0 |        0 |       0 |       0 | 1-160             
+ ...ges/Statistics |       0 |        0 |       0 |       0 |                   
+  WorkloadPage.tsx |       0 |        0 |       0 |       0 | 1-164             
+ src/pages/Tasks   |       0 |        0 |       0 |       0 |                   
+  TaskListPage.tsx |       0 |        0 |       0 |       0 | 1-651             
+ src/router        |   82.63 |    96.77 |    87.5 |   82.63 |                   
+  guards.test.tsx  |     100 |      100 |     100 |     100 |                   
+  guards.tsx       |     100 |      100 |     100 |     100 |                   
+  index.tsx        |       0 |        0 |       0 |       0 | 1-45              
+ src/store         |    99.4 |    94.02 |     100 |    99.4 |                   
+  ...Store.test.ts |     100 |      100 |     100 |     100 |                   
+  authStore.ts     |   96.77 |     82.6 |     100 |   96.77 | 85-86             
+  ...Store.test.ts |     100 |      100 |     100 |     100 |                   
+  documentStore.ts |     100 |      100 |     100 |     100 |                   
+  uiStore.test.ts  |     100 |      100 |     100 |     100 |                   
+  uiStore.ts       |     100 |      100 |     100 |     100 |                   
+ src/utils         |     100 |      100 |     100 |     100 |                   
+  index.test.ts    |     100 |      100 |     100 |     100 |                   
+  index.ts         |     100 |      100 |     100 |     100 |                   
+-------------------|---------|----------|---------|---------|-------------------
