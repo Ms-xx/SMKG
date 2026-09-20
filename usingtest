@@ -1,0 +1,83 @@
+
+### 启动顺序
+
+#### 1. 启动数据库服务
+确保以下服务已启动:
+- MySQL (WX数据库, root用户, CHANGE_ME密码)
+- Redis (localhost:6379)
+- Neo4j (bolt://localhost:7687)
+- MinIO (localhost:9000)
+
+#### 2. 启动后端服务
+本地启动python环境:
+(D:\workapp\Anaconda\anaconda3\shell\condabin\conda-hook.ps1) ; (conda activate base) ;( conda activate SciMKG)
+```bash
+cd backend
+
+# 首次启动: 初始化数据库
+# python scripts/init_db.py
+
+# 启动FastAPI
+uvicorn app.main:app --reload --port 8000
+
+# 启动Celery Worker(另一个终端)
+cd backend
+celery -A app.core.celery_app worker -l info -Q parsing,extraction,graph
+
+# 启动Neo4j
+# 启动服务（Windows PowerShell）
+neo4j start
+# # 查看状态
+# neo4j status
+# # 停止服务
+# neo4j stop
+# # 重启服务
+# neo4j restart
+
+```
+验证后端启动成功:
+- 访问 http://localhost:8000/health
+- 访问 http://localhost:8000/docs (API文档)
+
+#### 3. 启动 GraphRAGTest
+前置条件: LM Studio 已加载 qwen/qwen3-4b-2507 (端口 1234)，Neo4j 已启动
+
+```bash
+cd GraphRAGTest
+
+# 安装依赖
+# pip install -r requirements.txt
+
+# 启动服务
+python app.py
+# Swagger UI: http://localhost:8001/docs
+```
+#### 4. 启动 MinIO
+ cd D:\workapp\MinIO
+ .\minio.exe server D:\minio-data --console-address ":9001"
+
+
+#### 5. 启动前端服务
+
+```bash
+cd frontend
+
+# 安装依赖(如果未安装)
+# pnpm install
+
+# 启动开发服务器
+pnpm dev
+```
+
+验证前端启动成功:
+- 访问 http://localhost:3000
+
+
+
+#### 6. 登录测试
+
+打开浏览器访问 http://localhost:3000/login
+- 用户名: **admin**
+- 密码: **admin123**
+
+---

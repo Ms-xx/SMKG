@@ -1,0 +1,86 @@
+# Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+starlette==0.35.1
+
+# Database
+sqlalchemy[asyncio]==2.0.25
+aiomysql==0.2.0
+alembic==1.13.1
+pymysql==1.1.0
+
+# Redis
+redis==5.0.1
+hiredis==2.3.2
+
+# Neo4j
+neo4j==5.16.0
+
+# Auth & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.1.2
+cryptography==41.0.7
+
+# Celery
+celery==5.3.6
+flower==2.0.1
+kombu==5.3.4
+
+# File Storage
+minio==7.2.3
+boto3==1.34.14
+
+# PDF Processing
+PyMuPDF==1.23.8
+pdfplumber==0.10.3
+Pillow==10.2.0
+
+# OCR（PaddleOCR，中文优先，处理扫描件/图片文字页；缺失时 ocr_service 自动降级为空）
+# 说明：paddlepaddle 体积较大，按需安装即可；OCR 代码在缺失时会安全跳过。
+paddlepaddle>=2.6.0
+paddleocr>=2.7.0
+
+# 版面分析（LayoutLMv3，复用下方 transformers/Pillow；模型于首次运行时下载到 ~/.cache/huggingface）
+# 无新增 pip 依赖；缺失模型时 layout_service 自动降级为空。
+
+# 公式识别（LaTeX-OCR / pix2tex，公式图 → LaTeX；缺失时 formula_service 自动降级为空）
+pix2tex>=0.1.2
+munch>=2.5.0
+
+# 图表/公式检测（YOLOv8/ultralytics；权重放到 moulds/yolov8；缺失时 figure_detection_service 自动降级）
+ultralytics>=8.0.0
+
+# 图表描述（BLIP-2，复用 transformers/torch；模型放到 moulds/blip2，缺失时 chart_description_service 自动降级）
+
+# AI/ML
+transformers==4.37.0
+torch==2.1.2
+sentence-transformers>=2.2.0,<3.0  # 上限锁 <3.0，兼容 transformers==4.37.0 / torch==2.1.2（避免解析到需 transformers>=4.41 的 3.x）
+faiss-cpu==1.7.4
+accelerate==0.26.1
+peft==0.7.1
+
+# HTTP Client
+httpx==0.26.0
+aiohttp==3.9.1
+requests==2.31.0
+
+# Data Validation
+pydantic==2.5.3
+pydantic-settings==2.1.0
+email-validator==2.1.0
+
+# Logging
+loguru==0.7.2
+python-json-logger==2.0.7
+
+# Monitoring（Prometheus 指标暴露 /metrics；缺失时 metrics_service 自动降级为无 /metrics）
+prometheus-fastapi-instrumentator>=6.1.0
+
+# Utils
+python-dotenv==1.0.0
+tenacity==8.2.3
+pyyaml==6.0.1
+uuid6==2024.1.12
