@@ -46,7 +46,9 @@ def _make_text_pdf(path):
     doc.close()
 
 
-def test_ocr_service_degrades_without_paddleocr(tmp_path):
+def test_ocr_service_degrades_without_paddleocr(tmp_path, monkeypatch):
+    # 强制 paddleocr 导入失败，模拟未安装场景（CI 会真实安装 paddleocr）
+    monkeypatch.setitem(sys.modules, "paddleocr", None)
     svc = OCRService()
     # paddleocr 未安装时应安全降级，返回空串而非抛异常
     text = svc.recognize(str(tmp_path / "none.png"))

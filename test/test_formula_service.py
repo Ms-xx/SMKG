@@ -14,7 +14,9 @@ if BACKEND_DIR not in sys.path:
 from app.services.formula_service import FormulaRecognitionService
 
 
-def test_formula_service_degrades_without_pix2tex(tmp_path):
+def test_formula_service_degrades_without_pix2tex(tmp_path, monkeypatch):
+    # 强制 pix2tex 导入失败，模拟未安装场景（CI 会真实安装 pix2tex）
+    monkeypatch.setitem(sys.modules, "pix2tex", None)
     svc = FormulaRecognitionService()
     # pix2tex 未安装时应安全降级，返回空串而非抛异常
     assert svc.recognize(str(tmp_path / "formula.png")) == ""
