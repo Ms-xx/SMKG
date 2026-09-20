@@ -33,7 +33,7 @@ build/
 
 # ── 模型与大数据文件（moulds/ 约 3.7GB，不进 git）───────
 moulds/
-models/
+/models/
 *.pt
 *.pth
 *.bin
