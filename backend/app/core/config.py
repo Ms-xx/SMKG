@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     API_PREFIX: str = "/api/v1"
 
-    DATABASE_URL: str = "mysql+aiomysql://root:20020522@127.0.0.1:3306/wx"
+    DATABASE_URL: str = "mysql+aiomysql://root:CHANGE_ME@127.0.0.1:3306/wx"
     DATABASE_POOL_SIZE: int = 20
     DATABASE_MAX_OVERFLOW: int = 10
 
@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     NEO4J_URI: str = "bolt://localhost:7687"
     NEO4J_USER: str = "neo4j"
-    NEO4J_PASSWORD: str = "wang245484@"
+    NEO4J_PASSWORD: str = "CHANGE_ME"
 
     MINIO_ENDPOINT: str = "localhost:9000"
     MINIO_ACCESS_KEY: str = "minioadmin"
