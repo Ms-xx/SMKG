@@ -85,7 +85,7 @@
 - ✅ 数据库配置正确
   - 数据库名: WX
   - 用户: root
-  - 密码: 20020522
+  - 密码: CHANGE_ME
   - 连接地址: 127.0.0.1:3306
 
 ### 5. **其他完善的服务**
@@ -119,7 +119,7 @@
 **位置**: `backend/.env`
 
 **已正确配置**:
-- ✅ MySQL数据库连接(WX数据库,root用户,密码20020522)
+- ✅ MySQL数据库连接(WX数据库,root用户,密码CHANGE_ME)
 - ✅ Redis连接
 - ✅ Neo4j连接
 - ✅ MinIO配置
@@ -243,7 +243,7 @@ celery -A app.core.celery_app worker -l info -Q parsing,extraction,graph
 ✅ **已配置完成**:
 - 数据库名: **WX**
 - 用户: **root**
-- 密码: **20020522**
+- 密码: **CHANGE_ME**
 - 地址: **127.0.0.1:3306**
 
 配置文件位置: `backend/.env` 和 `backend/app/core/config.py`

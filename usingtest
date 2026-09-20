@@ -3,7 +3,7 @@
 
 #### 1. 启动数据库服务
 确保以下服务已启动:
-- MySQL (WX数据库, root用户, 20020522密码)
+- MySQL (WX数据库, root用户, CHANGE_ME密码)
 - Redis (localhost:6379)
 - Neo4j (bolt://localhost:7687)
 - MinIO (localhost:9000)
