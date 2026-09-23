@@ -95,25 +95,25 @@ export default function DocumentDetailPage() {
     }
   }, [currentDocument?.file_path]);
 
+  const refSet = useMemo(
+    () =>
+      new Set(
+        (currentDocument?.references || [])
+          .map((r) => r.index)
+          .filter((n): n is number => typeof n === "number"),
+      ),
+    [currentDocument?.references],
+  );
+
+  const citedSet = useMemo(
+    () => new Set(extractCiteNumbers(currentDocument?.abstract || "")),
+    [currentDocument?.abstract],
+  );
+
   if (!currentDocument)
     return <Spin size="large" style={{ display: "block", margin: "100px auto" }} />;
 
   const doc = currentDocument;
-
-  const refSet = useMemo(
-    () =>
-      new Set(
-        (doc.references || [])
-          .map((r) => r.index)
-          .filter((n): n is number => typeof n === "number"),
-      ),
-    [doc.references],
-  );
-
-  const citedSet = useMemo(
-    () => new Set(extractCiteNumbers(doc.abstract || "")),
-    [doc.abstract],
-  );
 
   return (
     <div>
@@ -146,9 +146,7 @@ export default function DocumentDetailPage() {
           <Descriptions.Item label="DOI">{doc.doi || "-"}</Descriptions.Item>
           <Descriptions.Item label="期刊">{doc.journal || "-"}</Descriptions.Item>
           <Descriptions.Item label="作者">{doc.authors?.join(", ") || "-"}</Descriptions.Item>
-          <Descriptions.Item label="机构">
-            {doc.affiliations?.join("；") || "-"}
-          </Descriptions.Item>
+          <Descriptions.Item label="机构">{doc.affiliations?.join("；") || "-"}</Descriptions.Item>
           <Descriptions.Item label="发表日期">
             {doc.publication_date ? dayjs(doc.publication_date).format("YYYY-MM-DD") : "-"}
           </Descriptions.Item>
@@ -182,20 +180,11 @@ export default function DocumentDetailPage() {
             dataSource={doc.references}
             renderItem={(ref, i) => {
               const idx = ref.index ?? i + 1;
-              const authors = Array.isArray(ref.authors)
-                ? ref.authors.join(", ")
-                : ref.authors;
+              const authors = Array.isArray(ref.authors) ? ref.authors.join(", ") : ref.authors;
               const volIssue = ref.volume
                 ? `${ref.volume}${ref.issue ? `(${ref.issue})` : ""}`
                 : ref.issue;
-              const detail = [
-                authors,
-                ref.journal,
-                ref.year,
-                volIssue,
-                ref.pages,
-                ref.doi,
-              ]
+              const detail = [authors, ref.journal, ref.year, volIssue, ref.pages, ref.doi]
                 .filter(Boolean)
                 .join(" · ");
               return (
@@ -220,9 +209,7 @@ export default function DocumentDetailPage() {
                       </Typography.Text>
                     }
                     description={
-                      <Typography.Text type="secondary">
-                        {detail || ref.raw}
-                      </Typography.Text>
+                      <Typography.Text type="secondary">{detail || ref.raw}</Typography.Text>
                     }
                   />
                 </List.Item>
