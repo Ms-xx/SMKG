@@ -1,0 +1,41 @@
+# Celery beat 定时调度器（XiangMu 8.4：论文定时追踪轮询）。
+# 注意：beat 非幂等，禁止多副本，必须 replicas: 1，否则定时任务会重复触发。
+# 依赖 Redis（持久化追踪注册表/去重集合）与 worker 消费 extraction 队列。
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-beat
+  namespace: smkg
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: celery-beat
+  template:
+    metadata:
+      labels:
+        app: celery-beat
+    spec:
+      containers:
+        - name: celery-beat
+          image: smkg/backend:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - celery
+            - -A
+            - app.core.celery_app
+            - beat
+            - -l
+            - info
+          envFrom:
+            - configMapRef:
+                name: smkg-config
+            - secretRef:
+                name: smkg-secret
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi

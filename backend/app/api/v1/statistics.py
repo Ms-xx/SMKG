@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.services.statistics_service import StatisticsService
+from app.utils.cache import async_cache
 
 router = APIRouter()
 statistics_service = StatisticsService()
@@ -41,5 +42,9 @@ async def get_team_dashboard(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """团队看板：按用户聚合的工作量统计。"""
-    return await statistics_service.get_team_dashboard(db)
+    """团队看板：按用户聚合的工作量统计（Redis 缓存 60s，降级直连）。"""
+    return await async_cache(
+        "stats:team",
+        ttl=60,
+        producer=lambda: statistics_service.get_team_dashboard(db),
+    )

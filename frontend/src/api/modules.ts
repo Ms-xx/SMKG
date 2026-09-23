@@ -13,6 +13,19 @@ import type {
   MyPermissions,
   RoleItem,
   RoleListResponse,
+  ActiveLearningSuggestionItem,
+  AgentDescriptor,
+  MultiAgentRunResult,
+  DedupDetectResult,
+  SourceAnchorItem,
+  SourceCompareResult,
+  CitationMapResult,
+  PaperSearchResult,
+  PaperRecommendation,
+  CitationNetwork,
+  KeyPaper,
+  SurveyResult,
+  OutlineResult,
 } from "@/types";
 
 export const authApi = {
@@ -115,6 +128,28 @@ export const annotationApi = {
   getVersions: async (id: string) => api.get(`/annotations/${id}/versions`),
   lock: async (id: string) => api.post(`/annotations/${id}/lock`),
   unlock: async (id: string) => api.post(`/annotations/${id}/unlock`),
+};
+
+export const activeLearningApi = {
+  select: async (data: {
+    samples: any[];
+    strategy?: string;
+    top_k?: number;
+    uncertainty_method?: string;
+    diversity_method?: string;
+    qbc_method?: string;
+  }) => api.post("/active-learning/select", data),
+  suggest: async (params: {
+    document_id?: string;
+    top_k?: number;
+  }): Promise<{
+    strategy: string;
+    backend: string;
+    top_k: number;
+    total: number;
+    selected: number;
+    results: ActiveLearningSuggestionItem[];
+  }> => api.get("/active-learning/suggest", { params }),
 };
 
 export const operationLogApi = {
@@ -221,4 +256,119 @@ export const graphApi = {
     }),
   ragClearGraph: async () => api.post("/knowledge-graph/rag/graph/clear"),
   ragSeedDemoData: async () => api.post("/knowledge-graph/rag/graph/seed"),
+};
+
+export const multiAgentApi = {
+  agents: async (): Promise<{ agents: AgentDescriptor[]; modes: string[] }> =>
+    api.get("/multi-agent/agents"),
+  run: async (data: {
+    query: string;
+    context?: string;
+    agents?: string[];
+    mode?: string;
+  }): Promise<MultiAgentRunResult> => api.post("/multi-agent/run", data),
+  resolve: async (data: { proposals: any[]; mode?: string }) =>
+    api.post("/multi-agent/resolve", data),
+};
+
+// ── 10.2 缺失功能模块 API ──────────────────────────────────────────
+
+export const dedupApi = {
+  detect: async (data: {
+    documents: { id?: string; title?: string; abstract?: string; text?: string }[];
+    threshold?: number;
+  }): Promise<DedupDetectResult> => api.post("/deduplication/detect", data),
+  affiliations: async (text: string): Promise<{ backend: string; affiliations: string[] }> =>
+    api.post("/deduplication/affiliations", { text }),
+};
+
+export const sourceAnchorApi = {
+  anchors: async (
+    chunks: {
+      document_id?: string;
+      page_number?: number;
+      snippet?: string;
+      score?: number;
+    }[],
+  ): Promise<{ backend: string; anchors: SourceAnchorItem[] }> =>
+    api.post("/source-anchor/anchors", { chunks }),
+  compare: async (data: {
+    question: string;
+    documents: { document_id?: string; title?: string; chunks: string[] }[];
+  }): Promise<SourceCompareResult> => api.post("/source-anchor/compare", data),
+};
+
+export const citationLinkApi = {
+  map: async (data: {
+    pages_text: string[];
+    references: Record<string, any>[];
+  }): Promise<CitationMapResult> => api.post("/citation-link/map", data),
+  titleTree: async (
+    pdf_path: string,
+  ): Promise<{
+    backend: string;
+    tree: { level: number; title: string; page_number: number }[];
+  }> => api.post("/citation-link/title-tree", { pdf_path }),
+};
+
+export const paperRetrievalApi = {
+  search: async (data: {
+    query: string;
+    source?: string;
+    max_results?: number;
+  }): Promise<PaperSearchResult> => api.post("/paper-retrieval/search", data),
+  recommend: async (data: {
+    local_references: Record<string, any>[];
+    candidates: Record<string, any>[];
+  }): Promise<{
+    backend: string;
+    local_reference_count: number;
+    recommendations: PaperRecommendation[];
+  }> => api.post("/paper-retrieval/recommend", data),
+  downloadAndIngest: async (data: {
+    result: Record<string, any>;
+  }): Promise<{
+    ingested: boolean;
+    document_id?: string;
+    download: { downloaded: boolean; error?: string; file_size?: number };
+    parsing?: { task_id?: string; status?: string };
+  }> => api.post("/paper-retrieval/download-and-ingest", data),
+};
+
+export const citationGraphApi = {
+  network: async (references: Record<string, any>[]): Promise<CitationNetwork> =>
+    api.post("/citation-graph/network", { references }),
+  keyPapers: async (graph: CitationNetwork): Promise<{ backend: string; key_papers: KeyPaper[] }> =>
+    api.post("/citation-graph/key-papers", { graph }),
+  survey: async (data: {
+    references: Record<string, any>[];
+    top_papers?: Record<string, any>[];
+  }): Promise<SurveyResult> => api.post("/citation-graph/survey", data),
+};
+
+export const writingAssistantApi = {
+  outline: async (data: {
+    idea: string;
+    references: Record<string, any>[];
+  }): Promise<OutlineResult> => api.post("/writing-assistant/outline", data),
+  diagram: async (data: {
+    diagram_type?: string;
+    spec: Record<string, any>;
+  }): Promise<{ backend: string; diagram_type: string; title: string; script: string }> =>
+    api.post("/writing-assistant/diagram", data),
+  csvChart: async (data: {
+    csv_text: string;
+    chart_type?: string;
+  }): Promise<{ backend: string; chart_type: string; svg: string; error?: string }> =>
+    api.post("/writing-assistant/csv-chart", data),
+  translate: async (data: {
+    text: string;
+    target?: string;
+  }): Promise<{ backend: string; text: string; target: string; note?: string }> =>
+    api.post("/writing-assistant/translate", data),
+  llmGenerate: async (data: {
+    prompt: string;
+    max_tokens?: number;
+  }): Promise<{ backend: string; model?: string; content: string; note?: string }> =>
+    api.post("/writing-assistant/llm-generate", data),
 };

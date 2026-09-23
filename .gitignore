@@ -66,6 +66,9 @@ GraphRAGTest/.env
 GraphRAGTest/__pycache__/
 GraphRAGTest/*.pdf
 
+# ── Celery beat 调度状态（运行产物，不进库）─────────────
+celerybeat-schedule*
+
 # ── IDE / 系统 ──────────────────────────────────────────
 .vscode/
 .idea/

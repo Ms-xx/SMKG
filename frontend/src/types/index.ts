@@ -29,6 +29,7 @@ export interface Document {
   title: string;
   doi: string | null;
   authors: string[];
+  affiliations: string[];
   abstract: string | null;
   keywords: string[];
   publication_date: string | null;
@@ -209,4 +210,200 @@ export interface RoleItem {
 export interface RoleListResponse {
   items: RoleItem[];
   total: number;
+}
+
+export interface ActiveLearningSuggestionItem {
+  rank: number;
+  element_id: string;
+  document_id: string;
+  document_title: string | null;
+  element_type: string;
+  page_number: number | null;
+  confidence: number;
+  score: number;
+  method: string;
+  text: string;
+}
+
+export interface AgentDescriptor {
+  name: string;
+  description: string;
+  kind: "text" | "items";
+}
+
+export interface AgentResult {
+  agent: string;
+  description: string;
+  content: string;
+  items: { text: string; type: string; confidence?: number }[] | null;
+  confidence: number;
+  backend: string;
+}
+
+export interface MultiAgentConflict {
+  type: string;
+  agents?: string[];
+  description?: string;
+  text?: string;
+  types?: string[];
+  answers?: { agent: string; answer: string; confidence: number }[];
+}
+
+export interface MultiAgentRunResult {
+  session_id: string;
+  query: string;
+  mode: string;
+  backend: string;
+  agents: string[];
+  agent_results: AgentResult[];
+  conflicts: MultiAgentConflict[];
+  resolution: {
+    mode: string;
+    final_text: string | null;
+    final_items: { text: string; type: string }[] | null;
+    unresolved: { type: string; description?: string }[];
+  };
+  created_at: number;
+}
+
+// ── 10.2 缺失功能模块类型 ──────────────────────────────────────────
+
+export interface DedupClusterDoc {
+  id: string | null;
+  title: string | null;
+  version: string | null;
+}
+
+export interface DedupCluster {
+  size: number;
+  document_ids: (string | null)[];
+  documents: DedupClusterDoc[];
+  suggestion: { keep: string | null; reason: string };
+}
+
+export interface DedupDetectResult {
+  backend: string;
+  threshold: number;
+  total_documents: number;
+  duplicate_pairs: { a_id: string | null; b_id: string | null; similarity: number }[];
+  cluster_count: number;
+  clusters: DedupCluster[];
+}
+
+export interface SourceAnchorItem {
+  document_id: string;
+  page_number: number | null;
+  snippet: string;
+  score: number;
+}
+
+export interface SourcePerspective {
+  document_id: string;
+  title: string;
+  best_score: number;
+}
+
+export interface SourceCompareResult {
+  backend: string;
+  question: string;
+  candidate_count: number;
+  perspectives: SourcePerspective[];
+  top_chunks: { document_id: string; title: string; snippet: string; score: number }[];
+  conclusion: string;
+}
+
+export interface InlineCitation {
+  ref_index: number | null;
+  start: number;
+  end: number;
+  kind: string;
+  raw: string;
+  snippet: string;
+  page_index?: number;
+  page_number?: number;
+}
+
+export interface CitationMapResult {
+  backend: string;
+  total_citations: number;
+  references_count: number;
+  citations: InlineCitation[];
+  by_reference: Record<string, InlineCitation[]>;
+}
+
+export interface PaperResult {
+  title: string;
+  summary: string;
+  authors: string[];
+  arxiv_id?: string;
+  pubmed_id?: string;
+  published: string;
+  source: string;
+}
+
+export interface PaperSearchResult {
+  backend: string;
+  query: string;
+  count: number;
+  results: PaperResult[];
+  error?: string;
+}
+
+export interface PaperRecommendation {
+  title: string | null;
+  source: string | null;
+  score: number;
+  reason: string;
+}
+
+export interface CitationNode {
+  id: string;
+  label: string;
+  year?: string;
+  doi?: string;
+  ref_index?: number;
+}
+
+export interface CitationEdge {
+  source: string;
+  target: string;
+  type?: string;
+}
+
+export interface CitationNetwork {
+  backend: string;
+  node_count: number;
+  edge_count: number;
+  nodes: CitationNode[];
+  edges: CitationEdge[];
+}
+
+export interface KeyPaper {
+  id: string;
+  label?: string;
+  year?: string;
+  page_rank: number;
+  betweenness: number;
+}
+
+export interface SurveyResult {
+  backend: string;
+  reference_count: number;
+  timeline: { year: string; count: number }[];
+  top_papers: string[];
+  survey: string;
+}
+
+export interface OutlineSection {
+  title: string;
+  content: string;
+}
+
+export interface OutlineResult {
+  backend: string;
+  idea: string;
+  sections: OutlineSection[];
+  references: { index: number | null; text: string }[];
+  reference_count: number;
+  note: string;
 }

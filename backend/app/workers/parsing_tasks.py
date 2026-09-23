@@ -11,6 +11,7 @@ from app.core.celery_app import celery_app
 from app.core.database import get_db_context
 from app.models.document import Document, DocumentElement, DocumentPage
 from app.models.task import Task
+from app.services.deduplication_service import extract_affiliations
 from app.services.parsing_service import ParsingService
 from app.utils.minio_client import MinioClient
 
@@ -119,6 +120,9 @@ def parse_document_task(self, document_id: str):
                 document.page_count = text_result["metadata"]["page_count"]
                 document.status = "parsed"
                 document.references = references
+                # 抽取作者机构信息（复用语义去重模块的启发式抽取），结构化入库
+                full_text = " ".join(p.get("text") or "" for p in text_result["pages"])
+                document.affiliations = extract_affiliations(full_text)
 
                 # 创建页面记录
                 for page_info in text_result["pages"]:

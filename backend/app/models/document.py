@@ -1,15 +1,22 @@
-from sqlalchemy import JSON, Column, DateTime, Float, Integer, String, Text, func
+from sqlalchemy import JSON, Column, DateTime, Float, Index, Integer, String, Text, func
 
 from app.models.base import Base, generate_uuid
 
 
 class Document(Base):
     __tablename__ = "documents"
+    # 10.1 性能索引：新库由 create_all 生成；存量库见 backend/sql/idx_performance.sql
+    __table_args__ = (
+        Index("ix_documents_uploaded_by", "uploaded_by"),
+        Index("ix_documents_status", "status"),
+        Index("ix_documents_created_at", "created_at"),
+    )
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
     title = Column(String(500), nullable=False)
     doi = Column(String(100), unique=True)
     authors = Column(JSON, default=list)
+    affiliations = Column(JSON, default=list)
     abstract = Column(Text)
     keywords = Column(JSON, default=list)
     publication_date = Column(DateTime)
@@ -26,6 +33,11 @@ class Document(Base):
 
 class DocumentPage(Base):
     __tablename__ = "document_pages"
+    # 10.1 性能索引
+    __table_args__ = (
+        Index("ix_pages_doc_page", "document_id", "page_number"),
+        Index("ix_pages_document_id", "document_id"),
+    )
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
     document_id = Column(String(36), nullable=False)
@@ -37,6 +49,11 @@ class DocumentPage(Base):
 
 class DocumentElement(Base):
     __tablename__ = "document_elements"
+    # 10.1 性能索引
+    __table_args__ = (
+        Index("ix_elements_page_id", "page_id"),
+        Index("ix_elements_type", "element_type"),
+    )
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
     page_id = Column(String(36), nullable=False)

@@ -19,12 +19,29 @@ class DocumentService:
         self, db: AsyncSession, file: UploadFile, title: Optional[str], user_id: str
     ) -> Document:
         file_content = await file.read()
-        file_size = len(file_content)
-        object_name = f"original/{user_id}/{file.filename}"
-        self.minio_client.upload_file(object_name, file_content, file.content_type)
+        return await self.create_document_from_bytes(
+            db, file.filename, file_content, file.content_type, title, user_id
+        )
+
+    async def create_document_from_bytes(
+        self,
+        db: AsyncSession,
+        filename: str,
+        content: bytes,
+        content_type: str,
+        title: Optional[str],
+        user_id: str,
+    ) -> Document:
+        """将字节内容上传 MinIO 并创建文档记录（status=uploaded）。
+
+        供普通上传与论文检索「下载入库」闭环复用（download-and-ingest）。
+        """
+        file_size = len(content)
+        object_name = f"original/{user_id}/{filename}"
+        self.minio_client.upload_file(object_name, content, content_type)
 
         document = Document(
-            title=title or file.filename,
+            title=title or filename,
             file_path=object_name,
             file_size=file_size,
             uploaded_by=user_id,

@@ -34,6 +34,7 @@ class DocumentResponse(BaseModel):
     title: str
     doi: Optional[str] = None
     authors: List[str] = []
+    affiliations: List[str] = []
     abstract: Optional[str] = None
     keywords: List[str] = []
     publication_date: Optional[datetime] = None

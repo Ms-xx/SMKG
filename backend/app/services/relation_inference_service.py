@@ -9,9 +9,9 @@
 
 依赖策略（可插拔、可降级）：
 - 规则推理为纯函数、零依赖、永远可用；
-- 链路预测优先使用 TransE（numpy 实现，浅层嵌入 + 负采样 SGD）；
-- numpy 缺失 / 三元组过少 / 后端设为 "statistical" 时，自动降级为
-  「统计共现 + 邻居 Jaccard 相似度」的纯 Python 基线，接口不变；
+- 链路预测后端可选：gnn（轻量 GNN，numpy 邻域聚合 + TransE 打分）→
+  transe（numpy 浅层嵌入 + 负采样 SGD）→ statistical（统计共现 + 邻居 Jaccard）；
+- numpy 缺失 / 三元组过少时逐级降级到 statistical 纯 Python 基线，接口不变；
 - 后端设为 "none" 时仅保留规则推理。
 """
 from __future__ import annotations
@@ -248,6 +248,137 @@ class TransELinkPredictor:
         return scored[:top_k]
 
 
+class GNNLinkPredictor:
+    """
+    轻量 GNN 链路预测（numpy 实现，SGC / GraphSAGE 风格邻域聚合）。
+
+    1. 消息传递：用图邻接矩阵（无向 + 自环归一化）做 K 层邻居平均聚合，
+       得到结构感知的实体嵌入（等价于简化图卷积）；
+    2. 打分：在聚合后的实体嵌入上复用 TransE 的 ||head + relation - tail||，
+       通过负采样 + margin ranking SGD 学习关系嵌入。
+
+    可作为正式 torch_geometric / dgl 的 RGCN / GraphSAGE 的降级替代。
+    """
+
+    def __init__(
+        self,
+        dim: int = 32,
+        layers: int = 2,
+        epochs: int = 120,
+        learning_rate: float = 0.01,
+        margin: float = 1.0,
+        seed: int = 42,
+    ):
+        self.dim = dim
+        self.layers = layers
+        self.epochs = epochs
+        self.lr = learning_rate
+        self.margin = margin
+        self.seed = seed
+        self._trained = False
+        self._entities: list[str] = []
+        self._e2i: dict[str, int] = {}
+        self._r2i: dict[str, int] = {}
+        self._X: Any = None
+        self._R: Any = None
+
+    @property
+    def trained(self) -> bool:
+        return self._trained
+
+    def fit(self, triples: list[Any]) -> "GNNLinkPredictor":
+        facts = _norm_triples(triples)
+        if len(facts) < 2:
+            self._trained = False
+            return self
+
+        self._entities = sorted({h for h, _, _ in facts} | {t for _, _, t in facts})
+        relations = sorted({r for _, r, _ in facts})
+        self._e2i = {e: i for i, e in enumerate(self._entities)}
+        self._r2i = {r: i for i, r in enumerate(relations)}
+        n = len(self._entities)
+
+        rng = np.random.default_rng(self.seed)
+        bound = 6.0 / math.sqrt(self.dim)
+        X = rng.uniform(-bound, bound, (n, self.dim))
+
+        # 邻接矩阵（无向 + 自环，用于消息传递）
+        adj = np.zeros((n, n))
+        for h, _r, t in facts:
+            adj[self._e2i[h], self._e2i[t]] += 1.0
+            adj[self._e2i[t], self._e2i[h]] += 1.0
+        deg = adj.sum(axis=1, keepdims=True)
+        deg[deg == 0] = 1.0
+        adj_norm = adj / deg
+
+        # K 层邻居平均聚合（SGC 风格）
+        for _ in range(self.layers):
+            X = adj_norm @ X
+            norms = np.linalg.norm(X, axis=1, keepdims=True)
+            norms[norms == 0] = 1.0
+            X /= norms
+
+        # 在聚合后的实体嵌入上学习关系嵌入（负采样 SGD）
+        self._R = rng.uniform(-bound, bound, (len(relations), self.dim))
+        for _ in range(self.epochs):
+            for h, r, t in facts:
+                hi, ri, ti = self._e2i[h], self._r2i[r], self._e2i[t]
+                if rng.random() < 0.5:
+                    hn = rng.integers(0, n)
+                    while hn == hi:
+                        hn = rng.integers(0, n)
+                    pos = float(np.linalg.norm(X[hi] + self._R[ri] - X[ti]))
+                    neg = float(np.linalg.norm(X[hn] + self._R[ri] - X[ti]))
+                    if self.margin + pos - neg <= 0:
+                        continue
+                    g = (X[hi] + self._R[ri] - X[ti]) / pos
+                    gn = (X[hn] + self._R[ri] - X[ti]) / neg
+                    self._R[ri] -= self.lr * (g - gn)
+                else:
+                    tn = rng.integers(0, n)
+                    while tn == ti:
+                        tn = rng.integers(0, n)
+                    pos = float(np.linalg.norm(X[hi] + self._R[ri] - X[ti]))
+                    neg = float(np.linalg.norm(X[hi] + self._R[ri] - X[tn]))
+                    if self.margin + pos - neg <= 0:
+                        continue
+                    g = (X[hi] + self._R[ri] - X[ti]) / pos
+                    gn = (X[hi] + self._R[ri] - X[tn]) / neg
+                    self._R[ri] -= self.lr * (g - gn)
+
+        self._X = X
+        self._trained = True
+        return self
+
+    def score_triple(self, head: str, relation: str, tail: str) -> float:
+        if not self._trained:
+            return float("-inf")
+        if head not in self._e2i or relation not in self._r2i or tail not in self._e2i:
+            return float("-inf")
+        h = self._X[self._e2i[head]]
+        r = self._R[self._r2i[relation]]
+        t = self._X[self._e2i[tail]]
+        return round(float(-np.linalg.norm(h + r - t)), 4)
+
+    def predict_links(
+        self,
+        head: str,
+        relation: str,
+        top_k: int = 10,
+        exclude: set[tuple[str, str, str]] | None = None,
+    ) -> list[dict[str, Any]]:
+        if not self._trained or relation not in self._r2i or head not in self._e2i:
+            return []
+        exclude = exclude or set()
+        scored = []
+        for t in self._entities:
+            if (head, relation, t) in exclude:
+                continue
+            scored.append({"entity": t, "score": self.score_triple(head, relation, t)})
+        scored.sort(key=lambda x: x["score"], reverse=True)
+        return scored[:top_k]
+
+
 class StatisticalLinkPredictor:
     """统计共现链路预测（纯 Python 降级基线，零依赖）。"""
 
@@ -331,7 +462,24 @@ class RelationInferenceService:
         self._fit_facts = facts
 
         backend = settings.RELATION_INFERENCE_BACKEND if self.available else "none"
-        use_transe = backend == "transe" and _NUMPY_AVAILABLE and len(facts) >= 3
+
+        use_gnn = backend == "gnn" and _NUMPY_AVAILABLE and len(facts) >= 2
+        if use_gnn:
+            try:
+                self._predictor = GNNLinkPredictor(
+                    dim=settings.TRANSE_DIM,
+                    layers=settings.GNN_LAYERS,
+                    epochs=settings.GNN_EPOCHS,
+                    learning_rate=settings.TRANSE_LR,
+                    margin=settings.TRANSE_MARGIN,
+                    seed=settings.TRANSE_SEED,
+                ).fit(facts)
+                self._backend_used = "gnn"
+                return
+            except Exception as e:  # pragma: no cover - GNN 训练异常降级
+                logger.warning("GNN 训练失败，降级为 TransE：%s", e)
+
+        use_transe = backend in ("gnn", "transe") and _NUMPY_AVAILABLE and len(facts) >= 3
         if use_transe:
             try:
                 self._predictor = TransELinkPredictor(

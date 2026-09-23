@@ -114,9 +114,13 @@ class Settings(BaseSettings):
     ENTITY_LINKING_LANGUAGE: str = "zh"
     ENTITY_LINKING_TIMEOUT: float = 5.0
 
-    # 关系推理 / 图谱补全（规则推理 + TransE 链路预测，可插拔可降级）
+    # 关系推理 / 图谱补全（规则推理 + GNN/TransE 链路预测，可插拔可降级）
     RELATION_INFERENCE_ENABLED: bool = True
-    RELATION_INFERENCE_BACKEND: str = "transe"  # transe | statistical | none（none 仅规则推理）
+    RELATION_INFERENCE_BACKEND: str = (
+        "transe"  # gnn | transe | statistical | none（none 仅规则推理）
+    )
+    GNN_LAYERS: int = 2  # GNN 邻域聚合层数（SGC/GraphSAGE 风格，gnn 后端）
+    GNN_EPOCHS: int = 120  # GNN 关系嵌入训练轮数
     TRANSE_DIM: int = 50
     TRANSE_EPOCHS: int = 300
     TRANSE_LR: float = 0.01
@@ -148,6 +152,59 @@ class Settings(BaseSettings):
     RETRAIN_THRESHOLD: int = 100  # 新标注数据达到阈值触发自动重训
     RETRAIN_PERIODIC_DAYS: int = 7  # 定期触发间隔（天）
     RETRAIN_MAX_RETRIES: int = 3  # 单分段失败最大重试次数
+
+    # A/B 测试（流量分流 + 指标采集 + 统计显著性判定；纯 Python 零依赖）
+    AB_TEST_ENABLED: bool = True
+    AB_TEST_ALPHA: float = 0.05  # 显著水平（默认 0.05）
+    AB_TEST_MIN_SAMPLES: int = 30  # 每个变体最少观测数，低于则提示「样本不足」
+    AB_TEST_STORE_PATH: str = ""  # 留空 = 内存存储；否则 JSON 文件路径
+
+    # 多 Agent 协作（协调器 + 专用智能体编排 + 冲突解决；纯 Python 零依赖，LLM 可插拔降级）
+    MULTI_AGENT_ENABLED: bool = True
+    MULTI_AGENT_BACKEND: str = (
+        "builtin"  # builtin（规则模板，零依赖）| llm（可插拔 LLM 回调，预留）
+    )
+    MULTI_AGENT_MAX_ROUNDS: int = 3  # 协调器聚合最大轮次（当前单轮聚合，预留）
+    MULTI_AGENT_STORE_PATH: str = ""  # 留空 = 内存存储；否则 JSON 文件路径
+
+    # 系统性能探测（步骤 11：延迟基线探测，可插拔可降级）
+    PERFORMANCE_CHECK_ENABLED: bool = True
+
+    # 语义去重与版本管理（10.2 模块一：SimHash 指纹 + 版本建议 + 机构抽取，纯 Python 零依赖）
+    DEDUPLICATION_ENABLED: bool = True
+    DEDUP_THRESHOLD: float = 0.85  # simhash 相似度阈值（≥阈值视为同源）
+
+    # 抗幻觉溯源与多文对比（10.2 模块二：出处锚点 + 跨文档对比，纯 Python 零依赖）
+    SOURCE_ANCHOR_ENABLED: bool = True
+
+    # 版式联动阅读（10.2 模块三：引用↔参考文献双向跳转 + 标题树，纯 Python + fitz 降级）
+    CITATION_LINK_ENABLED: bool = True
+
+    # 论文检索与推荐（10.2 模块四：arXiv/PubMed 公开 API，网络失败降级）
+    PAPER_RETRIEVAL_ENABLED: bool = True
+    ARXIV_MAX_RESULTS: int = 10
+
+    # 论文定时追踪（8.4：Celery beat 周期性轮询；需 Redis 持久化 + beat 进程）
+    PAPER_TRACKING_ENABLED: bool = True
+    PAPER_TRACKING_INTERVAL_MINUTES: int = 60  # beat_schedule 轮询周期（分钟）
+    # 检出新论文后是否自动「下载→入库→解析」；需配置一个系统用户承担归属，否则仅记录
+    PAPER_TRACKING_AUTO_INGEST: bool = True
+    PAPER_TRACKING_DEFAULT_USER: str = ""  # 建议服务端预置调度用户 UUID，留空则自动入库置为跳过
+
+    # 引用图谱挖掘与综述（10.2 模块五：PageRank/介数中心性 + 规则综述，纯 Python 零依赖）
+    CITATION_GRAPH_ENABLED: bool = True
+
+    # 写作辅助与可视化 Copilot（10.2 模块六：框架/图脚本/CSV→SVG，纯 Python 零依赖）
+    WRITING_ASSISTANT_ENABLED: bool = True
+    # 中英学术翻译（9.1：可插拔。配置 OPENAI 兼容翻译端点即启用；未配置则降级回显）。
+    TRANSLATION_ENABLED: bool = False
+    TRANSLATION_ENDPOINT: str = ""  # 例：LM Studio/本地模型 OpenAI 兼容 /v1/chat/completions 地址
+    TRANSLATION_MODEL: str = "qwen2.5-7b-instruct"
+    # 真实 LLM 生成（9.2：可插拔。配置端点即启用；未配置则降级为规则模板）。
+    LLM_ENABLED: bool = False
+    LLM_ENDPOINT: str = ""  # 例：http://127.0.0.1:8001/v1（LM Studio / vLLM / Ollama /v1）
+    LLM_MODEL: str = "qwen2.5-7b-instruct"
+    LLM_TIMEOUT: float = 60.0
 
     # 置信度校准与漂移检测（Temperature/Platt Scaling、数据漂移告警；纯 Python 零依赖）
     CALIBRATION_DRIFT_ENABLED: bool = True

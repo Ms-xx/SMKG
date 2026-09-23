@@ -1,4 +1,5 @@
 import platform
+from datetime import timedelta
 
 from celery import Celery
 
@@ -32,6 +33,7 @@ celery_app.conf.update(
         "app.workers.parsing_tasks.*": {"queue": "parsing"},
         "app.workers.extraction_tasks.*": {"queue": "extraction"},
         "app.workers.graph_tasks.*": {"queue": "graph"},
+        "app.workers.paper_tasks.*": {"queue": "extraction"},
     },
     # 错误处理配置
     task_throws=(),
@@ -39,9 +41,19 @@ celery_app.conf.update(
     worker_disable_rate_limits=True,
 )
 
+# 定时调度（8.4 论文定时追踪）：需启动 beat 进程 + Redis（用于持久化追踪/去重）
+celery_app.conf.beat_schedule = {
+    "paper-tracking-periodic-poll": {
+        "task": "paper_tracking_poll",
+        "schedule": timedelta(minutes=settings.PAPER_TRACKING_INTERVAL_MINUTES),
+        "options": {"queue": "extraction"},
+    }
+}
+
 # Import task modules to register them with the worker
 from app.workers import (  # noqa: E402
     extraction_tasks,  # noqa: F401
     graph_tasks,  # noqa: F401
+    paper_tasks,  # noqa: F401
     parsing_tasks,  # noqa: F401
 )
