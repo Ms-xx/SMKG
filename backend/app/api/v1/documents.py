@@ -90,6 +90,17 @@ async def parse_document(
     return await doc_service.trigger_parsing(db, document_id, current_user["user_id"], True)
 
 
+@router.get("/{document_id}/fulltext")
+async def get_fulltext(
+    document_id: str,
+    current_user: dict = Depends(require_permission(DOCUMENT_READ)),
+    db: AsyncSession = Depends(get_db),
+):
+    """分页全文文本（正文来源）：各页 text 元素按页序聚合。"""
+    scope_all = has_permission(current_user, DOCUMENT_WRITE)
+    return await doc_service.get_fulltext(db, document_id, current_user["user_id"], scope_all)
+
+
 @router.get("/{document_id}/pages/{page_number}/elements", response_model=PageElementsResponse)
 async def get_page_elements(
     document_id: str,

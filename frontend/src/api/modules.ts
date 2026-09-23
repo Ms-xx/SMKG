@@ -67,6 +67,13 @@ export const documentApi = {
     api.post(`/documents/${id}/parse`),
   getPageElements: async (documentId: string, pageNumber: number) =>
     api.get(`/documents/${documentId}/pages/${pageNumber}/elements`),
+  getFullText: async (
+    documentId: string,
+  ): Promise<{
+    document_id: string;
+    page_count: number;
+    pages: { page_number: number; text: string }[];
+  }> => api.get(`/documents/${documentId}/fulltext`),
 };
 
 export const taskApi = {

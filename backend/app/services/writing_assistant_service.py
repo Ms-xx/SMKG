@@ -232,9 +232,7 @@ def _chat_completion(
 ) -> str:
     """调用 OpenAI 兼容 /v1/chat/completions，返回回复文本。失败抛异常由调用方降级。"""
     url = endpoint.rstrip("/") + "/chat/completions"
-    payload = json.dumps(
-        {"model": model, "messages": messages, "temperature": 0.3}
-    ).encode("utf-8")
+    payload = json.dumps({"model": model, "messages": messages, "temperature": 0.3}).encode("utf-8")
     req = urllib.request.Request(
         url,
         data=payload,
@@ -258,9 +256,11 @@ def translate_text(text: str, target: str = "zh") -> dict[str, Any]:
     note = "未配置翻译端点（TRANSLATION_ENABLED/TRANSLATION_ENDPOINT），已降级回显原文。"
     if settings.TRANSLATION_ENABLED and settings.TRANSLATION_ENDPOINT:
         try:
-            direction = "将英文翻译为中文" if target != "zh" else "将中文翻译为英文"
-            if target != "zh":
-                direction = "将中文翻译为学士英文学术用语"
+            # target 语义：'zh' 英→中，'en' 中→英（前端「英→中」即 target='zh'）
+            if target == "en":
+                direction = "将中文翻译为地道的英文学术用语"
+            else:
+                direction = "将英文翻译为准确的中文学术表达"
             messages = [
                 {
                     "role": "system",
@@ -279,7 +279,7 @@ def translate_text(text: str, target: str = "zh") -> dict[str, Any]:
         except Exception as e:  # noqa: BLE001
             logger.warning(f"翻译服务不可用，降级回显: {e}")
             backend = "rule"
-            note = f"翻译端点调用失败，已降级回显原文。"
+            note = "翻译端点调用失败，已降级回显原文。"
 
     return {"backend": backend, "text": translated, "target": target, "note": note}
 
@@ -297,8 +297,14 @@ def llm_generate(prompt: str, max_tokens: int = 500) -> dict[str, Any]:
                 settings.LLM_ENDPOINT,
                 settings.LLM_MODEL,
                 [
-                    {"role": "system", "content": "你是学术写作助手。依据用户输入给出严谨、可用的正文。",},
-                    {"role": "user", "content": prompt,},
+                    {
+                        "role": "system",
+                        "content": "你是学术写作助手。依据用户输入给出严谨、可用的正文。",
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    },
                 ],
                 settings.LLM_TIMEOUT,
             )

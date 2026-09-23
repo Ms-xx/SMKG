@@ -1,8 +1,23 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import DocumentDetailPage from "./DocumentDetailPage";
 import { useDocumentStore } from "@store/documentStore";
+import { documentApi, citationLinkApi, writingAssistantApi } from "@api/modules";
+
+vi.mock("@api/modules", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  const spread = (o: unknown) => ({ ...(o as object) });
+  return {
+    ...actual,
+    documentApi: { ...spread(actual.documentApi), getFullText: vi.fn() },
+    citationLinkApi: { ...spread(actual.citationLinkApi), map: vi.fn() },
+    writingAssistantApi: {
+      ...spread(actual.writingAssistantApi),
+      translate: vi.fn(),
+    },
+  };
+});
 
 const doc = {
   id: "d1",
@@ -52,6 +67,24 @@ describe("DocumentDetailPage", () => {
       fetchDocument: vi.fn(),
       triggerParse: vi.fn(),
     });
+    // 默认：无正文、无引用映射、翻译回显占位（不干扰既有用例）
+    vi.mocked(documentApi.getFullText).mockResolvedValue({
+      document_id: "d1",
+      page_count: 0,
+      pages: [],
+    });
+    vi.mocked(citationLinkApi.map).mockResolvedValue({
+      backend: "rule",
+      total_citations: 0,
+      references_count: 0,
+      citations: [],
+      by_reference: {},
+    });
+    vi.mocked(writingAssistantApi.translate).mockResolvedValue({
+      backend: "llm",
+      text: "译文占位",
+      target: "zh",
+    });
   });
 
   it("无当前文档时显示加载态", () => {
@@ -76,9 +109,7 @@ describe("DocumentDetailPage", () => {
     useDocumentStore.setState({ currentDocument: doc });
     renderPage();
     expect(screen.getByText("参考文献（1）")).toBeInTheDocument();
-    expect(
-      screen.getByText(/\[1\] 钙钛矿太阳能电池研究进展/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/\[1\] 钙钛矿太阳能电池研究进展/)).toBeInTheDocument();
     expect(
       screen.getByText("张三, 李四 · 材料科学学报 · 2023 · 45(3) · 123-130 · 10.1000/xyz"),
     ).toBeInTheDocument();
@@ -99,5 +130,99 @@ describe("DocumentDetailPage", () => {
     // 参考文献项带 ref 锚点与「回到正文」
     expect(document.getElementById("ref-1")).not.toBeNull();
     expect(screen.getByText("回到正文")).toBeInTheDocument();
+  });
+
+  it("正文全文渲染并支持 [n] 引用↔参考文献双向跳转（5.1）", async () => {
+    vi.mocked(documentApi.getFullText).mockResolvedValue({
+      document_id: "d1",
+      page_count: 1,
+      pages: [{ page_number: 1, text: "引言正文[1]与后续研究。" }],
+    });
+    vi.mocked(citationLinkApi.map).mockResolvedValue({
+      backend: "rule",
+      total_citations: 1,
+      references_count: 1,
+      citations: [
+        {
+          ref_index: 1,
+          start: 4,
+          end: 7,
+          kind: "numeric",
+          raw: "[1]",
+          snippet: "",
+          page_index: 0,
+          page_number: 1,
+        },
+      ],
+      by_reference: {
+        "1": [
+          {
+            ref_index: 1,
+            start: 4,
+            end: 7,
+            kind: "numeric",
+            raw: "[1]",
+            snippet: "",
+            page_index: 0,
+            page_number: 1,
+          },
+        ],
+      },
+    });
+    useDocumentStore.setState({ currentDocument: { ...doc, status: "parsed" } });
+    renderPage();
+
+    // 正文全文展示
+    expect(await screen.findByText(/引言正文/)).toBeInTheDocument();
+    // 正文 [1] 生成可点击锚点，指向参考文献 ref-1
+    const anchor = document.getElementById("body-cite-1-4");
+    expect(anchor).not.toBeNull();
+    expect(anchor?.querySelector("a")?.getAttribute("href")).toBe("#ref-1");
+    // 参考文献「回到正文引用」命中正文引用位置
+    expect(await screen.findByText("回到正文引用")).toBeInTheDocument();
+  });
+
+  it("整篇翻译触发 translate 并展示对照译文（5.3）", async () => {
+    vi.mocked(documentApi.getFullText).mockResolvedValue({
+      document_id: "d1",
+      page_count: 1,
+      pages: [{ page_number: 1, text: "Graph neural networks predict properties." }],
+    });
+    vi.mocked(writingAssistantApi.translate).mockResolvedValue({
+      backend: "llm",
+      text: "图神经网络可预测材料性质。",
+      target: "zh",
+    });
+    useDocumentStore.setState({ currentDocument: { ...doc, status: "parsed" } });
+    renderPage();
+
+    const btn = await screen.findByRole("button", { name: /整篇翻译/ });
+    fireEvent.click(btn);
+
+    expect(await screen.findByText("图神经网络可预测材料性质。")).toBeInTheDocument();
+    expect(writingAssistantApi.translate).toHaveBeenCalledWith({
+      text: "Graph neural networks predict properties.",
+      target: "zh",
+    });
+  });
+
+  it("切换中英对照自动逐页翻译（5.2）", async () => {
+    vi.mocked(documentApi.getFullText).mockResolvedValue({
+      document_id: "d1",
+      page_count: 1,
+      pages: [{ page_number: 1, text: "Attention is all you need." }],
+    });
+    vi.mocked(writingAssistantApi.translate).mockResolvedValue({
+      backend: "llm",
+      text: "注意力机制是核心。",
+      target: "zh",
+    });
+    useDocumentStore.setState({ currentDocument: { ...doc, status: "parsed" } });
+    renderPage();
+
+    fireEvent.click(await screen.findByText("中英对照"));
+
+    expect(await screen.findByText("注意力机制是核心。")).toBeInTheDocument();
+    expect(writingAssistantApi.translate).toHaveBeenCalled();
   });
 });

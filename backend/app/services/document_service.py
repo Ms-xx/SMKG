@@ -53,7 +53,11 @@ class DocumentService:
         return document
 
     async def get_document(
-        self, db: AsyncSession, document_id: str, user_id: str = None, scope_all: bool = False
+        self,
+        db: AsyncSession,
+        document_id: str,
+        user_id: str = None,
+        scope_all: bool = False,
     ):
         query = select(Document).where(Document.id == document_id)
         result = await db.execute(query)
@@ -112,7 +116,11 @@ class DocumentService:
         return document
 
     async def delete_document(
-        self, db: AsyncSession, document_id: str, user_id: str = None, scope_all: bool = False
+        self,
+        db: AsyncSession,
+        document_id: str,
+        user_id: str = None,
+        scope_all: bool = False,
     ):
         document = await self.get_document(db, document_id, user_id, scope_all)
 
@@ -181,7 +189,11 @@ class DocumentService:
             db.add(task)
             await db.flush()
             await db.refresh(task)
-            return {"task_id": task.id, "celery_task_id": celery_task.id, "status": "pending"}
+            return {
+                "task_id": task.id,
+                "celery_task_id": celery_task.id,
+                "status": "pending",
+            }
         except Exception as e:
             # Celery not available, do mock parsing
             import logging
@@ -207,6 +219,40 @@ class DocumentService:
             task.progress = 100.0
 
             return {"task_id": task.id, "status": "completed"}
+
+    async def get_fulltext(self, db: AsyncSession, document_id: str, user_id=None, scope_all=False):
+        """返回文档分页全文文本（对应步骤5 版式联动阅读的正文来源）。
+
+        每页由该页 `DocumentElement(element_type='text')` 的 content 按页序拼接而成。
+        """
+        await self.get_document(db, document_id, user_id, scope_all)
+        page_result = await db.execute(
+            select(DocumentPage)
+            .where(DocumentPage.document_id == document_id)
+            .order_by(DocumentPage.page_number)
+        )
+        pages = page_result.scalars().all()
+
+        all_text: list[dict] = []
+        for page in pages:
+            elem_result = await db.execute(
+                select(DocumentElement.content).where(
+                    DocumentElement.page_id == page.id,
+                    DocumentElement.element_type == "text",
+                )
+            )
+            chunks = [r[0] for r in elem_result.all() if r[0]]
+            all_text.append(
+                {
+                    "page_number": page.page_number,
+                    "text": "\n".join(chunks),
+                }
+            )
+        return {
+            "document_id": document_id,
+            "page_count": len(pages),
+            "pages": all_text,
+        }
 
     async def get_page_elements(self, db: AsyncSession, document_id: str, page_number: int):
         page_result = await db.execute(
