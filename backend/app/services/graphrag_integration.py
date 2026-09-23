@@ -73,6 +73,7 @@ class GraphRAGIntegration:
         self,
         question: str,
         return_context: bool = False,
+        include_sources: bool = True,
     ) -> dict[str, Any]:
         """
         GraphRAG 问答
@@ -80,20 +81,26 @@ class GraphRAGIntegration:
         Args:
             question: 用户问题
             return_context: 是否返回检索到的图谱上下文
+            include_sources: 是否返回带 document_id / snippet 的溯源来源
 
         Returns:
             {
                 "question": str,
                 "answer": str,
                 "keywords": list[str],
-                "context": {...} (optional)
+                "context": {...} (optional),
+                "sources": [{document_id, chunk_index, snippet, score}...] (optional)
             }
         """
         try:
             with self._client() as client:
                 resp = client.post(
                     f"{self.base_url}/query",
-                    json={"question": question, "return_context": return_context},
+                    json={
+                        "question": question,
+                        "return_context": return_context,
+                        "include_sources": include_sources,
+                    },
                     timeout=120.0,
                 )
                 resp.raise_for_status()

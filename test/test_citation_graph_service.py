@@ -50,5 +50,7 @@ def test_deduplicate_future_work():
 def test_service_survey():
     svc = CitationGraphService()
     out = svc.survey(REFERENCES)
-    assert out["backend"] == "rule"
+    # LLM 可用时输出真实综述，否则降级规则模板——两者均应保证字段完整
+    assert out["backend"] in ("llm", "rule")
     assert out["reference_count"] == 3
+    assert out["survey"]

@@ -293,6 +293,7 @@ export interface DedupDetectResult {
 export interface SourceAnchorItem {
   document_id: string;
   page_number: number | null;
+  chunk_index?: number | null;
   snippet: string;
   score: number;
 }

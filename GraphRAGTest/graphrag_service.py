@@ -103,6 +103,36 @@ class GraphRAGService:
 
         return "\n".join(lines) or "（知识图谱中未找到相关信息）"
 
+    # ─── 溯源来源检索 ───────────────────────────────────────
+
+    def retrieve_sources(self, question: str, top_k: int = 5) -> list[dict[str, Any]]:
+        """从混合检索器的已索引 chunk 中返回带 document_id / snippet / score 的来源。
+
+        依赖 `hybrid_retriever`（内存态，需先经 `/index/document` 写入 chunk）；
+        检索为空或依赖不可用时返回空列表，由调用方降级。
+        """
+        try:
+            from hybrid_retrieval import hybrid_retriever
+            result = hybrid_retriever.search(query=question, top_k=top_k)
+        except Exception as e:  # pragma: no cover - 依赖缺失降级
+            logger.warning(f"溯源来源检索不可用: {e}")
+            return []
+        sources: list[dict[str, Any]] = []
+        for hit in result.get("results", []):
+            if hit.get("type") != "chunk":
+                continue
+            metadata = hit.get("metadata") or {}
+            sources.append(
+                {
+                    "document_id": metadata.get("doc_id"),
+                    "chunk_index": metadata.get("chunk_index"),
+                    "page_number": None,  # chunk 无页级元数据，页级定位待后端 DocumentPage 回填
+                    "snippet": hit.get("text", ""),
+                    "score": round(float(hit.get("score") or 0.0), 4),
+                }
+            )
+        return sources
+
     # ─── RAG 生成 ───────────────────────────────────────
 
     async def query(
@@ -110,6 +140,7 @@ class GraphRAGService:
         question: str,
         use_llm: bool = True,
         return_context: bool = False,
+        include_sources: bool = True,
     ) -> dict[str, Any]:
         """
         完整的 GraphRAG 问答流程
@@ -165,6 +196,9 @@ class GraphRAGService:
 
         if return_context:
             result["context"] = context_data
+
+        if include_sources:
+            result["sources"] = self.retrieve_sources(question)
 
         return result
 

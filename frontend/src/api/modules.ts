@@ -295,7 +295,16 @@ export const sourceAnchorApi = {
   compare: async (data: {
     question: string;
     documents: { document_id?: string; title?: string; chunks: string[] }[];
+    use_llm?: boolean;
   }): Promise<SourceCompareResult> => api.post("/source-anchor/compare", data),
+  ragAnchors: async (
+    question: string,
+  ): Promise<{
+    backend: string;
+    anchor_count?: number;
+    anchors: SourceAnchorItem[];
+    note?: string;
+  }> => api.post("/source-anchor/rag-anchors", { question }),
 };
 
 export const citationLinkApi = {

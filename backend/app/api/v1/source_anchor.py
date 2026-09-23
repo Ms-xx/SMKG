@@ -29,6 +29,11 @@ class CompareDoc(BaseModel):
 class CompareRequest(BaseModel):
     question: str = ""
     documents: list[CompareDoc] = []
+    use_llm: Optional[bool] = True
+
+
+class RagAnchorsRequest(BaseModel):
+    question: str = ""
 
 
 @router.post("/anchors")
@@ -38,8 +43,16 @@ async def anchors(body: AnchorsRequest, current_user: dict = Depends(get_current
     return source_anchor_service.anchors(chunks)
 
 
+@router.post("/rag-anchors")
+async def rag_anchors(body: RagAnchorsRequest, current_user: dict = Depends(get_current_user)):
+    """真实溯源：从 GraphRAGTest(8001) 拉取带来源的 chunks 生成出处锚点（backend=rag）。"""
+    return source_anchor_service.rag_anchors(body.question)
+
+
 @router.post("/compare")
 async def compare(body: CompareRequest, current_user: dict = Depends(get_current_user)):
-    """多文对比：跨文档聚合候选分块并输出规则化对比结论。"""
+    """多文对比：跨文档聚合候选分块并输出对比结论（配置 LLM 时用真实 LLM 生成）。"""
     docs = [d.model_dump() for d in body.documents]
-    return source_anchor_service.compare(docs, body.question)
+    return source_anchor_service.compare(
+        docs, body.question, use_llm=body.use_llm if body.use_llm is not None else True
+    )

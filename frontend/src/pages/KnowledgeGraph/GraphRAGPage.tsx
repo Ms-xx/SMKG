@@ -38,6 +38,7 @@ interface ChatMessage {
   content: string;
   keywords?: string[];
   context?: any;
+  sources?: any[];
   timestamp: string;
 }
 
@@ -140,6 +141,7 @@ export default function GraphRAGPage() {
           content: data.answer || "（未返回有效答案）",
           keywords: data.keywords,
           context: data.context,
+          sources: data.sources,
           timestamp: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, assistantMsg]);
@@ -425,6 +427,36 @@ export default function GraphRAGPage() {
                         <Tag key={kw} color="purple" style={{ fontSize: 11 }}>
                           <AimOutlined /> {kw}
                         </Tag>
+                      ))}
+                    </div>
+                  )}
+                  {(msg.sources?.length ?? 0) > 0 && msg.role === "assistant" && (
+                    <div
+                      style={{
+                        marginTop: 6,
+                        background: "#fffbe6",
+                        border: "1px solid #ffe58f",
+                        borderRadius: 6,
+                        padding: 6,
+                        fontSize: 11,
+                      }}
+                    >
+                      <Text strong style={{ fontSize: 11 }}>
+                        溯源来源 ({msg.sources!.length}):
+                      </Text>
+                      {(msg.sources ?? []).slice(0, 5).map((s: any, i: number) => (
+                        <div key={i} style={{ marginTop: 3 }}>
+                          <Tag color="gold" style={{ fontSize: 10, marginRight: 4 }}>
+                            {s.document_id || "?"}
+                          </Tag>
+                          {s.snippet?.slice(0, 60) || ""}
+                          {typeof s.score === "number" && (
+                            <Text type="secondary" style={{ fontSize: 10 }}>
+                              {" "}
+                              (score {s.score.toFixed(2)})
+                            </Text>
+                          )}
+                        </div>
                       ))}
                     </div>
                   )}

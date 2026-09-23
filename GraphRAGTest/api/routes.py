@@ -43,6 +43,7 @@ class BatchImportRequest(BaseModel):
 class QueryRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=1000)
     return_context: bool = Field(False, description="是否返回检索到的图谱上下文")
+    include_sources: bool = Field(True, description="是否返回带 document_id / snippet 的溯源来源")
 
 
 class DocumentIndexRequest(BaseModel):
@@ -207,6 +208,7 @@ async def rag_query(body: QueryRequest):
     result = await graphrag_service.query(
         question=body.question,
         return_context=body.return_context,
+        include_sources=body.include_sources,
     )
     return result
 

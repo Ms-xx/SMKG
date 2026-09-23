@@ -14,8 +14,12 @@
 """
 from __future__ import annotations
 
+import json
 import re
+import urllib.request
 from typing import Any
+
+from loguru import logger
 
 from app.core.config import settings
 from app.services.deduplication_service import simhash_similarity
@@ -157,20 +161,85 @@ def key_papers(graph: dict[str, Any]) -> dict[str, Any]:
     return {"backend": "builtin", "key_papers": result}
 
 
+def _llm_chat_completion(
+    endpoint: str, model: str, messages: list[dict[str, str]], timeout: float
+) -> str:
+    """调用 OpenAI 兼容 /v1/chat/completions 生成综述正文，失败抛异常由调用方降级。"""
+    url = endpoint.rstrip("/") + "/chat/completions"
+    payload = json.dumps(
+        {"model": model, "messages": messages, "temperature": 0.3}
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        data = json.loads(resp.read().decode("utf-8", errors="replace"))
+    return (data.get("choices") or [{}])[0].get("message", {}).get("content") or ""
+
+
 def generate_survey(
     references: list[dict[str, Any]], top_papers: list[dict[str, Any]]
 ) -> dict[str, Any]:
-    """规则模板综述：按年份时间线 + 主题聚合（LLM 综述预留）。"""
+    """领域综述：配置 LLM 时用真实 LLM 生成；否则降级规则模板。"""
     years = sorted({r.get("year") for r in references or [] if r.get("year")})
     top_titles = [p.get("label") for p in (top_papers or [])[:5] if p.get("label")]
     timeline = [
         {"year": y, "count": sum(1 for r in references or [] if r.get("year") == y)} for y in years
     ]
+
+    ref_brief = [
+        (
+            f"- [{r.get('index') or i}] ({r.get('year') or 'N/A'}) {r.get('title') or ''}"
+            + (f" 作者：{', '.join(r.get('authors') or [])}" if r.get("authors") else "")
+        )
+        for i, r in enumerate(references or [])
+    ]
+    key_brief = "\n".join(
+        f"- {t}" for t in top_titles
+    ) or "（无）"
+    prompt = (
+        "请基于下面给出的参考文献列表撰写一段中文学术领域综述（3-5 句），"
+        "概述该领域的研究脉络、技术路线与代表性工作。不得编造参考文献中不存在的观点；"
+        "只输出综述正文，不要前缀。\n\n"
+        f"参考文献（{len(references or [])} 篇）：\n" + "\n".join(ref_brief) + "\n\n"
+        f"代表性基石文献：\n{key_brief}"
+    )
+
+    if settings.LLM_ENABLED and settings.LLM_ENDPOINT:
+        try:
+            text = _llm_chat_completion(
+                settings.LLM_ENDPOINT,
+                settings.LLM_MODEL,
+                [
+                    {
+                        "role": "system",
+                        "content": "你是科学文献综述助手。依据给定参考文献，给出严谨、不编造、结构清晰的领域综述。",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                settings.LLM_TIMEOUT,
+            ).strip()
+            if text:
+                return {
+                    "backend": "llm",
+                    "model": settings.LLM_MODEL,
+                    "reference_count": len(references or []),
+                    "timeline": timeline,
+                    "top_papers": top_titles,
+                    "survey": text,
+                }
+            logger.warning("LLM 综述返回空，降级规则模板")
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"LLM 综述不可用，降级规则模板: {e}")
+
     text = (
         f"领域综述（规则模板）：共 {len(references or [])} 篇参考文献，"
         f"覆盖年限 {years[0] if years else 'N/A'}–{years[-1] if years else 'N/A'}。"
         + (f"基石文献：{'; '.join(top_titles)}。" if top_titles else "暂无可识别基石文献。")
-        + "（LLM 生成的综述能力预留，未接入时输出本模板。）"
+        + "（LLM 综述能力未接入或调用失败，已降级为规则模板。）"
     )
     return {
         "backend": "rule",
