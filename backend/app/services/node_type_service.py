@@ -47,7 +47,12 @@ _DEFAULT_TYPES = [
     {"label": "Parameter", "name": "参数", "color": "#722ed1", "is_default": True},
     {"label": "Theory", "name": "理论", "color": "#f5222d", "is_default": True},
     {"label": "Model", "name": "模型", "color": "#ff7a45", "is_default": True},
-    {"label": "Formula", "name": "化学式/分子式", "color": "#a0d911", "is_default": True},
+    {
+        "label": "Formula",
+        "name": "化学式/分子式",
+        "color": "#a0d911",
+        "is_default": True,
+    },
     {"label": "Equation", "name": "公式", "color": "#08979c", "is_default": True},
     {"label": "Experiment", "name": "实验", "color": "#2f54eb", "is_default": True},
     {"label": "Dataset", "name": "数据集", "color": "#531dab", "is_default": True},

@@ -1,8 +1,7 @@
-/* eslint-disable react-refresh/only-export-components */
-import { createBrowserRouter, Navigate } from "react-router-dom";
-import { useAuthStore } from "@store/authStore";
+import { createBrowserRouter } from "react-router-dom";
 import MainLayout from "@components/Layout/MainLayout";
 import LoginPage from "@pages/Login/LoginPage";
+import LandingPage from "@pages/Landing/LandingPage";
 import DashboardPage from "@pages/Dashboard/DashboardPage";
 import DocumentListPage from "@pages/Documents/DocumentListPage";
 import DocumentDetailPage from "@pages/Documents/DocumentDetailPage";
@@ -23,20 +22,15 @@ import WorkloadPage from "@pages/Statistics/WorkloadPage";
 import NotFoundPage from "@pages/NotFound/NotFoundPage";
 import { authGuard, permGuard } from "./guards";
 
-// 根路径按登录态分发：未登录 → /login，已登录 → /home
-const RootRedirect = () => {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  return <Navigate to={isAuthenticated ? "/home" : "/login"} replace />;
-};
-
 export const router = createBrowserRouter(
   [
+    // 站点入口：登录前的项目展示页（无需鉴权）
+    { path: "/", element: <LandingPage /> },
     { path: "/login", element: <LoginPage /> },
     {
-      path: "/",
+      // 无路径布局路由：子路由仍解析为 /home、/documents 等，保持既有 URL 不变
       element: <MainLayout />,
       children: [
-        { index: true, element: <RootRedirect /> },
         { path: "home", element: authGuard(<DashboardPage />) },
         { path: "dashboard", element: authGuard(<DashboardPage />) },
         {

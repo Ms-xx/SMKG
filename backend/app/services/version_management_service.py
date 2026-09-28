@@ -473,10 +473,20 @@ class VersionManagementService:
             try:
                 # 纯逻辑占位：真实训练通过外部 MLflow/任务队列接入，此处保证确定性成功
                 artifact = f"{model_name}::{step}::v{attempt}"
-                return {"step": step, "status": "success", "attempt": attempt, "artifact": artifact}
+                return {
+                    "step": step,
+                    "status": "success",
+                    "attempt": attempt,
+                    "artifact": artifact,
+                }
             except Exception as exc:  # 预留：外部后端异常时的重试路径
                 logger.warning(f"自动重训分段 {step} 第 {attempt} 次失败：{exc}")
-        return {"step": step, "status": "failed", "attempt": max_retries, "rolled_back": True}
+        return {
+            "step": step,
+            "status": "failed",
+            "attempt": max_retries,
+            "rolled_back": True,
+        }
 
     def run_finetune_pipeline(
         self,
@@ -504,7 +514,10 @@ class VersionManagementService:
             records: 标注数据（Annotation 行或 dict）；缺省为空。
             f1_threshold: 新模型 F1 ≥ 阈值时自动晋升 Production，否则停留在 Staging。
         """
-        from app.services.finetune_service import export_ner_training_set, finetune_service
+        from app.services.finetune_service import (
+            export_ner_training_set,
+            finetune_service,
+        )
 
         max_retries = max_retries if max_retries is not None else settings.RETRAIN_MAX_RETRIES
         record: dict[str, Any] = {
@@ -523,7 +536,10 @@ class VersionManagementService:
         try:
             samples = export_ner_training_set(records or [])
             dataset_rec = self.record_dataset(
-                f"{model_name}-ner", data=samples, source="annotations", label_key="type"
+                f"{model_name}-ner",
+                data=samples,
+                source="annotations",
+                label_key="type",
             )
             _step(
                 "data_prep",

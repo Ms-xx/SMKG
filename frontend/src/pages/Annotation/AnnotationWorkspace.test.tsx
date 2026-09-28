@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { message } from "antd";
 import AnnotationWorkspace from "./AnnotationWorkspace";
-import { annotationApi, commentApi, userApi } from "@api/modules";
+import { annotationApi, commentApi, documentApi, userApi } from "@api/modules";
 
 vi.mock("@api/modules", () => ({
   annotationApi: {
@@ -17,6 +17,8 @@ vi.mock("@api/modules", () => ({
   },
   commentApi: { create: vi.fn(), list: vi.fn(), remove: vi.fn() },
   userApi: { mentionable: vi.fn() },
+  // 工作台加载逐页解析元素（含公式）需要 documentApi
+  documentApi: { getById: vi.fn(), getPageElements: vi.fn() },
 }));
 
 vi.mock("./components/DualPaneView", () => ({
@@ -58,6 +60,13 @@ describe("AnnotationWorkspace", () => {
       .mockReset()
       .mockResolvedValue({ items: [], total: 0, page: 1, page_size: 20 });
     vi.mocked(userApi.mentionable).mockReset().mockResolvedValue([]);
+    // 默认文档无页 → 元素列表为空，避免逐页请求
+    vi.mocked(documentApi.getById)
+      .mockReset()
+      .mockResolvedValue({ page_count: 0 } as any);
+    vi.mocked(documentApi.getPageElements)
+      .mockReset()
+      .mockResolvedValue({ elements: [] } as any);
   });
 
   afterEach(() => {

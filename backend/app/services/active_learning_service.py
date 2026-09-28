@@ -202,7 +202,10 @@ def _select_next_center(
 
 
 def _update_min_distances(
-    features: list[Iterable[float]], selected: list[int], min_d2: list[float], chosen: int
+    features: list[Iterable[float]],
+    selected: list[int],
+    min_d2: list[float],
+    chosen: int,
 ) -> None:
     """选中新中心后更新各点最小距离平方。"""
     for j in range(len(features)):
@@ -246,7 +249,12 @@ def diversity_select(
 
 
 def _compute_base_scores(
-    items: list[dict[str, Any]], strategy: str, has_unc: bool, has_qbc: bool, um: str, qm: str
+    items: list[dict[str, Any]],
+    strategy: str,
+    has_unc: bool,
+    has_qbc: bool,
+    um: str,
+    qm: str,
 ) -> list[float]:
     """计算每个样本的基础得分（uncertainty/qbc/hybrid 三分支）。"""
     base: list[float] = []
@@ -301,7 +309,13 @@ def _hybrid_mmr_pick(items: list[dict[str, Any]], norm_base: list[float], top_k:
 
 
 def _build_scored_entry(
-    idx: int, norm_base: list[float], strategy: str, has_unc: bool, has_qbc: bool, um: str, qm: str
+    idx: int,
+    norm_base: list[float],
+    strategy: str,
+    has_unc: bool,
+    has_qbc: bool,
+    um: str,
+    qm: str,
 ) -> dict[str, Any]:
     """构建得分排序分支的结果 entry。"""
     entry: dict[str, Any] = {"index": idx, "score": round(norm_base[idx], 4)}
@@ -416,7 +430,11 @@ class ActiveLearningService:
 
     @staticmethod
     def _wrap(
-        strategy: str, backend: str, top_k: int, results: list[dict[str, Any]], total: int
+        strategy: str,
+        backend: str,
+        top_k: int,
+        results: list[dict[str, Any]],
+        total: int,
     ) -> dict[str, Any]:
         return {
             "strategy": strategy,

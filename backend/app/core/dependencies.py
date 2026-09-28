@@ -9,5 +9,7 @@ async def get_db_session(session: AsyncSession = Depends(get_db)) -> AsyncSessio
     return session
 
 
-async def get_current_active_user(current_user: dict = Depends(get_current_user)) -> dict:
+async def get_current_active_user(
+    current_user: dict = Depends(get_current_user),
+) -> dict:
     return current_user

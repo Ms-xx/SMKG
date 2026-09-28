@@ -22,6 +22,7 @@ import {
 import { useDocumentStore } from "@store/documentStore";
 import { citationLinkApi, documentApi, writingAssistantApi } from "@api/modules";
 import type { CitationMapResult, InlineCitation } from "@/types";
+import LatexFormula from "@components/Formula/LatexFormula";
 import dayjs from "dayjs";
 
 const statusMap: Record<string, { color: string; text: string }> = {
@@ -33,6 +34,20 @@ const statusMap: Record<string, { color: string; text: string }> = {
 
 const CITE_SPLIT_RE = /[,，\-\s、]+/;
 const CITE_MATCH_RE = /\[([\d,，\-\s、]+)\]/g;
+
+/** 页面公式元素（来自 GET /documents/{id}/pages/{n}/elements 的 formula 条目）。 */
+interface DocumentFormulaItem {
+  page_number: number;
+  element: {
+    id?: string;
+    latex?: string | null;
+    content?: string | null;
+    is_display?: boolean | null;
+    formula_number?: string | null;
+    formula_source?: string | null;
+    formula_normalized?: boolean | null;
+  };
+}
 
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -163,6 +178,7 @@ export default function DocumentDetailPage() {
   >([]);
   const [fulltextPages, setFulltextPages] = useState<{ page_number: number; text: string }[]>([]);
   const [citationMap, setCitationMap] = useState<CitationMapResult | null>(null);
+  const [formulas, setFormulas] = useState<DocumentFormulaItem[]>([]);
   const [bilingual, setBilingual] = useState(false);
   const [translations, setTranslations] = useState<Record<number, string>>({});
   const [translateBackend, setTranslateBackend] = useState("");
@@ -227,6 +243,36 @@ export default function DocumentDetailPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, currentDocument?.status, currentDocument?.id]);
+
+  // 加载全部页面的公式元素（统一 LaTeX 渲染），供「公式」卡片展示
+  const pageCount = currentDocument?.page_count || 0;
+  useEffect(() => {
+    if (!id || currentDocument?.status !== "parsed" || !pageCount) {
+      setFormulas([]);
+      return;
+    }
+    let cancelled = false;
+    Promise.all(
+      Array.from({ length: pageCount }, (_, i) => i + 1).map((p) =>
+        documentApi
+          .getPageElements(id, p)
+          .then((res: any) => ({ page: p, elements: res?.elements || [] }))
+          .catch(() => ({ page: p, elements: [] as any[] })),
+      ),
+    ).then((results) => {
+      if (cancelled) return;
+      const collected: DocumentFormulaItem[] = [];
+      results.forEach((r) => {
+        (r.elements || [])
+          .filter((el: any) => el?.element_type === "formula")
+          .forEach((el: any) => collected.push({ page_number: r.page, element: el }));
+      });
+      setFormulas(collected);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, currentDocument?.status, currentDocument?.id, pageCount]);
 
   useEffect(() => {
     if (currentDocument?.file_path) {
@@ -463,6 +509,41 @@ export default function DocumentDetailPage() {
                 </List.Item>
               );
             }}
+          />
+        </Card>
+      )}
+
+      {formulas.length > 0 && (
+        <Card title={`公式（LaTeX 统一渲染，共 ${formulas.length} 个）`} style={{ marginTop: 16 }}>
+          <List
+            dataSource={formulas}
+            renderItem={({ page_number, element }, i) => (
+              <List.Item key={element.id || `formula-${i}`}>
+                <List.Item.Meta
+                  title={
+                    <Space size={6} wrap>
+                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        p{page_number}
+                      </Typography.Text>
+                      <Tag color="orange">公式</Tag>
+                      {element.is_display === false ? <Tag>行内</Tag> : <Tag>行间</Tag>}
+                      {element.formula_source ? <Tag>{element.formula_source}</Tag> : null}
+                      {element.formula_normalized === false ? (
+                        <Tag color="red">未转 LaTeX</Tag>
+                      ) : null}
+                    </Space>
+                  }
+                  description={
+                    <LatexFormula
+                      latex={element.latex ?? element.content}
+                      display={element.is_display ?? true}
+                      number={element.formula_number ?? null}
+                      normalized={element.formula_normalized ?? null}
+                    />
+                  }
+                />
+              </List.Item>
+            )}
           />
         </Card>
       )}

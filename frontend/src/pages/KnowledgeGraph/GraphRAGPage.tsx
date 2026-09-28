@@ -34,6 +34,33 @@ import dayjs from "dayjs";
 const { Text } = Typography;
 const { TextArea } = Input;
 
+/** 示例问题类型（用于界面标注，帮助用户理解问答能力边界）。 */
+type QueryType = "引用关系" | "结构关系" | "节点关系";
+
+const QUERY_TYPE_COLOR: Record<QueryType, string> = {
+  引用关系: "green",
+  结构关系: "blue",
+  节点关系: "purple",
+};
+
+/**
+ * 示例问题：全部落在**知识图谱**上可回答（不是关系库字段查询），且已逐条实测命中图谱上下文。
+ *
+ * 依据图谱实况（均已用真实链路验证）：
+ * - `(:Document)-[:CITES]->(:Document)`：15 条引用边，均自《Attention Is All You Need》
+ *   指向 15 篇被引论文 → 支撑「引用了哪些论文」（实测命中 15 条边）；
+ * - `(:Document)-[:CONTAINS]->(:Chunk)`：论文与其正文分段的包含关系 → 支撑结构类问题；
+ * - 任意节点可用一跳关系连通（如 Layer Normalization 的 CITES 入边）→ 支撑「与哪些节点存在关系」。
+ */
+const EXAMPLE_QUESTIONS: { type: QueryType; text: string }[] = [
+  { type: "引用关系", text: "《Attention Is All You Need》引用了图谱中的哪些论文？" },
+  { type: "结构关系", text: "图谱中论文与正文分段（Chunk）是如何关联的？" },
+  { type: "节点关系", text: "Layer Normalization 在图谱中与哪些节点存在关系？" },
+];
+
+/** 空态引导：示例仅 3 条，全部展示。 */
+const STARTER_QUESTIONS = EXAMPLE_QUESTIONS;
+
 interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
@@ -358,76 +385,140 @@ export default function GraphRAGPage() {
         {/* 消息列表 */}
         <div style={{ flex: 1, overflowY: "auto", marginBottom: 12 }}>
           {messages.length === 0 && (
-            <div style={{ textAlign: "center", marginTop: 80, color: "#999" }}>
-              <RobotOutlined style={{ fontSize: 48, display: "block", marginBottom: 16 }} />
-              <Text type="secondary">输入问题开始 GraphRAG 问答</Text>
-              <div style={{ marginTop: 8 }}>
-                {[
-                  "钙钛矿有哪些性能特点？",
-                  "列举图谱中的材料类实体",
-                  "高效率太阳能电池的制备方法有哪些？",
-                ].map((q) => (
-                  <Tag
+            <div style={{ textAlign: "center", marginTop: 48, color: "#999" }}>
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  margin: "0 auto 16px",
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg,#4f46e5,#06b6d4)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 12px 28px -10px rgba(79,70,229,0.5)",
+                }}
+              >
+                <RobotOutlined style={{ fontSize: 28, color: "#fff" }} />
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: "#0f172a" }}>
+                开始一次知识图谱问答
+              </div>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                基于文献图谱实体关系与 LLM 推理，答案可溯源到原文页码
+              </Text>
+              <div
+                style={{
+                  marginTop: 16,
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  justifyContent: "center",
+                }}
+              >
+                {STARTER_QUESTIONS.map(({ type, text: q }) => (
+                  <div
                     key={q}
-                    style={{ marginBottom: 4, cursor: "pointer" }}
                     onClick={() => setQuestion(q)}
+                    title={`${type}：点击填入输入框`}
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: 999,
+                      background: "#eef2ff",
+                      color: "#4f46e5",
+                      fontSize: 13,
+                      cursor: "pointer",
+                      border: "1px solid #e0e7ff",
+                      transition: "all .2s",
+                    }}
                   >
                     {q}
-                  </Tag>
+                  </div>
                 ))}
               </div>
+              <Text type="secondary" style={{ fontSize: 12, marginTop: 10, display: "block" }}>
+                支持 {STARTER_QUESTIONS.map((q) => q.type).join(" / ")}
+              </Text>
             </div>
           )}
           {messages.map((msg) => (
             <div
               key={msg.id}
               style={{
-                marginBottom: 12,
+                marginBottom: 16,
                 display: "flex",
                 justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
               }}
             >
               <div
                 style={{
-                  maxWidth: "75%",
+                  maxWidth: "78%",
                   display: "flex",
-                  gap: 8,
+                  gap: 10,
                   flexDirection: msg.role === "user" ? "row-reverse" : "row",
                   alignItems: "flex-start",
                 }}
               >
                 <div
                   style={{
-                    width: 28,
-                    height: 28,
+                    width: 34,
+                    height: 34,
                     borderRadius: "50%",
-                    background: msg.role === "user" ? "#1890ff" : "#52c41a",
+                    background:
+                      msg.role === "user"
+                        ? "linear-gradient(135deg,#64748b,#475569)"
+                        : "linear-gradient(135deg,#4f46e5,#06b6d4)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     color: "#fff",
-                    fontSize: 14,
+                    fontSize: 15,
                     flexShrink: 0,
+                    boxShadow: "0 4px 10px -4px rgba(79,70,229,0.4)",
                   }}
                 >
                   {msg.role === "user" ? <UserOutlined /> : <RobotOutlined />}
                 </div>
-                <div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: msg.role === "user" ? "flex-end" : "flex-start",
+                  }}
+                >
                   <div
                     style={{
-                      background: msg.role === "user" ? "#1890ff" : "#f5f5f5",
-                      color: msg.role === "user" ? "#fff" : "#000",
-                      borderRadius: 8,
-                      padding: "8px 12px",
+                      background:
+                        msg.role === "user" ? "linear-gradient(135deg,#4f46e5,#6366f1)" : "#f8fafc",
+                      color: msg.role === "user" ? "#fff" : "#0f172a",
+                      border: msg.role === "user" ? "none" : "1px solid #e6e8f0",
+                      borderRadius:
+                        msg.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+                      padding: "10px 14px",
                       whiteSpace: "pre-wrap",
+                      lineHeight: 1.6,
+                      fontSize: 14,
+                      boxShadow:
+                        msg.role === "user"
+                          ? "0 6px 16px -6px rgba(79,70,229,0.5)"
+                          : "0 1px 2px rgba(15,23,42,0.04)",
                     }}
                   >
                     {msg.content}
                   </div>
                   {(msg.keywords?.length ?? 0) > 0 && msg.role === "assistant" && (
-                    <div style={{ marginTop: 4 }}>
+                    <div style={{ marginTop: 6 }}>
                       {(msg.keywords ?? []).map((kw) => (
-                        <Tag key={kw} color="purple" style={{ fontSize: 11 }}>
+                        <Tag
+                          key={kw}
+                          style={{
+                            fontSize: 11,
+                            marginBottom: 4,
+                            background: "#eef2ff",
+                            color: "#4f46e5",
+                            border: "1px solid #e0e7ff",
+                          }}
+                        >
                           <AimOutlined /> {kw}
                         </Tag>
                       ))}
@@ -436,21 +527,23 @@ export default function GraphRAGPage() {
                   {(msg.sources?.length ?? 0) > 0 && msg.role === "assistant" && (
                     <div
                       style={{
-                        marginTop: 6,
-                        background: "#fffbe6",
-                        border: "1px solid #ffe58f",
-                        borderRadius: 6,
-                        padding: 6,
+                        marginTop: 8,
+                        background: "#f8fafc",
+                        border: "1px solid #e6e8f0",
+                        borderLeft: "3px solid #4f46e5",
+                        borderRadius: 8,
+                        padding: "8px 10px",
                         fontSize: 11,
+                        maxWidth: 480,
                       }}
                     >
-                      <Text strong style={{ fontSize: 11 }}>
-                        溯源来源 ({msg.sources!.length}):
+                      <Text strong style={{ fontSize: 11, color: "#4f46e5" }}>
+                        溯源来源 ({msg.sources!.length})
                       </Text>
                       {(msg.sources ?? []).slice(0, 5).map((s: any, i: number) => (
-                        <div key={i} style={{ marginTop: 3 }}>
+                        <div key={i} style={{ marginTop: 4, color: "#475569" }}>
                           <Tag
-                            color="gold"
+                            color="geekblue"
                             style={{ fontSize: 10, marginRight: 4, cursor: "pointer" }}
                             onClick={() =>
                               s.document_id &&
@@ -464,7 +557,7 @@ export default function GraphRAGPage() {
                             {s.document_id || "?"}
                           </Tag>
                           {typeof s.page_number === "number" && (
-                            <Tag color="blue" style={{ fontSize: 10, marginRight: 4 }}>
+                            <Tag color="default" style={{ fontSize: 10, marginRight: 4 }}>
                               <FileTextOutlined /> 第 {s.page_number} 页
                             </Tag>
                           )}
@@ -479,17 +572,45 @@ export default function GraphRAGPage() {
                       ))}
                     </div>
                   )}
-                  <Text type="secondary" style={{ fontSize: 11, marginTop: 2, display: "block" }}>
-                    {dayjs(msg.timestamp).format("HH:mm:ss")}
+                  <Text type="secondary" style={{ fontSize: 11, marginTop: 4 }}>
+                    {dayjs(msg.timestamp).format("HH:mm")}
                   </Text>
                 </div>
               </div>
             </div>
           ))}
           {loading && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#999" }}>
-              <Spin size="small" />
-              <Text type="secondary">GraphRAG 思考中...</Text>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg,#4f46e5,#06b6d4)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  flexShrink: 0,
+                }}
+              >
+                <RobotOutlined />
+              </div>
+              <div
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e6e8f0",
+                  borderRadius: "16px 16px 16px 4px",
+                  padding: "12px 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span className="rag-typing-dot" />
+                <span className="rag-typing-dot" style={{ animationDelay: "0.15s" }} />
+                <span className="rag-typing-dot" style={{ animationDelay: "0.3s" }} />
+              </div>
             </div>
           )}
           <div ref={chatEndRef} />
@@ -538,7 +659,7 @@ export default function GraphRAGPage() {
         {/* 输入框 */}
         <div style={{ display: "flex", gap: 8 }}>
           <TextArea
-            placeholder="输入问题，按 Enter 或点击发送... (Shift+Enter 换行)"
+            placeholder="就图谱中的论文与关系提问（引用 / 结构 / 属性均可），按 Enter 发送"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             onPressEnter={(e) => {
@@ -562,22 +683,25 @@ export default function GraphRAGPage() {
         </div>
       </Card>
 
-      {/* 示例问题提示 */}
+      {/* 示例问题提示：按查询类型分组，贴合库内语料 */}
       <Divider style={{ margin: "16px 0" }} />
-      <Text type="secondary">示例问题: </Text>
-      {[
-        "图谱中有哪些材料类实体？",
-        "列出所有HAS_PROPERTY关系",
-        "与高效太阳能电池相关的实体有哪些？",
-      ].map((q) => (
-        <Tag
-          key={q}
-          style={{ marginLeft: 4, cursor: "pointer" }}
-          onClick={() => (ragEnabled ? setQuestion(q) : message.warning("服务未连接"))}
-        >
-          {q}
-        </Tag>
-      ))}
+      <Text type="secondary">
+        示例问题（均可在图谱中回答：引用关系 / 结构关系 / 节点关系，点击即可填入输入框）:
+      </Text>
+      <div style={{ marginTop: 8 }}>
+        {EXAMPLE_QUESTIONS.map(({ type, text: q }) => (
+          <Tooltip key={q} title={`${type} · 答案附原文出处锚点`}>
+            <Tag
+              color={QUERY_TYPE_COLOR[type]}
+              data-testid="graphrag-example-tag"
+              style={{ marginBottom: 6, cursor: "pointer" }}
+              onClick={() => (ragEnabled ? setQuestion(q) : message.warning("服务未连接"))}
+            >
+              {type}｜{q}
+            </Tag>
+          </Tooltip>
+        ))}
+      </div>
     </div>
   );
 }

@@ -218,6 +218,13 @@ class Settings(BaseSettings):
     TREND_ANALYSIS_ENABLED: bool = True
     ANOMALY_DETECTION_ENABLED: bool = True
 
+    # 前端超时修复：全图快照缓存与 GraphRAGTest 异步客户端配置
+    GRAPH_SNAPSHOT_CACHE_TTL: int = 300  # 全图快照缓存 TTL（秒）
+    GRAPH_SNAPSHOT_EMPTY_TTL: int = 10  # 抓取结果为空时的短 TTL（秒），避免空态固化
+    GRAPH_STATS_CACHE_TTL: int = 60  # /statistics 缓存 TTL（秒）
+    GRAPHRAG_HTTP_TIMEOUT: float = 60.0  # 异步客户端默认超时（秒）
+    GRAPHRAG_MAX_CONNECTIONS: int = 20  # 共享 AsyncClient 连接池上限
+
     # 写作辅助与可视化 Copilot（10.2 模块六：框架/图脚本/CSV→SVG，纯 Python 零依赖）
     WRITING_ASSISTANT_ENABLED: bool = True
     # 中英学术翻译（9.1：可插拔。配置 OPENAI 兼容翻译端点即启用；未配置则降级回显）。

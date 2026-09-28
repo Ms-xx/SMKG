@@ -33,7 +33,10 @@ except Exception:  # noqa: BLE001
 
 from app.core.celery_app import celery_app  # noqa: E402
 from app.core.config import settings  # noqa: E402
-from app.services.paper_retrieval_service import search_arxiv, search_pubmed  # noqa: E402
+from app.services.paper_retrieval_service import (  # noqa: E402
+    search_arxiv,
+    search_pubmed,
+)
 
 # Redis 追踪存储（持久化，跨 worker/beat 进程共享）；不可用时降级为内存态
 _redis_client = None
@@ -131,7 +134,12 @@ async def _ingest_result(result: dict) -> dict:
             )
             parsing = await DocumentService().trigger_parsing(db, doc.id, user_id, scope_all=True)
             await db.commit()
-            return {"ingested": True, "document_id": doc.id, "download": meta, "parsing": parsing}
+            return {
+                "ingested": True,
+                "document_id": doc.id,
+                "download": meta,
+                "parsing": parsing,
+            }
     except Exception as e:  # noqa: BLE001
         logger.warning(f"论文自动入库失败: {e}")
         return {"ingested": False, "error": str(e)}
@@ -143,7 +151,13 @@ def _run_poll() -> dict:
         return {"status": "disabled"}
 
     records = _list_tracking()
-    summary = {"status": "ok", "checked": len(records), "new_papers": 0, "ingested": 0, "items": []}
+    summary = {
+        "status": "ok",
+        "checked": len(records),
+        "new_papers": 0,
+        "ingested": 0,
+        "items": [],
+    }
 
     for rec in records:
         query = rec.get("query", "")

@@ -180,7 +180,10 @@ class EntityLinkingService:
     # ── 消歧 ─────────────────────────────────────────────────
 
     def disambiguate(
-        self, name: str, candidates: list[dict[str, Any]], entity_type: str | None = None
+        self,
+        name: str,
+        candidates: list[dict[str, Any]],
+        entity_type: str | None = None,
     ) -> dict[str, Any] | None:
         """
         从候选实体中选出最佳匹配。

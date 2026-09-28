@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Card, Col, Row, Space, Spin, Tag, Empty, message } from "antd";
-import { LineChartOutlined, WarningOutlined } from "@ant-design/icons";
+import { Card, Col, Row, Space, Spin, Tag, Empty, Button } from "antd";
+import { LineChartOutlined, WarningOutlined, ReloadOutlined } from "@ant-design/icons";
 import ReactECharts from "echarts-for-react";
 import { graphApi } from "@api/modules";
 
@@ -14,6 +14,11 @@ interface GraphInsightsProps {
   onAnomalyHighlight?: (nodeIds: Set<string>) => void;
 }
 
+interface GraphInsightsError {
+  message: string;
+  retry: () => void;
+}
+
 /**
  * 知识图谱高级能力面板：趋势分析（折线图）+ 异常检测（统计与列表、图谱高亮）。
  * 数据来自 /knowledge-graph/trends 与 /knowledge-graph/anomalies。
@@ -22,18 +27,23 @@ export default function GraphInsights({ onAnomalyHighlight }: GraphInsightsProps
   const [trends, setTrends] = useState<any>(null);
   const [anomalies, setAnomalies] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [trendsError, setTrendsError] = useState<GraphInsightsError | null>(null);
+  const [anomaliesError, setAnomaliesError] = useState<GraphInsightsError | null>(null);
 
   const loadTrends = async () => {
+    setTrendsError(null);
     try {
       const res: any = await graphApi.getTrends();
       setTrends(res.data || res);
-    } catch {
-      message.warning("趋势分析暂不可用");
+    } catch (e: any) {
+      const msg = e?.message?.includes("timeout") ? "趋势分析请求超时" : "趋势分析暂不可用";
+      setTrendsError({ message: msg, retry: loadTrends });
     }
   };
 
   const loadAnomalies = async () => {
     setLoading(true);
+    setAnomaliesError(null);
     try {
       const res: any = await graphApi.getAnomalies();
       const data = res.data || res;
@@ -44,8 +54,9 @@ export default function GraphInsights({ onAnomalyHighlight }: GraphInsightsProps
         if (a.node_id) ids.add(a.node_id);
       });
       onAnomalyHighlight?.(ids);
-    } catch {
-      message.warning("异常检测暂不可用");
+    } catch (e: any) {
+      const msg = e?.message?.includes("timeout") ? "异常检测请求超时" : "异常检测暂不可用";
+      setAnomaliesError({ message: msg, retry: loadAnomalies });
     } finally {
       setLoading(false);
     }
@@ -95,7 +106,13 @@ export default function GraphInsights({ onAnomalyHighlight }: GraphInsightsProps
             </Space>
           }
         >
-          {trends && timelineHasData(trends) ? (
+          {trendsError ? (
+            <Empty description={trendsError.message} style={{ padding: 40 }}>
+              <Button icon={<ReloadOutlined />} size="small" onClick={trendsError.retry}>
+                重试
+              </Button>
+            </Empty>
+          ) : trends && timelineHasData(trends) ? (
             <ReactECharts option={chartOption} style={{ height: 300 }} notMerge />
           ) : (
             <Empty description="暂无趋势数据" style={{ padding: 40 }}>
@@ -131,39 +148,51 @@ export default function GraphInsights({ onAnomalyHighlight }: GraphInsightsProps
           }
         >
           {loading && <Spin size="small" />}
-          <Row gutter={8}>
-            {anomalyGroups.map((g) => {
-              const group = anomalies?.[g.key] ?? { count: 0, nodes: [] };
-              return (
-                <Col span={8} key={g.key}>
-                  <div
-                    style={{
-                      textAlign: "center",
-                      padding: "8px 4px",
-                      borderRadius: 8,
-                      background: `${anomalyTypeColor[g.key]}22`,
-                    }}
-                  >
-                    <div style={{ fontSize: 20, fontWeight: 600, color: anomalyTypeColor[g.key] }}>
-                      {group.count ?? 0}
-                    </div>
-                    <div style={{ fontSize: 12, color: "#595959" }}>{g.title}</div>
-                  </div>
-                </Col>
-              );
-            })}
-          </Row>
-          <div style={{ marginTop: 12, maxHeight: 120, overflow: "auto" }}>
-            {anomalies?.anomalies?.length ? (
-              anomalies.anomalies.slice(0, 8).map((a: any, i: number) => (
-                <Tag key={i} color={anomalyTypeColor[a.kind]} style={{ marginBottom: 4 }}>
-                  {a.node_label || a.node_id || a.kind}
-                </Tag>
-              ))
-            ) : (
-              <div style={{ color: "#8c8c8c", fontSize: 12 }}>未发现异常节点</div>
-            )}
-          </div>
+          {anomaliesError ? (
+            <Empty description={anomaliesError.message} style={{ padding: 40 }}>
+              <Button icon={<ReloadOutlined />} size="small" onClick={anomaliesError.retry}>
+                重试
+              </Button>
+            </Empty>
+          ) : (
+            <>
+              <Row gutter={8}>
+                {anomalyGroups.map((g) => {
+                  const group = anomalies?.[g.key] ?? { count: 0, nodes: [] };
+                  return (
+                    <Col span={8} key={g.key}>
+                      <div
+                        style={{
+                          textAlign: "center",
+                          padding: "8px 4px",
+                          borderRadius: 8,
+                          background: `${anomalyTypeColor[g.key]}22`,
+                        }}
+                      >
+                        <div
+                          style={{ fontSize: 20, fontWeight: 600, color: anomalyTypeColor[g.key] }}
+                        >
+                          {group.count ?? 0}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#595959" }}>{g.title}</div>
+                      </div>
+                    </Col>
+                  );
+                })}
+              </Row>
+              <div style={{ marginTop: 12, maxHeight: 120, overflow: "auto" }}>
+                {anomalies?.anomalies?.length ? (
+                  anomalies.anomalies.slice(0, 8).map((a: any, i: number) => (
+                    <Tag key={i} color={anomalyTypeColor[a.kind]} style={{ marginBottom: 4 }}>
+                      {a.node_label || a.node_id || a.kind}
+                    </Tag>
+                  ))
+                ) : (
+                  <div style={{ color: "#8c8c8c", fontSize: 12 }}>未发现异常节点</div>
+                )}
+              </div>
+            </>
+          )}
         </Card>
       </Col>
     </Row>

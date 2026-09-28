@@ -42,7 +42,10 @@ def generate_outline(idea: str, references: list[dict[str, Any]]) -> dict[str, A
             "content": "相关工作综述，需与参考文献条目一一对应（见 References）。",
         },
         {"title": "Method", "content": "方法框架与实现要点（占位）。"},
-        {"title": "Experiments", "content": "实验设置、数据集、基线对比与消融（占位）。"},
+        {
+            "title": "Experiments",
+            "content": "实验设置、数据集、基线对比与消融（占位）。",
+        },
         {"title": "Conclusion", "content": "结论与后续工作（Future Work 占位）。"},
     ]
     ref_items = [
@@ -124,7 +127,12 @@ def generate_diagram_script(diagram_type: str, spec: dict[str, Any]) -> dict[str
     else:
         script = f"# unsupported diagram_type: {diagram_type}"
 
-    return {"backend": "rule", "diagram_type": diagram_type, "title": title, "script": script}
+    return {
+        "backend": "rule",
+        "diagram_type": diagram_type,
+        "title": title,
+        "script": script,
+    }
 
 
 def parse_csv(csv_text: str) -> tuple[list[str], list[list[str]]]:
@@ -247,7 +255,12 @@ def csv_to_chart(
     header, data = parse_csv(csv_text)
     chart_type = (chart_type or "bar").lower()
     if not data:
-        return {"backend": "rule", "chart_type": chart_type, "error": "CSV 无有效数据行", "svg": ""}
+        return {
+            "backend": "rule",
+            "chart_type": chart_type,
+            "error": "CSV 无有效数据行",
+            "svg": "",
+        }
 
     if chart_type == "table":
         return _render_table(header, data, width)
@@ -278,7 +291,11 @@ def csv_to_chart(
     shapes = renderer(values, labels, pad_l, pad_t, plot_w, plot_h, vmax, vmin) if renderer else []
 
     body = "".join(axis + marks + shapes)
-    return {"backend": "rule", "chart_type": chart_type, "svg": _svg(width, height, body)}
+    return {
+        "backend": "rule",
+        "chart_type": chart_type,
+        "svg": _svg(width, height, body),
+    }
 
 
 def _svg(width: int, height: int, body: str) -> str:

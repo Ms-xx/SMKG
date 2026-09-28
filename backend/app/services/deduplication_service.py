@@ -19,7 +19,9 @@ from typing import Any
 
 from app.core.config import settings
 
-_ARXIV_ID_RE = re.compile(r"\b(\d{4}\.\d{4,5})\s*(v\d{1,2})\b", re.IGNORECASE)
+# 注意：不能用 \b 作前边界——真实文件名常为 `attention_1706.03762v7.pdf`，
+# 下划线属于单词字符会使 \b 失配；改为「前面不是数字」即可。
+_ARXIV_ID_RE = re.compile(r"(?<!\d)(\d{4}\.\d{4,5})\s*(v\d{1,2})\b", re.IGNORECASE)
 
 _AFFILIATION_HINTS = (
     "university",

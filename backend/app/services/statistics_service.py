@@ -43,7 +43,12 @@ class StatisticsService:
             query = query.where(User.id == user_id)
         result = await db.execute(query)
         return [
-            {"id": u.id, "username": u.username, "full_name": u.full_name, "role": u.role}
+            {
+                "id": u.id,
+                "username": u.username,
+                "full_name": u.full_name,
+                "role": u.role,
+            }
             for u in result.scalars().all()
         ]
 

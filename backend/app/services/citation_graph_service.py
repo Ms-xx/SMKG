@@ -115,7 +115,9 @@ def page_rank(
     return rank
 
 
-def _build_undirected_adj(graph: dict[str, Any]) -> tuple[dict[str, list[str]], set[str]]:
+def _build_undirected_adj(
+    graph: dict[str, Any],
+) -> tuple[dict[str, list[str]], set[str]]:
     """构建无向邻接表，返回 (adj, node_ids)。"""
     nodes = graph.get("nodes", [])
     node_ids = {n["id"] for n in nodes}
@@ -326,7 +328,9 @@ class CitationGraphService:
         return key_papers(graph)
 
     def survey(
-        self, references: list[dict[str, Any]], top_papers: list[dict[str, Any]] | None = None
+        self,
+        references: list[dict[str, Any]],
+        top_papers: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         graph = build_citation_network(references)
         kp = key_papers(graph).get("key_papers", []) if not top_papers else top_papers

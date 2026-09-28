@@ -8,7 +8,13 @@ from app.core.security import (
     get_current_user,
     get_password_hash,
 )
-from app.schemas.user import LoginRequest, RefreshRequest, TokenResponse, UserCreate, UserResponse
+from app.schemas.user import (
+    LoginRequest,
+    RefreshRequest,
+    TokenResponse,
+    UserCreate,
+    UserResponse,
+)
 from app.services.auth_service import AuthService
 
 router = APIRouter()
@@ -20,7 +26,8 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
     user = await auth_service.authenticate_user(db, request.username, request.password)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
         )
     access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
     refresh_token = create_refresh_token(data={"sub": str(user.id)})

@@ -52,6 +52,9 @@ describe("api axios 实例", () => {
     const postSpy = vi
       .spyOn(axios, "post")
       .mockResolvedValue({ data: { data: { access_token: "new", refresh_token: "nrt" } } });
+    // 刷新成功后拦截器会 `return api(originalRequest)` 重发原请求；
+    // 不 mock 该重发，jsdom 下会真实发起请求并一直挂起，导致用例 5s 超时。
+    vi.spyOn(api, "request").mockResolvedValue({ data: { ok: true } } as any);
     const res = (api.interceptors.response as any).handlers[0];
     const err = {
       response: { status: 401, data: {} },

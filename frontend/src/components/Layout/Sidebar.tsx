@@ -18,6 +18,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUIStore } from "@store/uiStore";
 import { useAuthStore } from "@store/authStore";
+import BrandLogo from "@components/BrandLogo";
 
 const { Sider } = Layout;
 
@@ -90,15 +91,23 @@ export default function AppSidebar() {
     >
       <div
         style={{
-          height: 32,
-          margin: 16,
-          textAlign: "center",
-          fontSize: 16,
-          fontWeight: 600,
+          height: 40,
+          margin: "16px 16px 8px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: sidebarCollapsed ? "center" : "flex-start",
+          gap: 10,
           overflow: "hidden",
         }}
       >
-        {!sidebarCollapsed && "SDP"}
+        <BrandLogo size={30} />
+        {!sidebarCollapsed && (
+          <span
+            style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", letterSpacing: "0.02em" }}
+          >
+            SDP
+          </span>
+        )}
       </div>
       <Menu
         mode="inline"

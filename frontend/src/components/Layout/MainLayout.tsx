@@ -11,7 +11,15 @@ export default function MainLayout() {
       <AppSidebar />
       <Layout>
         <AppHeader />
-        <Content style={{ margin: "24px 16px", padding: 24, background: "#fff" }}>
+        <Content
+          style={{
+            margin: 16,
+            padding: 24,
+            background: "var(--color-bg-container)",
+            borderRadius: 12,
+            minHeight: "calc(100vh - 60px - 32px)",
+          }}
+        >
           <Outlet />
         </Content>
       </Layout>

@@ -70,9 +70,20 @@ def search_arxiv(query: str, max_results: int = 10) -> dict[str, Any]:
                     "source": "arxiv",
                 }
             )
-        return {"backend": "arxiv", "query": query, "count": len(results), "results": results}
+        return {
+            "backend": "arxiv",
+            "query": query,
+            "count": len(results),
+            "results": results,
+        }
     except Exception as e:  # noqa: BLE001
-        return {"backend": "arxiv", "query": query, "count": 0, "results": [], "error": str(e)}
+        return {
+            "backend": "arxiv",
+            "query": query,
+            "count": 0,
+            "results": [],
+            "error": str(e),
+        }
 
 
 def search_pubmed(query: str, max_results: int = 10) -> dict[str, Any]:
@@ -100,9 +111,20 @@ def search_pubmed(query: str, max_results: int = 10) -> dict[str, Any]:
                     "source": "pubmed",
                 }
             )
-        return {"backend": "pubmed", "query": query, "count": len(results), "results": results}
+        return {
+            "backend": "pubmed",
+            "query": query,
+            "count": len(results),
+            "results": results,
+        }
     except Exception as e:  # noqa: BLE001
-        return {"backend": "pubmed", "query": query, "count": 0, "results": [], "error": str(e)}
+        return {
+            "backend": "pubmed",
+            "query": query,
+            "count": 0,
+            "results": [],
+            "error": str(e),
+        }
 
 
 def _tokens(text: str) -> set[str]:

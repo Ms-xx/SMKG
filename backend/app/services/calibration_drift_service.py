@@ -180,7 +180,10 @@ def reliability_curve(
 
 
 def psi(
-    expected: Iterable[float], actual: Iterable[float], bins: int = 10, epsilon: float = 1e-6
+    expected: Iterable[float],
+    actual: Iterable[float],
+    bins: int = 10,
+    epsilon: float = 1e-6,
 ) -> float:
     """
     Population Stability Index：基于期望分布分位区间，度量实际分布相对期望分布的偏移。

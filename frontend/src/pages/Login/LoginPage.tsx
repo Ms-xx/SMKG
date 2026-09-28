@@ -4,6 +4,7 @@ import { useAuthStore } from "@store/authStore";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { authApi } from "@api/modules";
+import BrandLogo from "@components/BrandLogo";
 
 export default function LoginPage() {
   const [form] = Form.useForm();
@@ -53,10 +54,27 @@ export default function LoginPage() {
         justifyContent: "center",
         alignItems: "center",
         minHeight: "100vh",
-        background: "#f0f2f5",
+        padding: 24,
+        background:
+          "radial-gradient(1000px 500px at 80% -10%, rgba(99,102,241,0.18), transparent 60%), linear-gradient(135deg,#eef2ff 0%,#f4f6fb 60%,#ecfeff 100%)",
       }}
     >
-      <Card title="科学文献智能解析平台" style={{ width: 400 }}>
+      <Card
+        title={
+          <div style={{ textAlign: "center" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+              <BrandLogo size={44} />
+            </div>
+            <span style={{ fontSize: 18, fontWeight: 700 }}>科学文献智能解析平台</span>
+          </div>
+        }
+        style={{
+          width: 400,
+          borderRadius: 16,
+          boxShadow: "0 24px 60px -24px rgba(79,70,229,0.35)",
+          border: "1px solid #e6e8f0",
+        }}
+      >
         <Form form={form} onFinish={handleSubmit}>
           {error && (
             <div style={{ color: "red", marginBottom: 16, textAlign: "center" }}>{error}</div>

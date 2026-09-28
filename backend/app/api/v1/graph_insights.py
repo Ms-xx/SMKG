@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.permissions import DOCUMENT_READ, require_permission
 from app.services.anomaly_detection_service import anomaly_detection_service
+from app.services.graph_snapshot_service import get_full_graph_snapshot
 from app.services.graphrag_integration import graphrag_integration
 from app.services.trend_analysis_service import trend_analysis_service
 
@@ -23,7 +24,11 @@ _RELATION_LIMIT = 5000
 
 
 def _load_full_graph() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """抓取 GraphRAGTest 当前全图：按 stats 的标签/关系类型逐一拉取后归一化。"""
+    """[legacy/兜底] 抓取 GraphRAGTest 当前全图：按 stats 的标签/关系类型逐一拉取后归一化。
+
+    保留同步实现以降低回滚成本（design.md D-04）；当前路由已切换到
+    `graph_snapshot_service.get_full_graph_snapshot()`（异步、缓存、单飞）。
+    """
     nodes: list[dict[str, Any]] = []
     relations: list[dict[str, Any]] = []
 
@@ -66,8 +71,8 @@ async def get_graph_trends(
     """当前全图趋势分析。"""
     if not trend_analysis_service.available:
         raise HTTPException(status_code=503, detail="trend analysis disabled")
-    nodes, relations = _load_full_graph()
-    return trend_analysis_service.analyze(nodes, relations)
+    snapshot = await get_full_graph_snapshot()
+    return trend_analysis_service.analyze(snapshot.nodes, snapshot.relations)
 
 
 @router.get("/anomalies")
@@ -77,5 +82,5 @@ async def get_graph_anomalies(
     """当前全图异常检测。"""
     if not anomaly_detection_service.available:
         raise HTTPException(status_code=503, detail="anomaly detection disabled")
-    nodes, relations = _load_full_graph()
-    return anomaly_detection_service.detect(nodes, relations)
+    snapshot = await get_full_graph_snapshot()
+    return anomaly_detection_service.detect(snapshot.nodes, snapshot.relations)

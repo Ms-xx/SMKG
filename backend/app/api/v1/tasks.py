@@ -4,7 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.permissions import TASK_READ, TASK_WRITE, has_permission, require_permission
+from app.core.permissions import (
+    TASK_READ,
+    TASK_WRITE,
+    has_permission,
+    require_permission,
+)
 from app.schemas.task import TaskAssign, TaskCreate, TaskListResponse, TaskResponse
 from app.services.task_service import TaskService
 
@@ -33,7 +38,14 @@ async def list_tasks(
 ):
     scope_all = has_permission(current_user, TASK_WRITE)
     tasks, total = await task_service.list_tasks(
-        db, page, page_size, status, task_type, assigned_to, current_user["user_id"], scope_all
+        db,
+        page,
+        page_size,
+        status,
+        task_type,
+        assigned_to,
+        current_user["user_id"],
+        scope_all,
     )
     return TaskListResponse(items=tasks, total=total, page=page, page_size=page_size)
 

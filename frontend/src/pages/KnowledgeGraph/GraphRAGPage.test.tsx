@@ -17,6 +17,9 @@ vi.mock("@api/modules", () => ({
   graphApi: apiHolder.graphApi,
 }));
 
+// 输入框占位文案（与组件保持一致）
+const PLACEHOLDER = "就图谱中的论文与关系提问（引用 / 结构 / 属性均可），按 Enter 发送";
+
 describe("GraphRAGPage", () => {
   beforeAll(() => {
     // jsdom 未实现 Element.scrollIntoView
@@ -78,9 +81,7 @@ describe("GraphRAGPage", () => {
     );
 
     await screen.findByText("GraphRAG 已连接");
-    const textarea = screen.getByPlaceholderText(
-      "输入问题，按 Enter 或点击发送... (Shift+Enter 换行)",
-    );
+    const textarea = screen.getByPlaceholderText(PLACEHOLDER);
     await userEvent.type(textarea, "问题内容");
     await userEvent.click(screen.getByRole("button", { name: /发\s*送/ }));
 
@@ -111,14 +112,13 @@ describe("GraphRAGPage", () => {
     );
 
     await screen.findByText("GraphRAG 已连接");
-    const textarea = screen.getByPlaceholderText(
-      "输入问题，按 Enter 或点击发送... (Shift+Enter 换行)",
-    );
+    const textarea = screen.getByPlaceholderText(PLACEHOLDER);
     await userEvent.type(textarea, "页码问题");
     await userEvent.click(screen.getByRole("button", { name: /发\s*送/ }));
 
     expect(await screen.findByText("第 5 页")).toBeInTheDocument();
-    expect(screen.getByText("溯源来源 (1):")).toBeInTheDocument();
+    // 组件当前文案为「溯源来源 (1)」（无尾冒号），用正则容错空格与拆分的文本节点
+    expect(screen.getByText(/溯源来源\s*\(1\)/)).toBeInTheDocument();
   });
 
   it("清空对话回到空状态", async () => {
@@ -129,14 +129,56 @@ describe("GraphRAGPage", () => {
     );
 
     await screen.findByText("GraphRAG 已连接");
-    const textarea = screen.getByPlaceholderText(
-      "输入问题，按 Enter 或点击发送... (Shift+Enter 换行)",
-    );
+    const textarea = screen.getByPlaceholderText(PLACEHOLDER);
     await userEvent.type(textarea, "问题内容");
     await userEvent.click(screen.getByRole("button", { name: /发\s*送/ }));
     await screen.findByText("回答内容");
 
     await userEvent.click(screen.getByRole("button", { name: /清\s*空/ }));
-    expect(screen.getByText("输入问题开始 GraphRAG 问答")).toBeInTheDocument();
+    // 清空后回到空态引导卡片（与组件当前文案一致）
+    expect(screen.getByText("开始一次知识图谱问答")).toBeInTheDocument();
+  });
+
+  it("示例问题仅 3 条且均可在图谱中回答", async () => {
+    render(
+      <MemoryRouter>
+        <GraphRAGPage />
+      </MemoryRouter>,
+    );
+    await screen.findByText("GraphRAG 已连接");
+
+    // 三类图谱查询类型均有呈现
+    expect(screen.getByText(/支持\s*引用关系\s*\/\s*结构关系\s*\/\s*节点关系/)).toBeInTheDocument();
+
+    // 三条示例问题分别对应：CITES 引用边、CONTAINS 结构、节点一跳关系
+    // 注：空态引导与底部提示各渲染一份，故用 getAllByText
+    const questions = [
+      /《Attention Is All You Need》引用了图谱中的哪些论文/,
+      /图谱中论文与正文分段（Chunk）是如何关联的/,
+      /Layer Normalization 在图谱中与哪些节点存在关系/,
+    ];
+    questions.forEach((q) => expect(screen.getAllByText(q).length).toBeGreaterThan(0));
+
+    // 底部提示区恰好 3 条（不再包含纯关系库字段型问题）
+    expect(screen.getAllByTestId("graphrag-example-tag").length).toBe(3);
+    expect(screen.queryByText(/是哪一年发表的？$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/的作者有哪些？$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/钙钛矿|太阳能电池|材料类实体/)).not.toBeInTheDocument();
+  });
+
+  it("点击示例问题填入输入框", async () => {
+    render(
+      <MemoryRouter>
+        <GraphRAGPage />
+      </MemoryRouter>,
+    );
+    await screen.findByText("GraphRAG 已连接");
+
+    await userEvent.click(
+      screen.getAllByText(/《Attention Is All You Need》引用了图谱中的哪些论文/)[0],
+    );
+    expect((screen.getByPlaceholderText(PLACEHOLDER) as HTMLTextAreaElement).value).toBe(
+      "《Attention Is All You Need》引用了图谱中的哪些论文？",
+    );
   });
 });

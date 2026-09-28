@@ -36,7 +36,42 @@ function AuthBootstrap() {
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <ConfigProvider locale={zhCN}>
+      <ConfigProvider
+        locale={zhCN}
+        theme={{
+          token: {
+            // 品牌主色：与落地页/Logo 一致的靛蓝
+            colorPrimary: "#4f46e5",
+            colorInfo: "#4f46e5",
+            colorLink: "#4f46e5",
+            colorSuccess: "#10b981",
+            colorWarning: "#f59e0b",
+            colorError: "#ef4444",
+            borderRadius: 10,
+            fontFamily:
+              '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif',
+            colorBgLayout: "#f4f6fb",
+          },
+          components: {
+            Layout: {
+              headerBg: "#ffffff",
+              siderBg: "#ffffff",
+              bodyBg: "#f4f6fb",
+              headerHeight: 60,
+            },
+            Menu: {
+              itemSelectedColor: "#4f46e5",
+              itemSelectedBg: "rgba(79,70,229,0.10)",
+              itemHoverBg: "rgba(79,70,229,0.06)",
+              itemBorderRadius: 8,
+              itemHeight: 42,
+            },
+            Button: { fontWeight: 500, controlHeight: 36 },
+            Card: { borderRadiusLG: 12, paddingLG: 20 },
+            Table: { headerBg: "#f8fafc" },
+          },
+        }}
+      >
         <AuthBootstrap />
       </ConfigProvider>
     </QueryClientProvider>

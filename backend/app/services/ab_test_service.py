@@ -172,7 +172,12 @@ class _ABStore:
         try:
             os.makedirs(os.path.dirname(self._path) or ".", exist_ok=True)
             with open(self._path, "w", encoding="utf-8") as f:
-                json.dump({"experiments": self._experiments}, f, ensure_ascii=False, default=str)
+                json.dump(
+                    {"experiments": self._experiments},
+                    f,
+                    ensure_ascii=False,
+                    default=str,
+                )
         except OSError as exc:
             logger.warning(f"A/B 实验注册表持久化失败：{exc}")
 

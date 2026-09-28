@@ -116,7 +116,11 @@ def _delta_ratio(i: int, j: int, nums: list[float] | None = None) -> float:
     return ((nums[i] - nums[j]) / s) ** 2 if s != 0 else 0.0
 
 
-_METRIC_DELTA = {"nominal": _delta_nominal, "interval": _delta_interval, "ratio": _delta_ratio}
+_METRIC_DELTA = {
+    "nominal": _delta_nominal,
+    "interval": _delta_interval,
+    "ratio": _delta_ratio,
+}
 
 
 def _resolve_numeric_values(vals: list[Any], vidx: dict[Any, int]) -> list[float]:

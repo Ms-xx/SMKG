@@ -59,7 +59,9 @@ class ChartDescriptionService:
             )
 
     def describe(
-        self, image_path: str, prompt: str = "Summarize this figure from a scientific paper."
+        self,
+        image_path: str,
+        prompt: str = "Summarize this figure from a scientific paper.",
     ) -> str:
         """
         生成图表图像的自然语言描述；不可用或失败时返回空串。

@@ -90,5 +90,9 @@ async def annotation_collaboration(
         connection_manager.disconnect(document_id, websocket)
         await connection_manager.broadcast(
             document_id,
-            {"type": EVENT_PRESENCE_LEFT, "document_id": document_id, "user_id": user_id},
+            {
+                "type": EVENT_PRESENCE_LEFT,
+                "document_id": document_id,
+                "user_id": user_id,
+            },
         )

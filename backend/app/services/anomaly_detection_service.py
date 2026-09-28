@@ -65,7 +65,12 @@ def _classify_anomalies(
     mean: float,
     std: float,
     z_threshold: float,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+]:
     """三类异常分类，返回 (isolated, high, low, anomalies)。"""
     isolated: list[dict[str, Any]] = []
     high: list[dict[str, Any]] = []

@@ -44,16 +44,20 @@ class GraphService:
         return await self.neo4j_client.execute_query(cypher, params)
 
     async def get_statistics(self):
+        import asyncio
+
         cypher = """
         MATCH (n)
         RETURN labels(n) AS labels, count(*) AS count
         """
-        node_stats = await self.neo4j_client.execute_query(cypher)
-
         cypher_rel = """
         MATCH ()-[r]->()
         RETURN type(r) AS type, count(*) AS count
         """
-        rel_stats = await self.neo4j_client.execute_query(cypher_rel)
+
+        node_stats, rel_stats = await asyncio.gather(
+            self.neo4j_client.execute_query(cypher),
+            self.neo4j_client.execute_query(cypher_rel),
+        )
 
         return {"node_stats": node_stats, "relation_stats": rel_stats}

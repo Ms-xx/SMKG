@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends
@@ -101,8 +102,12 @@ async def rag_anchors(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """真实溯源：从 GraphRAGTest(8001) 拉取带来源 chunks 生成出处锚点，并按页级全文回填 page_number。"""
-    resp = source_anchor_service.rag_anchors(body.question)
+    """真实溯源：从 GraphRAGTest(8001) 拉取带来源 chunks 生成出处锚点，并按页级全文回填 page_number。
+
+    `source_anchor_service.rag_anchors` 内部调用同步 `graphrag_integration.rag_query`
+    （红线步骤 4：保持同步方法语义不变），用 `asyncio.to_thread` 包裹以避免阻塞事件循环。
+    """
+    resp = await asyncio.to_thread(source_anchor_service.rag_anchors, body.question)
     backfilled = await _backfill_anchors(db, current_user, resp.get("anchors") or [])
     resp.update(backfilled)
     return resp
@@ -112,6 +117,9 @@ async def rag_anchors(
 async def compare(body: CompareRequest, current_user: dict = Depends(get_current_user)):
     """多文对比：跨文档聚合候选分块并输出对比结论（配置 LLM 时用真实 LLM 生成）。"""
     docs = [d.model_dump() for d in body.documents]
-    return source_anchor_service.compare(
-        docs, body.question, use_llm=body.use_llm if body.use_llm is not None else True
+    return await asyncio.to_thread(
+        source_anchor_service.compare,
+        docs,
+        body.question,
+        body.use_llm if body.use_llm is not None else True,
     )

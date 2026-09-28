@@ -22,7 +22,12 @@ async def create_comment(
     """对标注结果添加评论，自动解析 @提及 并触发通知。"""
     ip = request.client.host if request.client else None
     result = await comment_service.create_comment(
-        db, comment.annotation_id, comment.content, comment.parent_id, current_user["user_id"], ip
+        db,
+        comment.annotation_id,
+        comment.content,
+        comment.parent_id,
+        current_user["user_id"],
+        ip,
     )
     if result is None:
         raise HTTPException(status_code=404, detail="Annotation not found")

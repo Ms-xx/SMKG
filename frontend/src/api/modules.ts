@@ -1,4 +1,5 @@
 import api from "./index";
+import { GRAPH_SLOW_TIMEOUT_MS } from "./timeouts";
 import type {
   User,
   Document,
@@ -222,7 +223,11 @@ export const graphApi = {
     api.get(`/knowledge-graph/entities/${entityId}/relations`, { params: { depth } }),
   executeCypher: async (cypher: string, params?: Record<string, any>) =>
     api.post("/knowledge-graph/query", { cypher, params }),
-  getStatistics: async () => api.get("/knowledge-graph/statistics"),
+  getStatistics: async () =>
+    api.get("/knowledge-graph/statistics", {
+      timeout: GRAPH_SLOW_TIMEOUT_MS,
+      meta: { silent: true },
+    }),
   // ── 节点类型注册表 (默认 + 自定义) - 需要认证
   getNodeTypes: async () => api.get("/knowledge-graph/node-types"),
   createNodeType: async (data: { label: string; name?: string; color?: string }) =>
@@ -238,7 +243,11 @@ export const graphApi = {
     api.post("/knowledge-graph/rag/llm/load", model ? { model } : {}),
   ragQuery: async (question: string, returnContext = false) =>
     api.post("/knowledge-graph/rag/query", { question, return_context: returnContext }),
-  ragGraphStats: async () => api.get("/knowledge-graph/rag/graph/stats"),
+  ragGraphStats: async () =>
+    api.get("/knowledge-graph/rag/graph/stats", {
+      timeout: GRAPH_SLOW_TIMEOUT_MS,
+      meta: { silent: true },
+    }),
   ragNodesByLabel: async (label: string, limit = 50) =>
     api.get(`/knowledge-graph/rag/graph/nodes/${label}`, { params: { limit } }),
   ragSearchNodes: async (keyword: string, limit = 20) =>
@@ -272,8 +281,16 @@ export const graphApi = {
     }),
   ragClearGraph: async () => api.post("/knowledge-graph/rag/graph/clear"),
   // ── 知识图谱高级能力（趋势分析 + 异常检测） - 需要认证
-  getTrends: async () => api.get("/knowledge-graph/trends"),
-  getAnomalies: async () => api.get("/knowledge-graph/anomalies"),
+  getTrends: async () =>
+    api.get("/knowledge-graph/trends", {
+      timeout: GRAPH_SLOW_TIMEOUT_MS,
+      meta: { silent: true },
+    }),
+  getAnomalies: async () =>
+    api.get("/knowledge-graph/anomalies", {
+      timeout: GRAPH_SLOW_TIMEOUT_MS,
+      meta: { silent: true },
+    }),
 };
 
 export const multiAgentApi = {

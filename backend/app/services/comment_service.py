@@ -169,7 +169,11 @@ class CommentService:
         return items, total
 
     async def delete_comment(
-        self, db: AsyncSession, comment_id: str, user_id: str, ip_address: Optional[str] = None
+        self,
+        db: AsyncSession,
+        comment_id: str,
+        user_id: str,
+        ip_address: Optional[str] = None,
     ):
         """返回 True=删除成功，False=不存在，None=无权限。"""
         result = await db.execute(

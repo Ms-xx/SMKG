@@ -109,6 +109,35 @@ def test_parse_document_task_success(monkeypatch):
         def extract_references(self, path):
             return []
 
+        def extract_headings_by_fontsize(self, path):
+            # 步骤 18 补强：标题树（level 1/2/3）
+            return {
+                "metadata": {"page_count": 1},
+                "pages": [
+                    {
+                        "page_number": 1,
+                        "elements": [
+                            {
+                                "type": "title",
+                                "text": "1 Introduction",
+                                "bbox": [0, 0, 1, 1],
+                                "level": 1,
+                            },
+                            {
+                                "type": "title",
+                                "text": "1.1 Background",
+                                "bbox": [0, 0, 1, 1],
+                                "level": 2,
+                            },
+                        ],
+                    }
+                ],
+            }
+
+        def extract_figures(self, path):
+            # 步骤 18 补强：图表/公式（本机无检测模型时真实返回为空）
+            return {"metadata": {"page_count": 1}, "figures": []}
+
     monkeypatch.setattr(pt, "ParsingService", _FakeParsing)
 
     r = pt.parse_document_task.run("d1")

@@ -62,7 +62,10 @@ class AnnotationService:
             "create",
             "annotation",
             annotation.id,
-            {"annotation_type": annotation.annotation_type, "document_id": annotation.document_id},
+            {
+                "annotation_type": annotation.annotation_type,
+                "document_id": annotation.document_id,
+            },
             ip_address,
         )
         return annotation

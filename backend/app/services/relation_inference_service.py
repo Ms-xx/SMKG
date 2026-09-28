@@ -702,7 +702,11 @@ class RelationInferenceService:
         self._backend_used = "statistical"
 
     def predict_links(
-        self, head: str, relation: str, triples: list[Any] | None = None, top_k: int = 10
+        self,
+        head: str,
+        relation: str,
+        triples: list[Any] | None = None,
+        top_k: int = 10,
     ) -> dict[str, Any]:
         """链路预测：返回 {head, relation, backend, candidates:[{entity, score}]}。"""
         triples = triples if triples is not None else self._fit_facts

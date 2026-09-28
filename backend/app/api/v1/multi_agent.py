@@ -36,7 +36,10 @@ class ResolveRequest(BaseModel):
 @router.get("/agents")
 async def list_agents(current_user: dict = Depends(get_current_user)):
     """列出可用的专用智能体。"""
-    return {"agents": multi_agent_service.list_agents(), "modes": ["vote", "merge", "arbitrate"]}
+    return {
+        "agents": multi_agent_service.list_agents(),
+        "modes": ["vote", "merge", "arbitrate"],
+    }
 
 
 @router.post("/run")

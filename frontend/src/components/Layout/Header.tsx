@@ -121,12 +121,15 @@ export default function AppHeader() {
       style={{
         padding: "0 24px",
         background: "#fff",
+        borderBottom: "1px solid var(--color-border)",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
       }}
     >
-      <div style={{ fontSize: 18, fontWeight: 600 }}>科学文献智能解析平台</div>
+      <div style={{ fontSize: 16, fontWeight: 600, color: "var(--color-text-primary)" }}>
+        科学文献智能解析平台
+      </div>
       <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
         <Popover
           content={notifyContent}

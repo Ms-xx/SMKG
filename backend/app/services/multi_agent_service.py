@@ -40,7 +40,11 @@ AGENT_SUMMARIZE = "summarize"
 
 # 智能体描述注册表（顺序即默认参与顺序）
 AGENT_REGISTRY: list[dict[str, str]] = [
-    {"name": AGENT_PARSE, "description": "文献解析：结构、关键词、公式检测", "kind": "text"},
+    {
+        "name": AGENT_PARSE,
+        "description": "文献解析：结构、关键词、公式检测",
+        "kind": "text",
+    },
     {"name": AGENT_EXTRACT, "description": "信息抽取：实体抽取", "kind": "items"},
     {"name": AGENT_QA, "description": "问答：基于规则模板生成答案", "kind": "text"},
     {"name": AGENT_SUMMARIZE, "description": "综述：提炼核心内容", "kind": "text"},
@@ -126,7 +130,10 @@ def _qa_fallback(query: str) -> dict[str, Any]:
 
 
 def _summarize_fallback(text: str) -> dict[str, Any]:
-    return {"content": _summary_first_sentences(text) or "（无法生成摘要）", "confidence": 0.6}
+    return {
+        "content": _summary_first_sentences(text) or "（无法生成摘要）",
+        "confidence": 0.6,
+    }
 
 
 _FALLBACKS: dict[str, Callable[[str], dict[str, Any]]] = {

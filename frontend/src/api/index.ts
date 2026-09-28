@@ -1,5 +1,7 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from "axios";
 import { message } from "antd";
+import { mapErrorToChineseMessage } from "./errorMessage";
+import { shouldSuppress } from "./errorNotify";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "/api/v1",
@@ -23,7 +25,10 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response.data,
   async (error: AxiosError) => {
-    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as AxiosRequestConfig & {
+      _retry?: boolean;
+      meta?: { silent?: boolean };
+    };
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
@@ -43,8 +48,23 @@ api.interceptors.response.use(
     }
     const detail = (error.response?.data as any)?.detail;
     // FastAPI 422 校验错误 detail 是对象数组，不能直接作为 message 子节点渲染（会导致 React 崩溃），统一转字符串
-    const errorMessage = typeof detail === "string" ? detail : error.message || "请求失败";
-    message.error(errorMessage);
+    // 文案策略：detail 为字符串时优先保留（既有行为，含中文 detail）；否则用中文文案映射（超时/网络/5xx 等）
+    const notifyText =
+      typeof detail === "string"
+        ? detail
+        : mapErrorToChineseMessage({
+            code: (error as any)?.code,
+            message: error.message,
+            status: error.response?.status,
+            detail,
+          }) ||
+          error.message ||
+          "请求失败";
+    const notifyKey = `${error.response?.status ?? "net"}:${originalRequest?.url ?? ""}`;
+    const isSilent = originalRequest?.meta?.silent === true;
+    if (!isSilent && !shouldSuppress(notifyKey, Date.now())) {
+      message.error(notifyText);
+    }
     return Promise.reject(error);
   },
 );

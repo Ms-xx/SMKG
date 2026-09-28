@@ -195,6 +195,64 @@ async def get_relations_by_type(
     return {"type": rel_type, "count": len(rels), "relations": rels}
 
 
+@router.get("/graph/export")
+async def export_graph(
+    node_limit: int = Query(5000, ge=1, le=50000),
+    relation_limit: int = Query(5000, ge=1, le=50000),
+):
+    """
+    全图只读导出：一次往返返回全量节点与关系（供后端全图快照使用）。
+
+    语义等价于 graph_stats + 逐标签节点 + 逐类型关系的并集；
+    两次只读 Cypher（全量节点、全量关系），不修改任何既有端点行为。
+    """
+    driver = await neo4j_client.get_driver()
+    from config import settings
+
+    nodes: list[dict[str, Any]] = []
+    node_labels: dict[str, int] = {}
+    async with driver.session(database=settings.NEO4J_DATABASE) as session:
+        result = await session.run(
+            "MATCH (n) RETURN n, labels(n) AS lbs LIMIT $limit",
+            limit=node_limit,
+        )
+        async for record in result:
+            node = record["n"]
+            labels = list(node.labels)
+            label = labels[0] if labels else "Unknown"
+            node_labels[label] = node_labels.get(label, 0) + 1
+            nodes.append({"label": label, "properties": dict(node)})
+
+    relations: list[dict[str, Any]] = []
+    relation_types: dict[str, int] = {}
+    async with driver.session(database=settings.NEO4J_DATABASE) as session:
+        result = await session.run(
+            "MATCH (s)-[r]->(t) RETURN s, r, t LIMIT $limit",
+            limit=relation_limit,
+        )
+        async for record in result:
+            rel = record["r"]
+            rel_type = rel.type
+            relation_types[rel_type] = relation_types.get(rel_type, 0) + 1
+            relations.append(
+                {
+                    "source": dict(record["s"]),
+                    "relation": rel_type,
+                    "target": dict(record["t"]),
+                    "properties": dict(rel),
+                }
+            )
+
+    return {
+        "total_nodes": len(nodes),
+        "total_relations": len(relations),
+        "node_labels": node_labels,
+        "relation_types": relation_types,
+        "nodes": nodes,
+        "relations": relations,
+    }
+
+
 # ─── GraphRAG 问答 ───────────────────────────────────────
 
 @router.post("/query")

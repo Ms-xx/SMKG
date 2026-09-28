@@ -16,6 +16,7 @@
 import asyncio
 import json
 import logging
+from typing import Any, Awaitable, Callable
 
 from app.core.config import settings
 
@@ -24,6 +25,9 @@ logger = logging.getLogger(__name__)
 _redis = None
 _ready: bool | None = None
 _lock = asyncio.Lock()
+
+# 单飞注册表：缓存键 → 在飞 Future；并发请求共享同一结果
+_inflight: dict[str, asyncio.Future] = {}
 
 
 def _get_redis():
@@ -86,3 +90,77 @@ async def invalidate_cache(prefix: str, keys: list[str] | None = None) -> None:
                 await r.delete(k)
     except Exception as e:  # noqa: BLE001
         logger.warning(f"缓存失效失败: {e}")
+
+
+async def async_single_flight_cache(
+    key: str,
+    ttl: int,
+    producer: Callable[[], Awaitable[Any]],
+    empty_ttl: int | None = None,
+    is_empty: Callable[[Any], bool] | None = None,
+) -> Any:
+    """单飞 + Redis 命中回填 + 空结果短 TTL / 不缓存 + 静默降级。
+
+    与既有 async_cache 的差异：
+    - 并发未命中同 key 请求共享同一 Future（单飞合并），不重复生产；
+    - 空结果按 empty_ttl 写入或跳过写入；
+    - 不引入全局串行锁（不同 key 互不阻塞）；
+    - Redis 读写/序列化异常 → 捕获 warning 并直连 producer，不抛出。
+    """
+    if not key or not ttl or ttl <= 0:
+        return await producer()
+
+    # 单飞：若同 key 已有在飞 Future，复用
+    fut = _inflight.get(key)
+    if fut is not None:
+        return await fut
+
+    loop = asyncio.get_event_loop()
+    fut = loop.create_future()
+    _inflight[key] = fut
+    try:
+        value = await _single_flight_produce(key, ttl, producer, empty_ttl, is_empty)
+        if not fut.done():
+            fut.set_result(value)
+        return value
+    except Exception as e:  # noqa: BLE001
+        if not fut.done():
+            fut.set_exception(e)
+        raise
+    finally:
+        _inflight.pop(key, None)
+
+
+async def _single_flight_produce(
+    key: str,
+    ttl: int,
+    producer: Callable[[], Awaitable[Any]],
+    empty_ttl: int | None,
+    is_empty: Callable[[Any], bool] | None,
+) -> Any:
+    """单飞内部：先读 Redis 命中则返回；未命中则调 producer、回填、返回。"""
+    r = _get_redis()
+    if r is None:
+        return await producer()
+    try:
+        raw = await r.get(key)
+        if raw is not None:
+            return json.loads(raw)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"单飞缓存读失败 {key}，直连: {e}")
+
+    value = await producer()
+
+    # 决定回填 TTL：空结果按 empty_ttl（None 则不缓存）
+    write_ttl = ttl
+    if is_empty is not None and is_empty(value):
+        if empty_ttl is None or empty_ttl <= 0:
+            return value
+        write_ttl = empty_ttl
+
+    try:
+        await r.set(key, _dump(value), ex=write_ttl)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"单飞缓存写失败 {key}: {e}")
+
+    return value

@@ -5,6 +5,7 @@ import os
 import pytest
 import fitz
 
+from app.services.latex_format import SOURCE_IMAGE, normalize_latex
 from app.services.parsing_service import ParsingService
 
 
@@ -102,11 +103,50 @@ def test_extract_page_elements_no_boxes(tmp_path, monkeypatch):
 
 # ── 公式 / 图表 / 图像描述（委托）─────────────────────────────────────────
 def test_recognize_formula(monkeypatch):
+    # 公式识别结果统一经 LaTeX 规范化：`E=mc^2` → `E=mc^{2}`
     monkeypatch.setattr(
-        "app.services.formula_service.formula_service.recognize",
-        lambda p: "E=mc^2",
+        "app.services.formula_service.formula_service.recognize_detail",
+        lambda p, display=None: normalize_latex(
+            "E=mc^2", display=display, source=SOURCE_IMAGE
+        ),
     )
-    assert ParsingService().recognize_formula("img.png") == "E=mc^2"
+    assert ParsingService().recognize_formula("img.png") == "E=mc^{2}"
+
+
+def test_recognize_formula_detail_returns_structured_latex(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.formula_service.formula_service.recognize_detail",
+        lambda p, display=None: normalize_latex(
+            "$$α \\leq β$$", display=display, source=SOURCE_IMAGE
+        ),
+    )
+    detail = ParsingService().recognize_formula_detail("img.png")
+    assert detail.latex == "\\alpha \\leq \\beta"
+    assert detail.display is True
+    assert detail.normalized is True
+    assert detail.source == SOURCE_IMAGE
+
+
+def test_extract_text_formulas_uses_uniform_latex():
+    svc = ParsingService()
+    items = svc.extract_text_formulas("text $$a_ij + x^2$$ and $b_k$")
+    assert [i["latex"] for i in items] == ["a_{ij} + x^{2}", "b_{k}"]
+    assert all(i["source"] == "text_layer" for i in items)
+
+
+def test_extract_formulas_by_page_attaches_page_number():
+    svc = ParsingService()
+    items = svc.extract_formulas_by_page(
+        {
+            "pages": [
+                {"page_number": 2, "text": "$$y=2$$"},
+                {"page_number": 3, "text": "no math"},
+            ]
+        }
+    )
+    assert len(items) == 1
+    assert items[0]["page_number"] == 2
+    assert items[0]["latex"] == "y=2"
 
 
 def test_detect_figures(monkeypatch):
@@ -159,11 +199,23 @@ def test_extract_figures(tmp_path, monkeypatch):
             {"class": "chart", "confidence": 0.8, "bbox": [10, 10, 30, 30]},
         ],
     )
-    monkeypatch.setattr(ParsingService, "recognize_formula", lambda self, p: "x^2")
+    monkeypatch.setattr(
+        ParsingService,
+        "recognize_formula_detail",
+        lambda self, p, display=True: normalize_latex(
+            "x^2", display=display, source=SOURCE_IMAGE
+        ),
+    )
     monkeypatch.setattr(ParsingService, "describe_chart", lambda self, p, *a: "caption")
 
     svc = ParsingService()
     res = svc.extract_figures(str(pdf))
     assert res["metadata"]["page_count"] == 1
-    assert any(f.get("latex") == "x^2" for f in res["figures"])
+    # 公式统一为规范 LaTeX，并携带方向/来源/规范化状态
+    formula = next(f for f in res["figures"] if f.get("class") == "formula")
+    assert formula["latex"] == "x^{2}"
+    assert formula["latex_display"] == "$$x^{2}$$"
+    assert formula["is_display"] is True
+    assert formula["source"] == SOURCE_IMAGE
+    assert formula["normalized"] is True
     assert any(f.get("caption") == "caption" for f in res["figures"])

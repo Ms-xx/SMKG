@@ -72,7 +72,11 @@ class TrendAnalysisService:
                 entity_total[label] = entity_total.get(label, 0) + cnt
                 entity_periods[label] = entity_periods.get(label, 0) + (1 if cnt > 0 else 0)
         top_entities = [
-            {"label": label, "count": cnt, "total_periods": entity_periods.get(label, 0)}
+            {
+                "label": label,
+                "count": cnt,
+                "total_periods": entity_periods.get(label, 0),
+            }
             for label, cnt in entity_total.items()
         ]
         top_entities.sort(key=lambda x: x["count"], reverse=True)

@@ -141,3 +141,74 @@ async def test_page_elements(client, token, db):
         f"{API_PREFIX}/documents/{did}/pages/99/elements", headers=headers
     )
     assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_page_elements_returns_formula_latex(client, token, db):
+    """回归：修复前只要页面**存在元素**，该接口就 500，公式在结果页永远显示不出来。
+
+    同时验证公式元素按统一 LaTeX 口径返回（latex 主体 + 带定界符 latex_display）。
+    """
+    from app.models.document import DocumentElement, DocumentPage
+
+    headers = token("u1", "admin")
+    r = await client.post(
+        f"{API_PREFIX}/documents/upload",
+        files={"file": ("f.pdf", PDF_BODY, "application/pdf")},
+        headers=headers,
+    )
+    did = r.json()["id"]
+
+    page = DocumentPage(document_id=did, page_number=1)
+    db.add(page)
+    await db.commit()
+    await db.refresh(page)
+
+    db.add(
+        DocumentElement(
+            page_id=page.id,
+            element_type="formula",
+            bbox="[1, 2, 3, 4]",  # 历史双重编码形态，读取侧必须兼容
+            content="E=mc^{2}",
+            element_metadata={
+                "latex": "E=mc^{2}",
+                "latex_display": "$$E=mc^{2}$$",
+                "is_display": True,
+                "number": "3",
+                "source": "image_pix2tex",
+                "normalized": True,
+            },
+            confidence=0.9,
+        )
+    )
+    db.add(
+        DocumentElement(
+            page_id=page.id,
+            element_type="text",
+            bbox=[0, 0, 10, 10],
+            content="正文",
+            element_metadata={},
+            confidence=0.95,
+        )
+    )
+    await db.commit()
+
+    r = await client.get(
+        f"{API_PREFIX}/documents/{did}/pages/1/elements", headers=headers
+    )
+    assert r.status_code == 200, r.text
+    elements = r.json()["elements"]
+    assert len(elements) == 2
+
+    formula = next(e for e in elements if e["element_type"] == "formula")
+    assert formula["latex"] == "E=mc^{2}"
+    assert formula["latex_display"] == "$$E=mc^{2}$$"
+    assert formula["is_display"] is True
+    assert formula["formula_number"] == "3"
+    assert formula["formula_source"] == "image_pix2tex"
+    assert formula["formula_normalized"] is True
+    assert formula["bbox"] == [1, 2, 3, 4]
+
+    text = next(e for e in elements if e["element_type"] == "text")
+    assert text["content"] == "正文"
+    assert text["latex"] is None

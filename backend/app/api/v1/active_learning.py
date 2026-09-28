@@ -26,7 +26,8 @@ class Sample(BaseModel):
 class ActiveLearningSelectRequest(BaseModel):
     samples: list[Sample] = []
     strategy: Optional[str] = Field(
-        None, description="uncertainty | diversity | qbc | hybrid（不填使用默认 hybrid）"
+        None,
+        description="uncertainty | diversity | qbc | hybrid（不填使用默认 hybrid）",
     )
     top_k: int = Field(10, ge=1, le=200)
     uncertainty_method: Optional[str] = Field(

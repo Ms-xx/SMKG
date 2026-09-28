@@ -7,6 +7,7 @@ from app.api.v1.router import router as api_router
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.middleware.logging import LoggingMiddleware
+from app.services.graphrag_integration import _close_async_client
 from app.utils.business_metrics import setup_business_metrics
 from app.utils.metrics import setup_metrics
 from app.utils.neo4j_client import Neo4jClient
@@ -68,6 +69,12 @@ async def shutdown():
         await neo4j_client.close()
     except Exception as e:
         logger.warning(f"Neo4j cleanup error: {e}")
+
+    # 关闭 GraphRAGTest 共享 AsyncClient
+    try:
+        await _close_async_client()
+    except Exception as e:
+        logger.warning(f"GraphRAGTest AsyncClient cleanup error: {e}")
 
 
 @app.get("/health")

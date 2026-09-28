@@ -82,13 +82,32 @@ export default function DeduplicationPage() {
     {
       title: "文档版本",
       dataIndex: "documents",
-      render: (docs: DedupCluster["documents"]) => (
-        <Space direction="vertical" size={2}>
-          {docs.map((d) => (
-            <Text key={d.id} type={d.version ? "secondary" : undefined}>
-              {d.title} {d.version && <Tag color="blue">{d.version}</Tag>}
-            </Text>
-          ))}
+      render: (docs: DedupCluster["documents"], row: DedupCluster) => (
+        <Space direction="vertical" size={4}>
+          {docs.map((d) => {
+            const isKeep = row.suggestion?.keep === d.id;
+            return (
+              <Space key={d.id} size={6} wrap>
+                <Text type={isKeep ? undefined : "secondary"} strong={isKeep}>
+                  {d.title}
+                </Text>
+                {d.version ? (
+                  <Tag color={isKeep ? "green" : "default"}>{d.version}</Tag>
+                ) : (
+                  <Tag>版本未知</Tag>
+                )}
+                {isKeep ? (
+                  <Tag color="green" data-testid="keep-tag">
+                    建议保留（最新）
+                  </Tag>
+                ) : (
+                  <Tag color="orange" data-testid="old-tag">
+                    旧版本 · 可归档
+                  </Tag>
+                )}
+              </Space>
+            );
+          })}
         </Space>
       ),
     },
@@ -96,16 +115,24 @@ export default function DeduplicationPage() {
       title: "保留建议",
       dataIndex: "suggestion",
       width: 320,
-      render: (s: DedupCluster["suggestion"]) => (
-        <Space direction="vertical" size={2}>
-          <Text strong>保留：{s.keep || "-"}</Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {s.reason}
-          </Text>
-        </Space>
-      ),
+      render: (s: DedupCluster["suggestion"], row: DedupCluster) => {
+        const kept = row.documents.find((d) => d.id === s.keep);
+        return (
+          <Space direction="vertical" size={2}>
+            <Text strong>保留：{kept ? kept.title : s.keep || "-"}</Text>
+            {kept?.version && <Tag color="green">最新版本 {kept.version}</Tag>}
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {s.reason}
+            </Text>
+          </Space>
+        );
+      },
     },
   ];
+
+  // 存在可判定"最新版本"的簇时给出整体提示
+  const latestHints =
+    result?.clusters.filter((c) => c.suggestion?.keep && c.documents.some((d) => d.version)) ?? [];
 
   return (
     <div style={{ padding: 24, background: "#f0f2f5", minHeight: "100vh" }}>
@@ -148,6 +175,15 @@ export default function DeduplicationPage() {
             </Tag>
             <Tag>相似对：{result.duplicate_pairs.length}</Tag>
           </Space>
+          {latestHints.length > 0 && (
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+              message={`检测到 ${latestHints.length} 组同源版本，建议保留每组中版本号最高的文档`}
+              description="同源论文的早期版本（如 v1）在正文与实验上常与最新版（如 v7）存在差异；归档旧版本可避免问答与图谱引用到过期结论。"
+            />
+          )}
           {result.cluster_count === 0 ? (
             <Empty description="未发现语义重复的文档" image={Empty.PRESENTED_IMAGE_SIMPLE} />
           ) : (

@@ -2,6 +2,7 @@
 Neo4j 图数据库客户端
 封装常用的 Cypher 操作: 增删改查节点和关系, 统计, 检索等
 """
+
 from typing import Any, Optional
 from neo4j import AsyncGraphDatabase, AsyncDriver
 from config import settings
@@ -36,10 +37,7 @@ class Neo4jClient:
     ) -> dict[str, Any]:
         """创建单个节点"""
         driver = await self.get_driver()
-        query = (
-            f"CREATE (n:`{label}` $props) "
-            "RETURN id(n) AS internal_id, n"
-        )
+        query = f"CREATE (n:`{label}` $props) " "RETURN id(n) AS internal_id, n"
         async with driver.session(database=settings.NEO4J_DATABASE) as session:
             result = await session.run(query, props=properties)
             record = await result.single()
@@ -72,7 +70,11 @@ class Neo4jClient:
                 props={**properties, match_key: match_value},
             )
             record = await result.single()
-            return {"internal_id": record["internal_id"], "label": label, "properties": record["n"]}
+            return {
+                "internal_id": record["internal_id"],
+                "label": label,
+                "properties": record["n"],
+            }
 
     async def delete_node(self, label: str, match_key: str, match_value: Any) -> bool:
         """删除指定节点(同时删除所有关系)"""
@@ -160,7 +162,10 @@ class Neo4jClient:
         query = f"MATCH (n:`{label}`) {where_clause} RETURN n LIMIT $limit"
         async with driver.session(database=settings.NEO4J_DATABASE) as session:
             result = await session.run(query, limit=limit)
-            return [{"label": label, "properties": dict(record["n"])} async for record in result]
+            return [
+                {"label": label, "properties": dict(record["n"])}
+                async for record in result
+            ]
 
     async def find_nodes_by_keyword(
         self,
@@ -168,12 +173,19 @@ class Neo4jClient:
         label: Optional[str] = None,
         limit: int = 20,
     ) -> list[dict[str, Any]]:
-        """在节点属性中模糊搜索关键词(ILIKE)"""
+        """在节点属性中模糊搜索关键词（大小写不敏感，仅匹配字符串属性）。
+
+        注意：必须先用 `IS :: STRING` 过滤，否则对 `authors`（字符串数组）或
+        `confidence`（浮点）等非字符串属性调用 `toLower()` 会抛 CypherTypeError，
+        导致整个检索失败并返回空结果（曾使 GraphRAG 问答始终拿不到图谱上下文）。
+        """
         driver = await self.get_driver()
         label_clause = f":`{label}`" if label else ""
         query = (
             f"MATCH (n{label_clause}) "
-            "WHERE any(key IN keys(n) WHERE toLower(n[key]) CONTAINS toLower($keyword)) "
+            "WHERE any(key IN keys(n) WHERE "
+            "  n[key] IS NOT NULL AND (n[key] IS :: STRING) "
+            "  AND toLower(n[key]) CONTAINS toLower($keyword)) "
             "RETURN n LIMIT $limit"
         )
         async with driver.session(database=settings.NEO4J_DATABASE) as session:
@@ -189,18 +201,54 @@ class Neo4jClient:
         rel_type: Optional[str] = None,
         limit: int = 20,
     ) -> list[dict[str, Any]]:
-        """搜索关系"""
+        """搜索关系（大小写不敏感：匹配关系属性中的字符串，或关系类型名）。
+
+        同样需 `IS :: STRING` 过滤，避免对 `confidence` 等数值属性调用 `toLower()` 报错；
+        额外放开关系类型名匹配（如关键词 `cites` 可命中 CITES 边）。
+        """
         driver = await self.get_driver()
         type_clause = f":`{rel_type}`" if rel_type else ""
         query = f"MATCH (s)-[r{type_clause}]->(t) "
         # keyword 为空时不应加过滤条件：`any(... WHERE CONTAINS "")` 在关系无属性时恒为 false，会漏掉全部关系
         if keyword:
             query += (
-                "WHERE any(key IN keys(r) WHERE toLower(r[key]) CONTAINS toLower($keyword)) "
+                "WHERE toLower(type(r)) CONTAINS toLower($keyword) OR "
+                "any(key IN keys(r) WHERE "
+                "  r[key] IS NOT NULL AND (r[key] IS :: STRING) "
+                "  AND toLower(r[key]) CONTAINS toLower($keyword)) "
             )
         query += "RETURN s, r, t LIMIT $limit"
         async with driver.session(database=settings.NEO4J_DATABASE) as session:
             result = await session.run(query, keyword=keyword, limit=limit)
+            return [
+                {
+                    "source": dict(record["s"]),
+                    "relation": record["r"].type,
+                    "target": dict(record["t"]),
+                    "properties": dict(record["r"]),
+                }
+                async for record in result
+            ]
+
+    async def find_relations_of_nodes(
+        self, node_ids: list[str], limit: int = 50
+    ) -> list[dict[str, Any]]:
+        """拉取指定节点集合的一跳关系（出边与入边都返回）。
+
+        用途：关键词命中节点后，把该节点的引用/包含等关系一并带入上下文，
+        否则"某论文引用了哪些论文"这类问题拿不到 CITES 边。
+        """
+        cleaned = [str(i) for i in node_ids if i]
+        if not cleaned:
+            return []
+        driver = await self.get_driver()
+        query = (
+            "MATCH (s)-[r]->(t) "
+            "WHERE s.id IN $ids OR t.id IN $ids "
+            "RETURN s, r, t LIMIT $limit"
+        )
+        async with driver.session(database=settings.NEO4J_DATABASE) as session:
+            result = await session.run(query, ids=cleaned, limit=limit)
             return [
                 {
                     "source": dict(record["s"]),
@@ -231,8 +279,13 @@ class Neo4jClient:
             paths = []
             async for record in result:
                 path = record["path"]
-                nodes = [{"label": list(n.labels)[0], "properties": dict(n)} for n in path.nodes]
-                rels = [{"type": r.type, "properties": dict(r)} for r in path.relationships]
+                nodes = [
+                    {"label": list(n.labels)[0], "properties": dict(n)}
+                    for n in path.nodes
+                ]
+                rels = [
+                    {"type": r.type, "properties": dict(r)} for r in path.relationships
+                ]
                 paths.append({"nodes": nodes, "relationships": rels})
             return {"node": node_value, "neighbors": paths}
 
@@ -245,7 +298,11 @@ class Neo4jClient:
             record = await result.single_or_none()
             if not record:
                 return None
-            return {"id": internal_id, "label": record["lbs"][0], "properties": dict(record["n"])}
+            return {
+                "id": internal_id,
+                "label": record["lbs"][0],
+                "properties": dict(record["n"]),
+            }
 
     # ─── 统计操作 ───────────────────────────────────────
 
@@ -366,7 +423,9 @@ class Neo4jClient:
         """清空整个图谱(危险操作)"""
         driver = await self.get_driver()
         async with driver.session(database=settings.NEO4J_DATABASE) as session:
-            result = await session.run("MATCH (n) DETACH DELETE n RETURN count(n) AS cnt")
+            result = await session.run(
+                "MATCH (n) DETACH DELETE n RETURN count(n) AS cnt"
+            )
             record = await result.single()
             return {"deleted_nodes": record["cnt"]}
 

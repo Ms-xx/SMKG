@@ -1,0 +1,81 @@
+/* LaTeX 公式统一样式：行内 / 行间两种版式共用同一组件 */
+
+.latex-formula {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+/* 行内公式：与正文基线对齐，不打断行高 */
+.latex-formula.is-inline {
+  vertical-align: middle;
+}
+
+/* 行间公式：整块居中、浅底、可横向滚动，长公式不撑破容器 */
+.latex-formula.is-display {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  padding: 10px 12px;
+  margin: 8px 0;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.latex-formula-content {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.latex-formula.is-display .latex-formula-content {
+  flex: 1 1 auto;
+  text-align: center;
+}
+
+/* KaTeX 块级容器自带外边距，这里交给外层统一控制 */
+.latex-formula .katex-display {
+  margin: 0;
+}
+
+.latex-formula-number {
+  flex: 0 0 auto;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 降级展示：等宽原文 + 警示底色，保证信息不丢 */
+.latex-formula-fallback {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  color: #d46b08;
+  background: rgba(250, 173, 20, 0.12);
+  border-radius: 4px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.latex-formula-warning {
+  font-size: 12px;
+}
+
+/* 复制按钮：悬停或聚焦时出现，避免干扰阅读 */
+.latex-formula-copy {
+  flex: 0 0 auto;
+  opacity: 0;
+  transition: opacity 0.15s ease-in-out;
+}
+
+.latex-formula:hover .latex-formula-copy,
+.latex-formula-copy:focus,
+.latex-formula-copy:focus-visible {
+  opacity: 1;
+}

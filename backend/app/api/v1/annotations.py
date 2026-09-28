@@ -184,7 +184,10 @@ async def first_review_annotation(
         user_id=current_user["user_id"],
         extra={"review_stage": "first_review", "approved": review.approved},
     )
-    return {"message": "Annotation passed/rejected in first review", "annotation": result}
+    return {
+        "message": "Annotation passed/rejected in first review",
+        "annotation": result,
+    }
 
 
 @router.post("/{annotation_id}/final-review")
@@ -201,7 +204,8 @@ async def final_review_annotation(
     )
     if not result:
         raise HTTPException(
-            status_code=409, detail="Annotation not found or not in 'pending_final' state"
+            status_code=409,
+            detail="Annotation not found or not in 'pending_final' state",
         )
     await broadcast_annotation_event(
         result.document_id,
@@ -210,7 +214,10 @@ async def final_review_annotation(
         user_id=current_user["user_id"],
         extra={"review_stage": "final_review", "approved": review.approved},
     )
-    return {"message": "Annotation approved/rejected in final review", "annotation": result}
+    return {
+        "message": "Annotation approved/rejected in final review",
+        "annotation": result,
+    }
 
 
 @router.get("/{annotation_id}/versions", response_model=list[AnnotationVersionResponse])

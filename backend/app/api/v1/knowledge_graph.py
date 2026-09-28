@@ -3,6 +3,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from app.core.config import settings
 from app.core.permissions import (
     DOCUMENT_READ,
     DOCUMENT_WRITE,
@@ -12,6 +13,7 @@ from app.core.security import get_current_user
 from app.schemas.node_type import NodeTypeCreate, NodeTypeUpdate
 from app.services.entity_linking_service import entity_linking_service
 from app.services.graph_service import GraphService
+from app.services.graph_snapshot_service import invalidate_graph_snapshot
 from app.services.graphrag_integration import graphrag_integration
 from app.services.node_type_service import (
     NodeTypeNotFoundError,
@@ -20,6 +22,7 @@ from app.services.node_type_service import (
 from app.services.relation_inference_service import relation_inference_service
 from app.services.semantic_search_service import semantic_search_service
 from app.services.text_to_cypher_service import text_to_cypher_service
+from app.utils.cache import async_cache
 
 router = APIRouter()
 graph_service = GraphService()
@@ -152,7 +155,12 @@ async def execute_cypher(
 async def get_graph_statistics(
     current_user: dict = Depends(get_current_user),
 ):
-    return await graph_service.get_statistics()
+    """图谱统计（节点/关系统计）；包裹平台级短 TTL 缓存（`/statistics/team` 不受影响）。"""
+    return await async_cache(
+        "stats:graph",
+        ttl=settings.GRAPH_STATS_CACHE_TTL,
+        producer=graph_service.get_statistics,
+    )
 
 
 @router.post("/entity-link")
@@ -261,7 +269,7 @@ async def rag_health(
     current_user: dict = Depends(get_current_user),
 ):
     """GraphRAGTest 服务健康状态"""
-    return graphrag_integration.health_check()
+    return await graphrag_integration.ahealth_check()
 
 
 @router.get("/rag/llm/status")
@@ -269,7 +277,7 @@ async def rag_llm_status(
     current_user: dict = Depends(get_current_user),
 ):
     """LM Studio 当前状态"""
-    return graphrag_integration.llm_status()
+    return await graphrag_integration.allm_status()
 
 
 @router.get("/rag/llm/models")
@@ -277,7 +285,7 @@ async def rag_list_models(
     current_user: dict = Depends(get_current_user),
 ):
     """列出 LM Studio 可用模型"""
-    return graphrag_integration.list_models()
+    return await graphrag_integration.alist_models()
 
 
 @router.post("/rag/llm/load")
@@ -286,7 +294,7 @@ async def rag_load_model(
     current_user: dict = Depends(get_current_user),
 ):
     """让 LM Studio 预加载模型"""
-    result = graphrag_integration.load_model(model)
+    result = await graphrag_integration.aload_model(model)
     if "error" in result:
         raise HTTPException(status_code=500, detail=result["error"])
     return result
@@ -302,7 +310,7 @@ async def rag_query(
 
     流程: 关键词提取 -> Neo4j 图谱检索 -> 组装上下文 -> Qwen 生成答案
     """
-    result = graphrag_integration.rag_query(body.question, body.return_context)
+    result = await graphrag_integration.arag_query(body.question, body.return_context)
     if "error" in result:
         raise HTTPException(status_code=502, detail=result)
     return result
@@ -312,8 +320,8 @@ async def rag_query(
 async def rag_graph_stats(
     current_user: dict = Depends(get_current_user),
 ):
-    """GraphRAG 图谱统计"""
-    return graphrag_integration.graph_stats()
+    """GraphRAG 图谱统计（异步，消除事件循环阻塞）"""
+    return await graphrag_integration.agraph_stats()
 
 
 @router.get("/rag/graph/nodes/{label}")
@@ -323,7 +331,7 @@ async def rag_nodes_by_label(
     current_user: dict = Depends(get_current_user),
 ):
     """按标签查询图谱节点"""
-    return graphrag_integration.get_nodes_by_label(label, limit)
+    return await graphrag_integration.aget_nodes_by_label(label, limit)
 
 
 @router.get("/rag/graph/search/{keyword}")
@@ -333,7 +341,7 @@ async def rag_search_nodes(
     current_user: dict = Depends(get_current_user),
 ):
     """按关键词搜索图谱节点"""
-    return graphrag_integration.search_nodes(keyword, limit)
+    return await graphrag_integration.asearch_nodes(keyword, limit)
 
 
 @router.get("/rag/graph/relations/type/{rel_type}")
@@ -343,7 +351,7 @@ async def rag_get_relations_by_type(
     current_user: dict = Depends(get_current_user),
 ):
     """按类型查询图谱关系"""
-    return graphrag_integration.get_relations_by_type(rel_type, limit)
+    return await graphrag_integration.aget_relations_by_type(rel_type, limit)
 
 
 @router.post("/rag/graph/nodes")
@@ -352,9 +360,10 @@ async def rag_add_node(
     current_user: dict = Depends(get_current_user),
 ):
     """添加图谱节点"""
-    result = graphrag_integration.add_node(body.label, body.id, body.properties)
+    result = await graphrag_integration.aadd_node(body.label, body.id, body.properties)
     if "error" in result:
         raise HTTPException(status_code=500, detail=result["error"])
+    await invalidate_graph_snapshot()
     return result
 
 
@@ -364,7 +373,7 @@ async def rag_add_relation(
     current_user: dict = Depends(get_current_user),
 ):
     """添加图谱关系"""
-    result = graphrag_integration.add_relation(
+    result = await graphrag_integration.aadd_relation(
         body.source_label,
         body.source_id,
         body.target_label,
@@ -374,6 +383,7 @@ async def rag_add_relation(
     )
     if "error" in result:
         raise HTTPException(status_code=500, detail=result["error"])
+    await invalidate_graph_snapshot()
     return result
 
 
@@ -388,7 +398,7 @@ async def rag_index_document(
     通常在文档解析 + 信息抽取完成后调用,
     将 extraction 结果批量写入 Neo4j
     """
-    result = graphrag_integration.index_document(
+    result = await graphrag_integration.aindex_document(
         doc_id=body.doc_id,
         doc_title=body.doc_title,
         entities=body.entities,
@@ -398,6 +408,7 @@ async def rag_index_document(
     )
     if "error" in result:
         raise HTTPException(status_code=500, detail=result["error"])
+    await invalidate_graph_snapshot()
     return result
 
 
@@ -406,9 +417,10 @@ async def rag_clear_graph(
     current_user: dict = Depends(get_current_user),
 ):
     """清空 GraphRAG 图谱 (危险操作)"""
-    result = graphrag_integration.clear_graph()
+    result = await graphrag_integration.aclear_graph()
     if "error" in result:
         raise HTTPException(status_code=500, detail=result["error"])
+    await invalidate_graph_snapshot()
     return result
 
 

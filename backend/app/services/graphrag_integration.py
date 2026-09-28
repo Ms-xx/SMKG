@@ -9,7 +9,34 @@ from typing import Any
 import httpx
 from loguru import logger
 
+from app.core.config import settings
+
 GRAPHRAG_BASE_URL = "http://localhost:8001/api/v1"
+
+# 模块级共享 AsyncClient（lazy 单例，连接池 + keep-alive）
+_async_client: httpx.AsyncClient | None = None
+
+
+def _get_async_client() -> httpx.AsyncClient:
+    """惰性创建模块级共享 httpx.AsyncClient，复用连接池与 keep-alive。"""
+    global _async_client
+    if _async_client is None or _async_client.is_closed:
+        _async_client = httpx.AsyncClient(
+            limits=httpx.Limits(
+                max_connections=settings.GRAPHRAG_MAX_CONNECTIONS,
+                max_keepalive_connections=settings.GRAPHRAG_MAX_CONNECTIONS,
+            ),
+            timeout=httpx.Timeout(settings.GRAPHRAG_HTTP_TIMEOUT),
+        )
+    return _async_client
+
+
+async def _close_async_client() -> None:
+    """应用关闭时清理共享 AsyncClient。"""
+    global _async_client
+    if _async_client is not None and not _async_client.is_closed:
+        await _async_client.aclose()
+    _async_client = None
 
 
 class GraphRAGIntegration:
@@ -107,7 +134,10 @@ class GraphRAGIntegration:
                 return resp.json()
         except httpx.HTTPStatusError as e:
             logger.error(f"GraphRAG 问答请求失败: {e.response.status_code} - {e.response.text}")
-            return {"error": f"请求失败: {e.response.status_code}", "details": e.response.text}
+            return {
+                "error": f"请求失败: {e.response.status_code}",
+                "details": e.response.text,
+            }
         except Exception as e:
             logger.error(f"GraphRAG 问答异常: {e}")
             return {"error": str(e)}
@@ -129,7 +159,8 @@ class GraphRAGIntegration:
         try:
             with self._client() as client:
                 resp = client.get(
-                    f"{self.base_url}/graph/nodes/keyword/{keyword}", params={"limit": limit}
+                    f"{self.base_url}/graph/nodes/keyword/{keyword}",
+                    params={"limit": limit},
                 )
                 resp.raise_for_status()
                 return resp.json()
@@ -141,7 +172,8 @@ class GraphRAGIntegration:
         try:
             with self._client() as client:
                 resp = client.get(
-                    f"{self.base_url}/graph/relations/type/{rel_type}", params={"limit": limit}
+                    f"{self.base_url}/graph/relations/type/{rel_type}",
+                    params={"limit": limit},
                 )
                 resp.raise_for_status()
                 return resp.json()
@@ -212,7 +244,11 @@ class GraphRAGIntegration:
             with self._client() as client:
                 resp = client.post(
                     f"{self.base_url}/graph/nodes",
-                    json={"label": label, "id": node_id, "properties": properties or {}},
+                    json={
+                        "label": label,
+                        "id": node_id,
+                        "properties": properties or {},
+                    },
                 )
                 resp.raise_for_status()
                 return resp.json()
@@ -256,6 +292,184 @@ class GraphRAGIntegration:
                 return resp.json()
         except Exception as e:
             return {"error": str(e)}
+
+    # ─── 异步方法族（共享 httpx.AsyncClient，keep-alive；与同步方法逐字段对齐）───
+
+    async def _arequest(self, method: str, path: str, **kwargs) -> dict[str, Any]:
+        """异步请求私有协程：复用模块级共享 AsyncClient，异常映射与同步版本对齐。"""
+        client = _get_async_client()
+        url = f"{self.base_url}{path}"
+        try:
+            resp = await client.request(method, url, **kwargs)
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPStatusError as e:
+            logger.warning(
+                f"GraphRAGTest 异步请求 HTTP 错误: {e.response.status_code} - {e.response.text}"
+            )
+            return {
+                "error": f"请求失败: {e.response.status_code}",
+                "details": e.response.text,
+            }
+        except Exception as e:
+            logger.warning(f"GraphRAGTest 异步请求异常: {e}")
+            return {"error": str(e)}
+
+    async def ahealth_check(self) -> dict[str, Any]:
+        """检查 GraphRAGTest 服务状态（异步）"""
+        try:
+            client = _get_async_client()
+            resp = await client.get(f"{self.base_url}/health")
+            resp.raise_for_status()
+            return {"status": "connected", "service": resp.json()}
+        except Exception as e:
+            logger.warning(f"GraphRAGTest 异步健康检查失败: {e}")
+            return {"status": "disconnected", "error": str(e)}
+
+    async def allm_status(self) -> dict[str, Any]:
+        """获取 LLM (LM Studio) 当前状态（异步）"""
+        return await self._arequest("GET", "/llm/status")
+
+    async def alist_models(self) -> dict[str, Any]:
+        """列出 LM Studio 中可用模型（异步）"""
+        return await self._arequest("GET", "/llm/models")
+
+    async def aload_model(self, model: str | None = None) -> dict[str, Any]:
+        """让 LM Studio 预加载模型（异步）"""
+        payload = {"model": model} if model else {}
+        return await self._arequest("POST", "/llm/load", json=payload)
+
+    async def arag_query(
+        self,
+        question: str,
+        return_context: bool = False,
+        include_sources: bool = True,
+    ) -> dict[str, Any]:
+        """GraphRAG 问答（异步）"""
+        return await self._arequest(
+            "POST",
+            "/query",
+            json={
+                "question": question,
+                "return_context": return_context,
+                "include_sources": include_sources,
+            },
+            timeout=120.0,
+        )
+
+    async def agraph_stats(self) -> dict[str, Any]:
+        """图谱统计（异步）"""
+        return await self._arequest("GET", "/graph/stats")
+
+    async def asearch_nodes(self, keyword: str, limit: int = 20) -> dict[str, Any]:
+        """按关键词模糊搜索图谱节点（异步）"""
+        return await self._arequest(
+            "GET", f"/graph/nodes/keyword/{keyword}", params={"limit": limit}
+        )
+
+    async def aget_relations_by_type(self, rel_type: str, limit: int = 20) -> dict[str, Any]:
+        """按类型查询关系（异步）"""
+        return await self._arequest(
+            "GET", f"/graph/relations/type/{rel_type}", params={"limit": limit}
+        )
+
+    async def aget_nodes_by_label(self, label: str, limit: int = 50) -> dict[str, Any]:
+        """按标签获取所有节点（异步）"""
+        return await self._arequest("GET", f"/graph/nodes/{label}", params={"limit": limit})
+
+    async def aexport_graph(
+        self, node_limit: int = 5000, relation_limit: int = 5000
+    ) -> dict[str, Any]:
+        """全图导出（异步）：调用下游 /graph/export，404/405 时返回 unavailable 标记由上层兜底"""
+        client = _get_async_client()
+        url = f"{self.base_url}/graph/export"
+        try:
+            resp = await client.get(
+                url, params={"node_limit": node_limit, "relation_limit": relation_limit}
+            )
+            if resp.status_code in (404, 405):
+                logger.warning(
+                    f"GraphRAGTest /graph/export 端点不可用 (status={resp.status_code})，将降级按类别抓取"
+                )
+                return {"error": "export endpoint unavailable"}
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPStatusError as e:
+            logger.warning(
+                f"GraphRAGTest /graph/export HTTP 错误: {e.response.status_code} - {e.response.text}"
+            )
+            return {
+                "error": f"请求失败: {e.response.status_code}",
+                "details": e.response.text,
+            }
+        except Exception as e:
+            logger.warning(f"GraphRAGTest /graph/export 异常: {e}")
+            return {"error": str(e)}
+
+    async def aindex_document(
+        self,
+        doc_id: str,
+        doc_title: str,
+        entities: list[dict[str, Any]],
+        relations: list[dict[str, Any]],
+        metadata: dict[str, Any] | None = None,
+        chunks: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """将文档的实体和关系索引到图谱（异步）"""
+        return await self._arequest(
+            "POST",
+            "/index/document",
+            json={
+                "doc_id": doc_id,
+                "doc_title": doc_title,
+                "entities": entities,
+                "relations": relations,
+                "metadata": metadata or {},
+                "chunks": chunks or [],
+            },
+            timeout=120.0,
+        )
+
+    async def aadd_node(
+        self,
+        label: str,
+        node_id: str,
+        properties: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """添加单个图谱节点（异步）"""
+        return await self._arequest(
+            "POST",
+            "/graph/nodes",
+            json={"label": label, "id": node_id, "properties": properties or {}},
+        )
+
+    async def aadd_relation(
+        self,
+        source_label: str,
+        source_id: str,
+        target_label: str,
+        target_id: str,
+        rel_type: str,
+        properties: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """添加图谱关系（异步）"""
+        return await self._arequest(
+            "POST",
+            "/graph/relations",
+            json={
+                "source_label": source_label,
+                "source_id": source_id,
+                "target_label": target_label,
+                "target_id": target_id,
+                "rel_type": rel_type,
+                "properties": properties or {},
+            },
+        )
+
+    async def aclear_graph(self) -> dict[str, Any]:
+        """清空整个图谱（异步）"""
+
+        return await self._arequest("DELETE", "/graph/clear")
 
 
 # 全局单例

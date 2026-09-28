@@ -135,7 +135,11 @@ class SemanticSearchService:
         }
 
     def search(
-        self, query: str, records: list[dict[str, Any]], facet_key: str = "label", limit: int = 20
+        self,
+        query: str,
+        records: list[dict[str, Any]],
+        facet_key: str = "label",
+        limit: int = 20,
     ) -> dict[str, Any]:
         return facet_search(query, records, facet_key=facet_key, limit=limit)
 

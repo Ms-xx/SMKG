@@ -53,7 +53,17 @@ _DANGEROUS_KEYWORDS = [
 ]
 
 _COUNT_PATTERNS = ["有多少", "统计", "几个", "多少个", "一共有多少", "数量"]
-_LIST_PATTERNS = ["列出", "有哪些", "哪些", "所有", "查询", "查找", "搜一下", "搜", "检索"]
+_LIST_PATTERNS = [
+    "列出",
+    "有哪些",
+    "哪些",
+    "所有",
+    "查询",
+    "查找",
+    "搜一下",
+    "搜",
+    "检索",
+]
 
 
 def _detect_label(question: str) -> str | None:

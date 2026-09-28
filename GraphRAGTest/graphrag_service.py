@@ -2,6 +2,7 @@
 GraphRAG 核心服务
 实现: 关键词提取 / 图谱检索 / 上下文组装 / LLM 生成
 """
+
 from typing import Any
 from loguru import logger
 from neo4j_client import neo4j_client
@@ -26,7 +27,9 @@ class GraphRAGService:
         )
         content = self.llm.extract_content(response)
         # 解析关键词列表
-        keywords = [kw.strip() for kw in content.replace("\n", ",").split(",") if kw.strip()]
+        keywords = [
+            kw.strip() for kw in content.replace("\n", ",").split(",") if kw.strip()
+        ]
         logger.debug(f"Extracted keywords: {keywords}")
         return keywords[:5]
 
@@ -65,6 +68,35 @@ class GraphRAGService:
             except Exception as e:
                 logger.warning(f"Failed to retrieve for keyword '{kw}': {e}")
 
+        # 关系扩展：把命中节点的一跳关系（CITES / CONTAINS 等）带入上下文，
+        # 否则"某论文引用了哪些论文"这类问题只看得到节点、看不到边。
+        try:
+            matched_ids = [
+                str(n["properties"].get("id"))
+                for n in all_nodes[:8]
+                if n.get("properties", {}).get("id")
+            ]
+            expanded = await self.graph.find_relations_of_nodes(matched_ids, limit=50)
+            seen_rel: set[tuple[str, str, str]] = {
+                (
+                    str(r.get("source", {}).get("id")),
+                    str(r.get("relation")),
+                    str(r.get("target", {}).get("id")),
+                )
+                for r in all_relations
+            }
+            for rel in expanded:
+                key = (
+                    str(rel.get("source", {}).get("id")),
+                    str(rel.get("relation")),
+                    str(rel.get("target", {}).get("id")),
+                )
+                if key not in seen_rel:
+                    seen_rel.add(key)
+                    all_relations.append(rel)
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"关系扩展失败（不影响节点检索）: {e}")
+
         # 限制数量
         all_nodes = all_nodes[: settings.GRAPHRAG_MAX_NODES]
         all_relations = all_relations[: settings.GRAPHRAG_MAX_RELATIONS]
@@ -85,7 +117,12 @@ class GraphRAGService:
             for node in context["nodes"]:
                 label = node.get("label", "")
                 props = node.get("properties", {})
-                name = props.get("name") or props.get("id") or props.get("title") or str(props)
+                name = (
+                    props.get("name")
+                    or props.get("id")
+                    or props.get("title")
+                    or str(props)
+                )
                 lines.append(f"- [{label}] {name}")
             lines.append("")
 
@@ -93,8 +130,21 @@ class GraphRAGService:
         if context["relations"]:
             lines.append("## 实体关系\n")
             for rel in context["relations"]:
-                src = rel.get("source", {}).get("name", "?")
-                tgt = rel.get("target", {}).get("name", "?")
+                # Document 节点写入了 name（=title），但兜底兼容只有 title/id 的节点
+                src_props = rel.get("source", {}) or {}
+                tgt_props = rel.get("target", {}) or {}
+                src = (
+                    src_props.get("name")
+                    or src_props.get("title")
+                    or src_props.get("id")
+                    or "?"
+                )
+                tgt = (
+                    tgt_props.get("name")
+                    or tgt_props.get("title")
+                    or tgt_props.get("id")
+                    or "?"
+                )
                 rtype = rel.get("relation", "?")
                 ctx = rel.get("properties", {}).get("context", "")
                 ctx_str = f" (上下文: {ctx})" if ctx else ""
@@ -113,6 +163,7 @@ class GraphRAGService:
         """
         try:
             from hybrid_retrieval import hybrid_retriever
+
             result = hybrid_retriever.search(query=question, top_k=top_k)
         except Exception as e:  # pragma: no cover - 依赖缺失降级
             logger.warning(f"溯源来源检索不可用: {e}")
@@ -221,6 +272,7 @@ class GraphRAGService:
 
         for i, line in enumerate(lines):
             import json
+
             try:
                 data = json.loads(line.strip())
                 t = data.get("type", "")

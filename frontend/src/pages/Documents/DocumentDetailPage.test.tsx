@@ -14,6 +14,7 @@ vi.mock("@api/modules", async (importOriginal) => {
       ...spread(actual.documentApi),
       getFullText: vi.fn(),
       exportJats: vi.fn(),
+      getPageElements: vi.fn(),
     },
     citationLinkApi: { ...spread(actual.citationLinkApi), map: vi.fn() },
     writingAssistantApi: {
@@ -94,6 +95,8 @@ describe("DocumentDetailPage", () => {
         type: "application/xml",
       }),
     );
+    // 默认：逐页元素为空（无公式），不干扰既有用例
+    vi.mocked(documentApi.getPageElements).mockResolvedValue({ elements: [] } as any);
   });
 
   it("无当前文档时显示加载态", () => {
@@ -189,6 +192,56 @@ describe("DocumentDetailPage", () => {
     expect(anchor?.querySelector("a")?.getAttribute("href")).toBe("#ref-1");
     // 参考文献「回到正文引用」命中正文引用位置
     expect(await screen.findByText("回到正文引用")).toBeInTheDocument();
+  });
+
+  it("结果页展示公式并以 LaTeX 统一渲染（含行内/行间与编号）", async () => {
+    vi.mocked(documentApi.getPageElements).mockImplementation((_id: string, page: number) => {
+      if (page === 1) {
+        return Promise.resolve({
+          page_number: 1,
+          elements: [
+            {
+              id: "f1",
+              element_type: "formula",
+              bbox: [0, 0, 10, 10],
+              content: "E=mc^{2}",
+              latex: "E=mc^{2}",
+              latex_display: "$$E=mc^{2}$$",
+              is_display: true,
+              formula_number: "3",
+              formula_source: "image_pix2tex",
+              formula_normalized: true,
+            },
+            {
+              id: "f2",
+              element_type: "formula",
+              bbox: [0, 0, 10, 10],
+              content: "a_{i}",
+              latex: "a_{i}",
+              latex_display: "$a_{i}$",
+              is_display: false,
+              formula_number: null,
+              formula_source: "text_layer",
+              formula_normalized: true,
+            },
+          ],
+        } as any);
+      }
+      return Promise.resolve({ page_number: page, elements: [] } as any);
+    });
+
+    useDocumentStore.setState({ currentDocument: { ...doc, status: "parsed", page_count: 2 } });
+    const { container } = renderPage();
+
+    expect(await screen.findByText(/公式（LaTeX 统一渲染，共 2 个）/)).toBeInTheDocument();
+    // KaTeX 真实渲染（而非纯文本）
+    expect(container.querySelectorAll(".latex-formula").length).toBe(2);
+    expect(container.querySelectorAll(".latex-formula .katex").length).toBe(2);
+    // 行间公式居中版式 + 编号
+    expect(container.querySelector(".latex-formula.is-display")).toBeTruthy();
+    expect(screen.getByText("(3)")).toBeInTheDocument();
+    // 复制按钮可用（每个公式一个）
+    expect(screen.getAllByLabelText("复制 LaTeX 公式").length).toBe(2);
   });
 
   it("整篇翻译触发 translate 并展示对照译文（5.3）", async () => {

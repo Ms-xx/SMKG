@@ -1,4 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="6" fill="#1890ff"/>
-  <text x="16" y="22" font-family="Arial" font-size="16" font-weight="bold" fill="white" text-anchor="middle">SDP</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="lx-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#lx-bg)"/>
+  <path d="M39 22 L45 16 M23 44 L17 49" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"/>
+  <path d="M23 15 h11 l8 8 v22 a2 2 0 0 1 -2 2 H23 a2 2 0 0 1 -2 -2 V17 a2 2 0 0 1 2 -2 z" fill="#ffffff"/>
+  <path d="M34 15 l8 8 h-8 z" fill="rgba(99,102,241,0.28)"/>
+  <line x1="25" y1="31" x2="37" y2="31" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/>
+  <line x1="25" y1="37" x2="33" y2="37" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="48" cy="14" r="5" fill="#ffffff"/>
+  <circle cx="48" cy="14" r="2" fill="#06b6d4"/>
+  <circle cx="15" cy="50" r="5" fill="#ffffff"/>
+  <circle cx="15" cy="50" r="2" fill="#06b6d4"/>
 </svg>

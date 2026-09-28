@@ -55,7 +55,10 @@ async def list_roles(
     roles = await permission_service.list_roles(db)
     items = [
         RoleResponse(
-            id=r.id, name=r.name, description=r.description or "", permissions=r.permissions or []
+            id=r.id,
+            name=r.name,
+            description=r.description or "",
+            permissions=r.permissions or [],
         )
         for r in roles
     ]

@@ -12,7 +12,9 @@
 - 未安装 / 模型缺失时自动降级，`recognize` 返回空串，不影响解析主流程。
 
 说明：公式「区域定位」依赖步骤 3.4 的 YOLOv8 公式检测（尚未集成）；本服务只负责
-「图 → LaTeX」，输入为已裁剪的单个公式图像。
+「图 → LaTeX」，输入为已裁剪的单个公式图像。输出统一经
+:mod:`app.services.latex_format` 规范化为**无定界符的 LaTeX 主体**
+（如 ``E=mc^{2}``），行内/行间与编号由规范化结果单独承载。
 """
 from __future__ import annotations
 
@@ -22,18 +24,11 @@ from typing import Any
 from loguru import logger
 
 from app.core.config import settings
-
-# pix2tex 旧版/新版可能残留的特殊 token，识别后统一清理
-_PIX2TEX_TOKENS = (
-    "[[START_SOLUTION]]",
-    "[[END_SOLUTION]]",
-    "\\begin{align*}",
-    "\\end{align*}",
-    "\\[",
-    "\\]",
-    "\\(",
-    "\\)",
-    "$$",
+from app.services.latex_format import (
+    SOURCE_IMAGE,
+    NormalizedFormula,
+    normalize_latex,
+    strip_delimiters,
 )
 
 
@@ -90,7 +85,10 @@ class FormulaRecognitionService:
 
             self._model = LatexOCR(self._build_arguments())
             self.backend = "latex-ocr"
-            logger.info("LaTeX-OCR 已加载（checkpoint=%s）", self._find_checkpoint() or "默认下载")
+            logger.info(
+                "LaTeX-OCR 已加载（checkpoint=%s）",
+                self._find_checkpoint() or "默认下载",
+            )
         except Exception as e:  # pragma: no cover - 依赖/模型缺失
             self.backend = "unavailable"
             self._load_error = str(e)
@@ -102,34 +100,60 @@ class FormulaRecognitionService:
 
     @staticmethod
     def _clean_latex(latex: str) -> str:
-        """去除 pix2tex 可能残留的特殊 token / 包裹符，返回干净 LaTeX。"""
-        s = (latex or "").strip()
-        for token in _PIX2TEX_TOKENS:
-            s = s.replace(token, "")
-        return s.strip()
+        """去除定界符与 pix2tex 残留 token，返回干净 LaTeX 主体。
+
+        统一委托 :func:`app.services.latex_format.strip_delimiters`，
+        避免各环节自行 ``strip`` / ``replace`` 造成的格式漂移。
+        """
+        body, _ = strip_delimiters(latex)
+        return body
 
     def recognize(self, image_path: str) -> str:
         """
-        识别单张公式图像，返回 LaTeX 源码；不可用或识别失败时返回空串。
+        识别单张公式图像，返回**规范 LaTeX 主体**；不可用或识别失败时返回空串。
 
         Args:
             image_path: 公式区域图像路径（PNG/JPEG）。
 
         Returns:
-            LaTeX 字符串（如 ``E=mc^{2}``）。
+            无定界符的 LaTeX 字符串（如 ``E=mc^{2}``）。
+        """
+        return self.recognize_detail(image_path).latex
+
+    def recognize_detail(self, image_path: str, display: bool | None = None) -> NormalizedFormula:
+        """识别并规范化公式，返回含方向/编号/来源/失败原因的结构化结果。
+
+        与 :meth:`recognize` 的区别：本方法保留 ``normalized`` / ``error`` 等状态，
+        使"识别失败"不再是无从判断的空串（供落库标注与问题排查）。
+
+        Args:
+            image_path: 公式区域图像路径。
+            display: 显式指定行内/行间；``None`` 时由识别结果推断（默认行内）。
         """
         self._load()
         if self._model is None:
-            return ""
+            return NormalizedFormula(
+                latex="",
+                display=bool(display),
+                source=SOURCE_IMAGE,
+                normalized=False,
+                error=f"backend_{self.backend}",
+            )
         try:
             from PIL import Image
 
             image = Image.open(image_path).convert("RGB")
-            latex = str(self._model(image))
-            return self._clean_latex(latex)
+            raw = str(self._model(image))
         except Exception as e:  # pragma: no cover
             logger.warning("LaTeX-OCR 识别失败：%s", e)
-            return ""
+            return NormalizedFormula(
+                latex="",
+                display=bool(display),
+                source=SOURCE_IMAGE,
+                normalized=False,
+                error=f"recognize_failed: {e}",
+            )
+        return normalize_latex(raw, display=display, source=SOURCE_IMAGE)
 
     def recognize_batch(self, image_paths: list[str]) -> list[str]:
         """批量识别公式图像，返回与输入对齐的 LaTeX 列表。"""

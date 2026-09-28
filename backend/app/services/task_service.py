@@ -72,7 +72,11 @@ class TaskService:
         return result.scalar_one_or_none()
 
     async def get_task_scoped(
-        self, db: AsyncSession, task_id: str, user_id: str = None, scope_all: bool = False
+        self,
+        db: AsyncSession,
+        task_id: str,
+        user_id: str = None,
+        scope_all: bool = False,
     ):
         """带归属校验的任务查询：非全局范围时仅负责人/创建人可访问。"""
         task = await self.get_task(db, task_id)

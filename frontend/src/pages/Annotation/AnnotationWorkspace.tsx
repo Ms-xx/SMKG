@@ -7,7 +7,7 @@ import EntityExtractor from "./components/EntityExtractor";
 import RelationEditor from "./components/RelationEditor";
 import AnnotationHistory from "./components/AnnotationHistory";
 import CommentPanel from "./components/CommentPanel";
-import { annotationApi } from "@api/modules";
+import { annotationApi, documentApi } from "@api/modules";
 import api from "@api/index";
 import { buildAnnotationWsUrl } from "@api/ws";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -22,6 +22,7 @@ export default function AnnotationWorkspace() {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [fileUrl, setFileUrl] = useState<string | Blob>("");
+  const [elements, setElements] = useState<any[]>([]);
 
   // 用带鉴权的客户端拉取 PDF Blob（react-pdf 直接接收 Blob，Worker 无需携带 token 再请求）
   useEffect(() => {
@@ -34,6 +35,36 @@ export default function AnnotationWorkspace() {
       })
       .catch(() => {
         if (!cancelled) setFileUrl("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [documentId]);
+
+  // 加载逐页解析元素（含公式），供右侧面板展示与 PDF 区域点击映射。
+  // 修复前此处固定传空数组，导致元素/公式在标注工作台永不显示。
+  useEffect(() => {
+    if (!documentId) return;
+    let cancelled = false;
+    documentApi
+      .getById(documentId)
+      .then((doc: any) => {
+        const pages = doc?.page_count || 0;
+        if (!pages) return [] as any[];
+        return Promise.all(
+          Array.from({ length: pages }, (_, i) => i + 1).map((p) =>
+            documentApi
+              .getPageElements(documentId, p)
+              .then((res: any) => res?.elements || [])
+              .catch(() => [] as any[]),
+          ),
+        );
+      })
+      .then((lists: any[][]) => {
+        if (!cancelled && Array.isArray(lists)) setElements(lists.flat());
+      })
+      .catch(() => {
+        if (!cancelled) setElements([]);
       });
     return () => {
       cancelled = true;
@@ -256,7 +287,7 @@ export default function AnnotationWorkspace() {
       <DualPaneView
         documentId={documentId!}
         fileUrl={fileUrl}
-        elements={[]}
+        elements={elements}
         selectedElement={selectedElement}
         onElementSelect={setSelectedElement}
         onAnnotationChange={(a) => setAnnotations((prev) => [...prev, a])}

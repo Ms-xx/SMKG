@@ -37,7 +37,12 @@ class MatchResult:
         }
 
 
-_DOI_PREFIXES = ("https://doi.org/", "http://doi.org/", "https://dx.doi.org/", "http://dx.doi.org/")
+_DOI_PREFIXES = (
+    "https://doi.org/",
+    "http://doi.org/",
+    "https://dx.doi.org/",
+    "http://dx.doi.org/",
+)
 
 
 def normalize_doi(raw: str | None) -> str | None:
@@ -68,7 +73,15 @@ _ARXIV_BARE_RE = re.compile(r"(?<![\d.])(\d{4}\.\d{4,5})(?!\d)")
 
 # arXiv id 的常见承载字段（按可信度降序）
 _REF_ARXIV_FIELDS = ("arxiv_id", "eprint", "raw", "doi", "title", "journal")
-_CAND_ARXIV_FIELDS = ("arxiv_id", "eprint", "doi", "file_path", "file_name", "title", "id")
+_CAND_ARXIV_FIELDS = (
+    "arxiv_id",
+    "eprint",
+    "doi",
+    "file_path",
+    "file_name",
+    "title",
+    "id",
+)
 
 
 def normalize_arxiv_id(raw: Any) -> str | None:
@@ -213,7 +226,12 @@ def _match_by_title_fuzzy(
     return None
 
 
-_MATCHERS = (_match_by_doi, _match_by_arxiv_id, _match_by_title_exact, _match_by_title_fuzzy)
+_MATCHERS = (
+    _match_by_doi,
+    _match_by_arxiv_id,
+    _match_by_title_exact,
+    _match_by_title_fuzzy,
+)
 
 
 def match_reference_to_document(
