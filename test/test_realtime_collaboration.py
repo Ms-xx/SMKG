@@ -199,7 +199,9 @@ async def test_optimistic_lock_without_base_is_backward_compatible(db):
     svc = AnnotationService()
     ann = await svc.create_annotation(db, _create_data(), user_id="u1")
     # 不携带 base_updated_at → 不参与冲突检测（向后兼容）
-    updated = await svc.update_annotation(db, ann.id, AnnotationUpdate(content={"v": 3}), "u1")
+    updated = await svc.update_annotation(
+        db, ann.id, AnnotationUpdate(content={"v": 3}), "u1"
+    )
     assert updated.content == {"v": 3}
 
 
@@ -210,7 +212,9 @@ def test_normalize_dt():
     aware = datetime(2026, 1, 1, 0, 0, 0, 500000, tzinfo=timezone.utc)
     assert _normalize_dt(aware) == datetime(2026, 1, 1, 0, 0, 0)
     assert _normalize_dt(aware).tzinfo is None
-    assert _normalize_dt(datetime(2026, 1, 1, 12, 34, 56, 999999)) == datetime(2026, 1, 1, 12, 34, 56)
+    assert _normalize_dt(datetime(2026, 1, 1, 12, 34, 56, 999999)) == datetime(
+        2026, 1, 1, 12, 34, 56
+    )
     assert _normalize_dt(None) is None
 
 
@@ -243,7 +247,9 @@ async def test_broadcast_annotation_event_assembles_message(monkeypatch, db):
     assert msg["annotation"]["id"] == ann.id
 
     # 仅传 annotation_id（删除场景）
-    await broadcast_annotation_event("doc1", "annotation.deleted", annotation_id=ann.id, user_id="u1")
+    await broadcast_annotation_event(
+        "doc1", "annotation.deleted", annotation_id=ann.id, user_id="u1"
+    )
     assert ws.sent[-1]["type"] == "annotation.deleted"
     assert ws.sent[-1]["annotation_id"] == ann.id
     assert "annotation" not in ws.sent[-1]

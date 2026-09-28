@@ -7,6 +7,25 @@ from loguru import logger
 from neo4j_client import neo4j_client
 
 
+def build_doc_props(doc_id: str, doc_title: str, metadata: dict[str, Any] | None) -> dict[str, Any]:
+    """构造 Document 节点属性（步骤 16.2.2）。
+
+    显式补写 year/venue/authors（来源文档元数据），保证后续新入库文档不再缺属性。
+    None 值不写入，避免覆盖既有非空属性。纯函数，可单测。
+    """
+    meta = metadata or {}
+    props = {
+        "id": doc_id,
+        "title": doc_title,
+        "name": doc_title,
+        "year": meta.get("year"),
+        "venue": meta.get("venue") or meta.get("journal"),
+        "authors": meta.get("authors") or [],
+        **meta,
+    }
+    return {k: v for k, v in props.items() if v is not None}
+
+
 class GraphIndexer:
     """将结构化数据批量索引到 Neo4j"""
 
@@ -139,11 +158,8 @@ class GraphIndexer:
         6. 将实体 / 关系 / chunk 向量化入向量库（混合检索器，兼顾 BM25）
         """
         # 1. 创建文档节点
-        doc_props = {
-            "id": doc_id,
-            "title": doc_title,
-            **(metadata or {}),
-        }
+        # 步骤 16.2.2：显式补写 year/venue/authors（来源文档元数据），保证后续新入库文档不再缺属性
+        doc_props = build_doc_props(doc_id, doc_title, metadata)
         await self.graph.create_or_update_node(
             label="Document",
             match_key="id",
@@ -188,6 +204,12 @@ class GraphIndexer:
         for i, content in enumerate(chunks or []):
             chunk_id = f"{doc_id}:chunk:{i}"
             try:
+                chunk_name = (
+                    # 用文本预览作为 chunk 的可读名称，避免前端回退展示 UUID
+                    " ".join(content.split())[:16]
+                    if content
+                    else f"{doc_title}·片段{i}"
+                )
                 await self.graph.create_or_update_node(
                     label="Chunk",
                     match_key="id",
@@ -195,6 +217,7 @@ class GraphIndexer:
                     properties={
                         "id": chunk_id,
                         "doc_id": doc_id,
+                        "name": chunk_name,
                         "content": content,
                         "chunk_index": i,
                     },

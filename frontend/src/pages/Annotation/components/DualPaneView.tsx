@@ -4,7 +4,7 @@ import AnnotationPanel from "@components/Annotation/AnnotationPanel";
 
 interface DualPaneViewProps {
   documentId: string;
-  fileUrl: string;
+  fileUrl: string | Blob;
   elements: any[];
   selectedElement: any | null;
   onElementSelect: (element: any) => void;

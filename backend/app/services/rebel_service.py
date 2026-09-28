@@ -19,6 +19,68 @@ from loguru import logger
 from app.core.config import resolve_model_source, settings
 
 
+def _flush_triplet(
+    triplets: list[dict[str, str]], subject: str, object_: str, relation: str
+) -> str:
+    """三元组 append + relation 重置，返回新的 relation。"""
+    if relation != "":
+        triplets.append(
+            {
+                "head": subject.strip(),
+                "tail": object_.strip(),
+                "type": relation.strip(),
+            }
+        )
+        return ""
+    return relation
+
+
+def _handle_triplet(
+    triplets: list[dict[str, str]], state: tuple[str, str, str, str]
+) -> tuple[str, str, str, str]:
+    """处理 <triplet> token，返回新状态 (current, subject, object_, relation)。"""
+    _current, subject, object_, relation = state
+    relation = _flush_triplet(triplets, subject, object_, relation)
+    return "head", "", object_, relation
+
+
+def _handle_subj(
+    triplets: list[dict[str, str]], state: tuple[str, str, str, str]
+) -> tuple[str, str, str, str]:
+    """处理 <subj> token，返回新状态。"""
+    _current, subject, object_, relation = state
+    relation = _flush_triplet(triplets, subject, object_, relation)
+    return "tail", subject, "", relation
+
+
+def _handle_obj(
+    triplets: list[dict[str, str]], state: tuple[str, str, str, str]
+) -> tuple[str, str, str, str]:
+    """处理 <obj> token，返回新状态。"""
+    _current, subject, object_, relation = state
+    return "rel", subject, object_, ""
+
+
+_REBEL_TOKEN_HANDLERS = {
+    "<triplet>": _handle_triplet,
+    "<subj>": _handle_subj,
+    "<obj>": _handle_obj,
+}
+
+
+def _accumulate_token(
+    current: str, subject: str, object_: str, relation: str, token: str
+) -> tuple[str, str, str]:
+    """按 current 累积 token 到对应字段，返回 (subject, object_, relation)。"""
+    if current == "head":
+        return subject + " " + token, object_, relation
+    if current == "tail":
+        return subject, object_ + " " + token, relation
+    if current == "rel":
+        return subject, object_, relation + " " + token
+    return subject, object_, relation
+
+
 def parse_rebel_output(text: str) -> list[dict[str, str]]:
     """
     解析 REBEL seq2seq 输出为三元组列表（纯函数，供测试与降级解码使用）。
@@ -34,39 +96,15 @@ def parse_rebel_output(text: str) -> list[dict[str, str]]:
     text = text.replace("<s>", "").replace("<pad>", "").replace("</s>", "").strip()
     current = "x"
     for token in text.split():
-        if token == "<triplet>":
-            current = "head"
-            if relation != "":
-                triplets.append(
-                    {
-                        "head": subject.strip(),
-                        "tail": object_.strip(),
-                        "type": relation.strip(),
-                    }
-                )
-                relation = ""
-            subject = ""
-        elif token == "<subj>":
-            current = "tail"
-            if relation != "":
-                triplets.append(
-                    {
-                        "head": subject.strip(),
-                        "tail": object_.strip(),
-                        "type": relation.strip(),
-                    }
-                )
-            object_ = ""
-        elif token == "<obj>":
-            current = "rel"
-            relation = ""
+        handler = _REBEL_TOKEN_HANDLERS.get(token)
+        if handler is not None:
+            current, subject, object_, relation = handler(
+                triplets, (current, subject, object_, relation)
+            )
         else:
-            if current == "head":
-                subject += " " + token
-            elif current == "tail":
-                object_ += " " + token
-            elif current == "rel":
-                relation += " " + token
+            subject, object_, relation = _accumulate_token(
+                current, subject, object_, relation, token
+            )
     if subject != "" and object_ != "" and relation != "":
         triplets.append(
             {

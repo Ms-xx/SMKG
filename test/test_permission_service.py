@@ -44,7 +44,11 @@ async def test_update_role_permissions_filters(db):
     svc = PermissionService()
 
     # 非法权限码被过滤、去重
-    role = await svc.update_role_permissions(db, "annotator", ["annotation:read", "document:write", "bogus:perm", "annotation:read"])
+    role = await svc.update_role_permissions(
+        db,
+        "annotator",
+        ["annotation:read", "document:write", "bogus:perm", "annotation:read"],
+    )
     assert role.permissions == ["annotation:read", "document:write"]
 
     # 不存在角色返回 None

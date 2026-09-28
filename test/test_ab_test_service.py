@@ -123,7 +123,9 @@ def test_evaluate_binary_significant_winner():
 
 def test_evaluate_continuous_minimize_latency_winner():
     svc = _svc()
-    svc.create_experiment("latency", ["v1", "v2"], metric_type="continuous", minimize=True)
+    svc.create_experiment(
+        "latency", ["v1", "v2"], metric_type="continuous", minimize=True
+    )
     for i in range(40):
         svc.record("ab-0001", "v1", 100.0 + (i % 5) * 1.0)  # ~102ms
         svc.record("ab-0001", "v2", 80.0 + (i % 5) * 1.0)  # ~82ms

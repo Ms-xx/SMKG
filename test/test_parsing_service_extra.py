@@ -56,7 +56,9 @@ def test_render_page():
 def test_extract_page_elements(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "app.services.layout_service.layout_service.analyze",
-        lambda img, words, boxes: {"elements": [{"type": "text", "text": "hi", "bbox": [0, 0, 1, 1]}]},
+        lambda img, words, boxes: {
+            "elements": [{"type": "text", "text": "hi", "bbox": [0, 0, 1, 1]}]
+        },
     )
 
     class FakeOCR:
@@ -73,7 +75,9 @@ def test_extract_page_elements(tmp_path, monkeypatch):
     svc = ParsingService(ocr=FakeOCR())
     res = svc.extract_page_elements(str(pdf))
     assert res["metadata"]["page_count"] == 1
-    assert res["pages"][0]["elements"] == [{"type": "text", "text": "hi", "bbox": [0, 0, 1, 1]}]
+    assert res["pages"][0]["elements"] == [
+        {"type": "text", "text": "hi", "bbox": [0, 0, 1, 1]}
+    ]
 
 
 def test_extract_page_elements_no_boxes(tmp_path, monkeypatch):
@@ -148,7 +152,8 @@ def test_extract_figures(tmp_path, monkeypatch):
     doc.close()
 
     monkeypatch.setattr(
-        ParsingService, "detect_figures",
+        ParsingService,
+        "detect_figures",
         lambda self, p: [
             {"class": "formula", "confidence": 0.9, "bbox": [0, 0, 40, 40]},
             {"class": "chart", "confidence": 0.8, "bbox": [10, 10, 30, 30]},

@@ -33,7 +33,10 @@ def test_has_permission_admin_bypass():
 
 
 def test_has_permission_all_wildcard():
-    assert has_permission({"role": "annotator", "permissions": ["all"]}, "document:write") is True
+    assert (
+        has_permission({"role": "annotator", "permissions": ["all"]}, "document:write")
+        is True
+    )
 
 
 def test_has_permission_exact():
@@ -52,9 +55,12 @@ def test_require_permission_allowed():
     checker = require_permission("annotation:read")
 
     async def run():
-        return await checker(current_user={"role": "annotator", "permissions": ["annotation:read"]})
+        return await checker(
+            current_user={"role": "annotator", "permissions": ["annotation:read"]}
+        )
 
     import asyncio
+
     assert asyncio.run(run())["permissions"] == ["annotation:read"]
 
 
@@ -62,9 +68,12 @@ def test_require_permission_denied_403():
     checker = require_permission("annotation:write")
 
     async def run():
-        return await checker(current_user={"role": "annotator", "permissions": ["annotation:read"]})
+        return await checker(
+            current_user={"role": "annotator", "permissions": ["annotation:read"]}
+        )
 
     import asyncio
+
     with pytest.raises(HTTPException) as exc:
         asyncio.run(run())
     assert exc.value.status_code == 403
@@ -74,9 +83,12 @@ def test_require_any_permission_allowed():
     checker = require_any_permission("document:read", "annotation:read")
 
     async def run():
-        return await checker(current_user={"role": "annotator", "permissions": ["annotation:read"]})
+        return await checker(
+            current_user={"role": "annotator", "permissions": ["annotation:read"]}
+        )
 
     import asyncio
+
     assert asyncio.run(run())["role"] == "annotator"
 
 
@@ -84,9 +96,12 @@ def test_require_any_permission_denied():
     checker = require_any_permission("document:read", "task:read")
 
     async def run():
-        return await checker(current_user={"role": "annotator", "permissions": ["annotation:read"]})
+        return await checker(
+            current_user={"role": "annotator", "permissions": ["annotation:read"]}
+        )
 
     import asyncio
+
     with pytest.raises(HTTPException) as exc:
         asyncio.run(run())
     assert exc.value.status_code == 403

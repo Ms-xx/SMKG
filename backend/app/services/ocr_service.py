@@ -148,89 +148,105 @@ class OCRService:
         except Exception:  # pragma: no cover
             return None
 
+    @staticmethod
+    def _normalize_ocr_result(item: Any) -> Any:
+        """处理 3.x OCRResult 对象带 .json 属性/方法归一化。"""
+        if hasattr(item, "json"):
+            try:
+                return item.json if not callable(item.json) else item.json()
+            except Exception:
+                return item
+        return item
+
+    @classmethod
+    def _collect_words(cls, item: Any, items: list[dict]) -> None:
+        """递归收集词条（None guard→归一化→按 isinstance 分派）。"""
+        if item is None:
+            return
+        item = cls._normalize_ocr_result(item)
+        if isinstance(item, dict):
+            cls._collect_words_from_dict(item, items)
+        elif isinstance(item, (list, tuple)):
+            cls._collect_words_from_sequence(item, items)
+
+    @classmethod
+    def _collect_words_from_dict(cls, item: dict, items: list[dict]) -> None:
+        """处理 dict（rec_texts 或递归 values）。"""
+        texts = item.get("rec_texts")
+        if texts is not None:
+            polys = item.get("rec_polys") or item.get("dt_polys") or []
+            for i, t in enumerate(texts):
+                bbox = cls._box_to_rect(polys[i]) if polys and i < len(polys) else None
+                items.append({"text": str(t), "bbox": bbox})
+            return
+        for v in item.values():
+            cls._collect_words(v, items)
+
+    @classmethod
+    def _collect_words_from_sequence(cls, item: list | tuple, items: list[dict]) -> None:
+        """处理 list/tuple（2.x 词条或递归）。"""
+        if (
+            len(item) == 2
+            and isinstance(item[0], (list, tuple))
+            and isinstance(item[1], (list, tuple))
+            and item[1]
+            and isinstance(item[1][0], str)
+        ):
+            items.append(
+                {
+                    "text": item[1][0],
+                    "bbox": cls._box_to_rect(item[0]),
+                }
+            )
+            return
+        for sub in item:
+            cls._collect_words(sub, items)
+
     @classmethod
     def _extract_words_with_boxes(cls, raw: Any) -> list[dict]:
         """从 PaddleOCR 2.x / 3.x 返回结构里提取 [(text, rect_bbox)]。"""
         items: list[dict] = []
-
-        def collect(item: Any) -> None:
-            if item is None:
-                return
-            # 3.x OCRResult 对象带 .json
-            if hasattr(item, "json"):
-                try:
-                    item = item.json if not callable(item.json) else item.json()
-                except Exception:
-                    pass
-            if isinstance(item, dict):
-                texts = item.get("rec_texts")
-                if texts is not None:
-                    polys = item.get("rec_polys") or item.get("dt_polys") or []
-                    for i, t in enumerate(texts):
-                        bbox = cls._box_to_rect(polys[i]) if polys and i < len(polys) else None
-                        items.append({"text": str(t), "bbox": bbox})
-                    return
-                for v in item.values():
-                    collect(v)
-                return
-            if isinstance(item, (list, tuple)):
-                # 2.x 的 [box, (text, conf)] 词条
-                if (
-                    len(item) == 2
-                    and isinstance(item[0], (list, tuple))
-                    and isinstance(item[1], (list, tuple))
-                    and item[1]
-                    and isinstance(item[1][0], str)
-                ):
-                    items.append(
-                        {
-                            "text": item[1][0],
-                            "bbox": cls._box_to_rect(item[0]),
-                        }
-                    )
-                    return
-                for sub in item:
-                    collect(sub)
-
-        collect(raw)
+        cls._collect_words(raw, items)
         return items
 
+    @classmethod
+    def _collect_lines(cls, item: Any, lines: list[str]) -> None:
+        """递归收集文本行（None guard→归一化→按 isinstance 分派）。"""
+        if item is None:
+            return
+        if isinstance(item, str):
+            lines.append(item)
+            return
+        item = cls._normalize_ocr_result(item)
+        if isinstance(item, str):
+            lines.append(item)
+            return
+        if isinstance(item, dict):
+            cls._collect_lines_from_dict(item, lines)
+        elif isinstance(item, (list, tuple)):
+            cls._collect_lines_from_sequence(item, lines)
+
+    @classmethod
+    def _collect_lines_from_dict(cls, item: dict, lines: list[str]) -> None:
+        """处理 dict（rec_texts 或递归 values）。"""
+        texts = item.get("rec_texts")
+        if texts:
+            for t in texts:
+                if isinstance(t, str):
+                    lines.append(t)
+            return
+        for v in item.values():
+            cls._collect_lines(v, lines)
+
+    @classmethod
+    def _collect_lines_from_sequence(cls, item: list | tuple, lines: list[str]) -> None:
+        """处理 list/tuple 递归。"""
+        for sub in item:
+            cls._collect_lines(sub, lines)
+
     @staticmethod
-    def _extract_lines(raw: Any) -> list[str]:
-        """从 PaddleOCR 2.x / 3.x 的返回结构里提取文本行（容忍不同版本格式）。"""
-        lines: list[str] = []
-
-        def collect(item: Any) -> None:
-            if item is None:
-                return
-            if isinstance(item, str):
-                lines.append(item)
-                return
-            # PaddleOCR 3.x 的 OCRResult 对象带 .json（字段或方法）
-            if hasattr(item, "json"):
-                try:
-                    item = item.json if not callable(item.json) else item.json()
-                except Exception:
-                    pass
-            if isinstance(item, str):
-                lines.append(item)
-                return
-            if isinstance(item, dict):
-                texts = item.get("rec_texts")
-                if texts:
-                    for t in texts:
-                        if isinstance(t, str):
-                            lines.append(t)
-                    return
-                for v in item.values():
-                    collect(v)
-                return
-            if isinstance(item, (list, tuple)):
-                for sub in item:
-                    collect(sub)
-
-        collect(raw)
-
+    def _deduplicate_lines(lines: list[str]) -> list[str]:
+        """strip + 去重 + 过滤空行。"""
         seen: set[str] = set()
         out: list[str] = []
         for line in lines:
@@ -239,6 +255,13 @@ class OCRService:
                 seen.add(line)
                 out.append(line)
         return out
+
+    @staticmethod
+    def _extract_lines(raw: Any) -> list[str]:
+        """从 PaddleOCR 2.x / 3.x 的返回结构里提取文本行（容忍不同版本格式）。"""
+        lines: list[str] = []
+        OCRService._collect_lines(raw, lines)
+        return OCRService._deduplicate_lines(lines)
 
 
 # 全局单例（懒加载，构造时不触发 PaddleOCR 加载）

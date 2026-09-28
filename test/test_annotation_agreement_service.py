@@ -63,7 +63,9 @@ def test_evaluate_all_metrics():
 
 
 def test_evaluate_metric_filter():
-    out = AnnotationAgreementService().evaluate([["A", "A"], ["A", "B"]], metrics=["fleiss"])
+    out = AnnotationAgreementService().evaluate(
+        [["A", "A"], ["A", "B"]], metrics=["fleiss"]
+    )
     assert "fleiss_kappa" in out
     assert "cohens_kappa" not in out
     assert "krippendorff_alpha" not in out

@@ -9,9 +9,19 @@ from app.services.citation_graph_service import (
 )
 
 REFERENCES = [
-    {"index": 1, "title": "Attention Is All You Need", "year": "2017", "doi": "10.1/attn"},
+    {
+        "index": 1,
+        "title": "Attention Is All You Need",
+        "year": "2017",
+        "doi": "10.1/attn",
+    },
     {"index": 2, "title": "BERT: Pre-training", "year": "2018", "doi": "10.1/bert"},
-    {"index": 3, "title": "Attention Is All You Need", "year": "2017", "doi": "10.1/attn"},  # 重复
+    {
+        "index": 3,
+        "title": "Attention Is All You Need",
+        "year": "2017",
+        "doi": "10.1/attn",
+    },  # 重复
 ]
 
 
@@ -42,7 +52,11 @@ def test_betweenness_centrality_returns_all_nodes():
 
 
 def test_deduplicate_future_work():
-    chunks = ["We will explore X in future", "We will explore X in future work", "Different future direction"]
+    chunks = [
+        "We will explore X in future",
+        "We will explore X in future work",
+        "Different future direction",
+    ]
     result = deduplicate_future_work(chunks)
     assert result["unique_count"] < result["input_count"]
 

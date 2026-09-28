@@ -118,6 +118,21 @@ def extract_affiliations(text: str) -> list[str]:
     return out
 
 
+def _uf_find(parent: list[int], x: int) -> int:
+    """并查集路径压缩查找。"""
+    while parent[x] != x:
+        parent[x] = parent[parent[x]]
+        x = parent[x]
+    return x
+
+
+def _uf_union(parent: list[int], a: int, b: int) -> None:
+    """并查集合并。"""
+    ra, rb = _uf_find(parent, a), _uf_find(parent, b)
+    if ra != rb:
+        parent[ra] = rb
+
+
 class DeduplicationService:
     """语义去重服务：SimHash 指纹分组 + 版本建议 + 机构抽取（纯 Python 零依赖）。"""
 
@@ -128,31 +143,21 @@ class DeduplicationService:
     def _fingerprint_text(self, doc: dict[str, Any]) -> str:
         return " ".join(str(doc.get(k) or "") for k in ("title", "abstract", "text"))[:2000]
 
-    def detect(
-        self, documents: list[dict[str, Any]], threshold: float | None = None
-    ) -> dict[str, Any]:
-        threshold = settings.DEDUP_THRESHOLD if threshold is None else threshold
-        n = len(documents)
+    def _cluster_by_simhash(
+        self,
+        documents: list[dict[str, Any]],
+        fingerprints: list[str],
+        threshold: float,
+        n: int,
+    ) -> tuple[list[int], list[dict[str, Any]]]:
+        """并查集 + 两两 SimHash 比较，返回 (parent, pairs)。"""
         parent = list(range(n))
-
-        def find(x: int) -> int:
-            while parent[x] != x:
-                parent[x] = parent[parent[x]]
-                x = parent[x]
-            return x
-
-        def union(a: int, b: int) -> None:
-            ra, rb = find(a), find(b)
-            if ra != rb:
-                parent[ra] = rb
-
-        fingerprints = [self._fingerprint_text(d) for d in documents]
         pairs: list[dict[str, Any]] = []
         for i in range(n):
             for j in range(i + 1, n):
                 sim = simhash_similarity(fingerprints[i], fingerprints[j])
                 if sim >= threshold:
-                    union(i, j)
+                    _uf_union(parent, i, j)
                     pairs.append(
                         {
                             "a_id": documents[i].get("id"),
@@ -160,50 +165,62 @@ class DeduplicationService:
                             "similarity": round(sim, 4),
                         }
                     )
+        return parent, pairs
+
+    def _build_cluster_info(
+        self, members: list[int], documents: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        """构建单个 cluster 信息，返回 cluster dict。"""
+        members.sort()
+        cluster_docs: list[dict[str, Any]] = []
+        keep: Any = None
+        keep_version = -1
+        for idx in members:
+            doc = documents[idx]
+            info = extract_arxiv_version(str(doc.get("title") or ""))
+            version_num = int(info["version"].lstrip("v")) if info and info.get("version") else 0
+            cluster_docs.append(
+                {
+                    "id": doc.get("id"),
+                    "title": doc.get("title"),
+                    "version": info["version"] if info else None,
+                }
+            )
+            if version_num > keep_version:
+                keep_version = version_num
+                keep = doc.get("id")
+        return {
+            "size": len(members),
+            "document_ids": [documents[i].get("id") for i in members],
+            "documents": cluster_docs,
+            "suggestion": {
+                "keep": keep,
+                "reason": (
+                    "同源版本中保留最新版本（arXiv 版本号最高）"
+                    if keep_version > 0
+                    else "语义相似度高于阈值，建议保留其一"
+                ),
+            },
+        }
+
+    def detect(
+        self, documents: list[dict[str, Any]], threshold: float | None = None
+    ) -> dict[str, Any]:
+        threshold = settings.DEDUP_THRESHOLD if threshold is None else threshold
+        n = len(documents)
+
+        fingerprints = [self._fingerprint_text(d) for d in documents]
+        parent, pairs = self._cluster_by_simhash(documents, fingerprints, threshold, n)
 
         buckets: dict[int, list[int]] = {}
         for i in range(n):
-            buckets.setdefault(find(i), []).append(i)
+            buckets.setdefault(_uf_find(parent, i), []).append(i)
 
         clusters: list[dict[str, Any]] = []
         for members in buckets.values():
             if len(members) < 2:
                 continue
-            members.sort()
-            cluster_docs = []
-            keep = None
-            keep_version = -1
-            for idx in members:
-                doc = documents[idx]
-                info = extract_arxiv_version(str(doc.get("title") or ""))
-                version_num = (
-                    int(info["version"].lstrip("v")) if info and info.get("version") else 0
-                )
-                cluster_docs.append(
-                    {
-                        "id": doc.get("id"),
-                        "title": doc.get("title"),
-                        "version": info["version"] if info else None,
-                    }
-                )
-                if version_num > keep_version:
-                    keep_version = version_num
-                    keep = doc.get("id")
-            clusters.append(
-                {
-                    "size": len(members),
-                    "document_ids": [documents[i].get("id") for i in members],
-                    "documents": cluster_docs,
-                    "suggestion": {
-                        "keep": keep,
-                        "reason": (
-                            "同源版本中保留最新版本（arXiv 版本号最高）"
-                            if keep_version > 0
-                            else "语义相似度高于阈值，建议保留其一"
-                        ),
-                    },
-                }
-            )
+            clusters.append(self._build_cluster_info(members, documents))
 
         return {
             "backend": "simhash",

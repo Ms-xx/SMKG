@@ -21,14 +21,18 @@ SUGGEST = f"{API_PREFIX}/active-learning/suggest"
 
 
 def _make_doc(doc_id, title):
-    return Document(id=doc_id, title=title, file_path=f"/tmp/{doc_id}.pdf", uploaded_by="u1")
+    return Document(
+        id=doc_id, title=title, file_path=f"/tmp/{doc_id}.pdf", uploaded_by="u1"
+    )
 
 
 def _make_page(page_id, doc_id, number):
     return DocumentPage(id=page_id, document_id=doc_id, page_number=number)
 
 
-def _make_element(el_id, page_id, confidence, content="Perovskite solar cell", el_type="text"):
+def _make_element(
+    el_id, page_id, confidence, content="Perovskite solar cell", el_type="text"
+):
     return DocumentElement(
         id=el_id,
         page_id=page_id,
@@ -108,14 +112,20 @@ async def test_suggest_filter_by_document(db, client, token):
     await _seed_base_sample_pool(db)
     headers = token("u1", "admin")
 
-    r = await client.get(SUGGEST, params={"document_id": "doc1", "top_k": 10}, headers=headers)
+    r = await client.get(
+        SUGGEST, params={"document_id": "doc1", "top_k": 10}, headers=headers
+    )
     assert r.status_code == 200
     body = r.json()
 
     ordered = [x["document_id"] for x in body["results"]]
     assert set(ordered) == {"doc1"}
     assert body["total"] == 3
-    assert [x["element_id"] for x in body["results"]] == ["el_low", "el_none", "el_high"]
+    assert [x["element_id"] for x in body["results"]] == [
+        "el_low",
+        "el_none",
+        "el_high",
+    ]
 
 
 @pytest.mark.asyncio

@@ -8,7 +8,9 @@
 import os
 import sys
 
-GRAPHRAG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "GraphRAGTest"))
+GRAPHRAG_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "GraphRAGTest")
+)
 if GRAPHRAG_DIR not in sys.path:
     sys.path.insert(0, GRAPHRAG_DIR)
 
@@ -24,8 +26,10 @@ def test_index_document_vectors_writes_and_searchable():
     ]
     relations = [
         {
-            "source": "钙钛矿", "source_type": "Material",
-            "target": "高效率", "target_type": "Property",
+            "source": "钙钛矿",
+            "source_type": "Material",
+            "target": "高效率",
+            "target_type": "Property",
             "relation_type": "HAS_PROPERTY",
         }
     ]
@@ -69,7 +73,7 @@ def test_index_document_vectors_skips_invalid_and_empty():
     result = index_document_vectors(
         "doc-2",
         entities=[{"entity_type": "Material"}],  # 无 text/name
-        relations=[{"source": "孤立"}],           # 无 target
+        relations=[{"source": "孤立"}],  # 无 target
         chunks=None,
         retriever=hr,
     )

@@ -104,7 +104,7 @@ services:
     build:
       context: ./backend
     container_name: sdp-celery
-    command: celery -A app.core.celery_app worker -l info -Q parsing,extraction,graph
+    command: celery -A app.core.celery_app worker -l info -Q parsing,extraction,graph,training
     environment:
       DATABASE_URL: mysql+aiomysql://root:CHANGE_ME@mysql:3306/wx
       DATABASE_POOL_SIZE: 20

@@ -73,6 +73,7 @@ async def main():
 
     with get_db_context() as db:
         from app.models.user import User
+
         admin_uid = db.execute(
             select(User.id).where(User.username == "admin")
         ).scalar_one()
@@ -92,9 +93,11 @@ async def main():
     # 3) 校验入库结果
     with get_db_context() as db:
         doc = db.execute(select(Document).where(Document.id == doc_id)).scalar_one()
-        pages = db.execute(
-            select(DocumentPage).where(DocumentPage.document_id == doc_id)
-        ).scalars().all()
+        pages = (
+            db.execute(select(DocumentPage).where(DocumentPage.document_id == doc_id))
+            .scalars()
+            .all()
+        )
         page_ids = [p.id for p in pages]
         text_cnt = 0
         table_cnt = 0
@@ -132,9 +135,7 @@ async def main():
                 )
             )
         db.execute(
-            DocumentPage.__table__.delete().where(
-                DocumentPage.document_id == doc_id
-            )
+            DocumentPage.__table__.delete().where(DocumentPage.document_id == doc_id)
         )
         db.execute(Document.__table__.delete().where(Document.id == doc_id))
         db.commit()

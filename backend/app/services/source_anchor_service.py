@@ -63,13 +63,109 @@ def extract_anchors(context_chunks: list[dict[str, Any]]) -> list[dict[str, Any]
             {
                 "document_id": str(doc_id),
                 "page_number": int(page) if page is not None else None,
-                "chunk_index": int(c["chunk_index"]) if c.get("chunk_index") is not None else None,
+                "chunk_index": (
+                    int(c["chunk_index"]) if c.get("chunk_index") is not None else None
+                ),
                 "snippet": str(snippet)[:300],
                 "score": round(float(c.get("score") or 0.0), 4),
             }
         )
     anchors.sort(key=lambda x: (x["score"], x["document_id"]), reverse=True)
     return anchors
+
+
+def _fold_whitespace(text: str) -> str:
+    """空白折叠：把任意连续空白折叠为单个空格，用于宽松子串匹配。"""
+    return " ".join(str(text).split())
+
+
+def _match_prefix48(snip_norm: str, page_norm: str) -> str | None:
+    """前 48 字符包含匹配。"""
+    prefix48 = snip_norm[:48]
+    return prefix48 if prefix48 and prefix48 in page_norm else None
+
+
+def _match_endswith(snip_norm: str, page_norm: str) -> str | None:
+    """末尾匹配。"""
+    return snip_norm if snip_norm and page_norm.endswith(snip_norm) else None
+
+
+def _match_prefix40(snip_norm: str, page_norm: str) -> str | None:
+    """前 40 字符包含匹配。"""
+    prefix40 = snip_norm[:40]
+    return prefix40 if prefix40 and prefix40 in page_norm else None
+
+
+_SNIPPET_MATCHERS = (_match_prefix48, _match_endswith, _match_prefix40)
+
+
+def _find_best_page(snippet: str, pages: list[dict[str, Any]]) -> tuple[Any, bool]:
+    """逐页匹配 + 三种命中条件 + 选最长片段，返回 (best_page_no, has_any_text)。"""
+    snip_norm = _fold_whitespace(snippet)
+    best_page_no: Any = None
+    best_len = -1
+    has_any_text = False
+    for p in pages:
+        page_text = str(p.get("text") or "")
+        if not page_text:
+            continue
+        has_any_text = True
+        page_norm = _fold_whitespace(page_text)
+        hit: str | None = None
+        for matcher in _SNIPPET_MATCHERS:
+            hit = matcher(snip_norm, page_norm)
+            if hit:
+                break
+        if hit and len(hit) > best_len:
+            best_len = len(hit)
+            best_page_no = p.get("page_number")
+    return best_page_no, has_any_text
+
+
+def backfill_page_numbers(anchors: list[dict[str, Any]], pages_lookup: dict) -> dict[str, Any]:
+    """依据页级全文做 chunk→page 的页级定位回填（步骤15【P2】）。
+
+    anchors: list[{document_id, page_number?, chunk_index?, snippet?, score?}]
+    pages_lookup: dict[document_id -> list[{page_number:int, text:str}]]（缺省 {}）
+
+    确定性规则（不编造）：
+    - 锚点已写死非 None 整数 page_number → 保留，不覆盖；
+    - 否则 snippet 非空且 pages 非空：对每页用「宽松包含」逐页匹配合片段，
+      选含最长连续片段的一页取 page_number；若所有页文本均为空字符串，
+      回退到第一页的 page_number；
+    - pages 为空或 snippet 为空 → 保持 None。
+
+    宽松包含（保持简单）：
+        prefix48 = snippet 前 48 个空白折叠字符
+        命中即算：snip_norm[:48] in page_norm 或 page_norm.endswith(snip_norm)
+                 或 snip_norm[:40] in page_norm
+
+    返回 {"anchors": 更新后的锚点(附加 page_number 字段), "backfilled_count": int}
+    """
+    pages_lookup = pages_lookup or {}
+    updated: list[dict[str, Any]] = []
+    backfilled_count = 0
+    for anchor in anchors or []:
+        a = dict(anchor)
+        cur = a.get("page_number")
+        if isinstance(cur, int) and not isinstance(cur, bool):
+            updated.append(a)
+            continue
+        doc_id = str(a.get("document_id") or "")
+        pages = pages_lookup.get(doc_id) or []
+        snippet = str(a.get("snippet") or "")
+        if snippet and pages:
+            best_page_no, has_any_text = _find_best_page(snippet, pages)
+            if best_page_no is not None:
+                a["page_number"] = int(best_page_no)
+                backfilled_count += 1
+            elif not has_any_text and pages:
+                # 所有页文本均为空：回退第一页页码（页面本身存在）
+                a["page_number"] = int(pages[0].get("page_number"))
+        else:
+            a["page_number"] = None
+        updated.append(a)
+    return {"anchors": updated, "backfilled_count": backfilled_count}
 
 
 def anchors_from_rag(question: str) -> dict[str, Any]:
@@ -146,7 +242,11 @@ def multi_document_compare(
     for r in rows:
         entry = by_doc.setdefault(
             r["document_id"],
-            {"document_id": r["document_id"], "title": r["title"], "best_score": r["score"]},
+            {
+                "document_id": r["document_id"],
+                "title": r["title"],
+                "best_score": r["score"],
+            },
         )
         if r["score"] > entry["best_score"]:
             entry["best_score"] = r["score"]
@@ -217,6 +317,10 @@ class SourceAnchorService:
 
     def rag_anchors(self, question: str) -> dict[str, Any]:
         return anchors_from_rag(question)
+
+    def backfill(self, anchors: list[dict[str, Any]], pages_lookup: dict) -> dict[str, Any]:
+        """页级定位回填：直接调用纯函数 backfill_page_numbers（供 API 编排与直测）。"""
+        return backfill_page_numbers(anchors, pages_lookup)
 
     def compare(
         self, chunks_by_doc: list[dict[str, Any]], question: str, use_llm: bool = True

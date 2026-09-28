@@ -8,6 +8,33 @@ from app.models.document import Document
 from app.models.task import Task
 
 
+def _apply_celery_progress(task: Task, info: dict) -> None:
+    if isinstance(info, dict):
+        task.progress = info.get("progress", task.progress)
+        task.status = "running"
+
+
+def _apply_celery_success(task: Task, info: dict) -> None:
+    task.status = "completed"
+    task.progress = 100
+
+
+def _apply_celery_failure(task: Task, info: dict) -> None:
+    task.status = "failed"
+
+
+def _apply_celery_revoked(task: Task, info: dict) -> None:
+    task.status = "cancelled"
+
+
+_CELERY_STATE_MAP = {
+    "PROGRESS": _apply_celery_progress,
+    "SUCCESS": _apply_celery_success,
+    "FAILURE": _apply_celery_failure,
+    "REVOKED": _apply_celery_revoked,
+}
+
+
 class TaskService:
     async def create_task(self, db: AsyncSession, task_data, user_id: str) -> Task:
         task = Task(
@@ -148,6 +175,42 @@ class TaskService:
             "celery_state": celery_status.get("state") if celery_status else None,
         }
 
+    def _apply_task_filters(
+        self,
+        query,
+        scope_all: bool,
+        user_id: Optional[str],
+        status: Optional[str],
+        task_type: Optional[str],
+        assigned_to: Optional[str],
+    ):
+        """封装 4 个可选 where 条件。"""
+        if not scope_all and user_id is not None:
+            query = query.where(or_(Task.assigned_to == user_id, Task.assigned_by == user_id))
+        if status:
+            query = query.where(Task.status == status)
+        if task_type:
+            query = query.where(Task.task_type == task_type)
+        if assigned_to:
+            query = query.where(Task.assigned_to == assigned_to)
+        return query
+
+    async def _sync_celery_progress(self, db: AsyncSession, tasks) -> None:
+        """遍历运行中任务同步进度。"""
+        for task in tasks:
+            if not task.celery_task_id or task.status not in ("pending", "running"):
+                continue
+            celery_status = self._get_celery_task_status(task.celery_task_id)
+            if not celery_status:
+                continue
+            state = celery_status.get("state", "PENDING")
+            info = celery_status.get("info", {})
+            handler = _CELERY_STATE_MAP.get(state)
+            if handler:
+                handler(task, info)
+        if tasks:
+            await db.flush()
+
     async def list_tasks(
         self,
         db: AsyncSession,
@@ -164,14 +227,7 @@ class TaskService:
         获取任务列表，可选同步 Celery 进度
         """
         query = select(Task)
-        if not scope_all and user_id is not None:
-            query = query.where(or_(Task.assigned_to == user_id, Task.assigned_by == user_id))
-        if status:
-            query = query.where(Task.status == status)
-        if task_type:
-            query = query.where(Task.task_type == task_type)
-        if assigned_to:
-            query = query.where(Task.assigned_to == assigned_to)
+        query = self._apply_task_filters(query, scope_all, user_id, status, task_type, assigned_to)
 
         count_query = select(func.count()).select_from(query.subquery())
         total = await db.scalar(count_query)
@@ -182,28 +238,8 @@ class TaskService:
         result = await db.execute(query)
         tasks = result.scalars().all()
 
-        # 同步运行中任务的进度
         if sync_progress:
-            for task in tasks:
-                if task.celery_task_id and task.status in ("pending", "running"):
-                    celery_status = self._get_celery_task_status(task.celery_task_id)
-                    if celery_status:
-                        state = celery_status.get("state", "PENDING")
-                        info = celery_status.get("info", {})
-
-                        if state == "PROGRESS" and isinstance(info, dict):
-                            task.progress = info.get("progress", task.progress)
-                            task.status = "running"
-                        elif state == "SUCCESS":
-                            task.status = "completed"
-                            task.progress = 100
-                        elif state == "FAILURE":
-                            task.status = "failed"
-                        elif state == "REVOKED":
-                            task.status = "cancelled"
-
-            if tasks:
-                await db.flush()
+            await self._sync_celery_progress(db, tasks)
 
         return tasks, total
 

@@ -59,6 +59,58 @@ def generate_outline(idea: str, references: list[dict[str, Any]]) -> dict[str, A
     }
 
 
+def _render_mermaid(title: str, nodes: list, edges: list) -> str:
+    lines = ["graph TD;"]
+    for i, n in enumerate(nodes):
+        lines.append(f"    n{i}[{n}];")
+    for a, b in edges:
+        lines.append(f"    n{a} --> n{b};")
+    return "\n".join(lines)
+
+
+def _render_graphviz(title: str, nodes: list, edges: list) -> str:
+    lines = ["digraph G {"]
+    for i, n in enumerate(nodes):
+        lines.append(f'    n{i} [label="{n}"];')
+    for a, b in edges:
+        lines.append(f"    n{a} -> n{b};")
+    lines.append("}")
+    return "\n".join(lines)
+
+
+def _render_tikz(title: str, nodes: list, edges: list) -> str:
+    lines = ["\\begin{tikzpicture}[auto, node distance=2cm]"]
+    for i, n in enumerate(nodes):
+        lines.append(f"    \\node[draw] (n{i}) {{{n}}};")
+    for a, b in edges:
+        lines.append(f"    \\draw[->] (n{a}) -- (n{b});")
+    lines.append("\\end{tikzpicture}")
+    return "\n".join(lines)
+
+
+def _render_matplotlib(title: str, nodes: list, edges: list) -> str:
+    lines = [
+        "import matplotlib.pyplot as plt",
+        "import networkx as nx",
+        "",
+        "G = nx.DiGraph()",
+        f"G.add_nodes_from(range({len(nodes)}))",
+    ]
+    for a, b in edges:
+        lines.append(f"G.add_edge({a}, {b})")
+    lines.append("nx.draw(G, with_labels=True)")
+    lines.append("plt.show()")
+    return "\n".join(lines)
+
+
+_DIAGRAM_RENDERERS = {
+    "mermaid": _render_mermaid,
+    "graphviz": _render_graphviz,
+    "tikz": _render_tikz,
+    "matplotlib": _render_matplotlib,
+}
+
+
 def generate_diagram_script(diagram_type: str, spec: dict[str, Any]) -> dict[str, Any]:
     """spec: {title, nodes: [...], edges: [[a,b], ...]}，生成脚本字符串。"""
     diagram_type = (diagram_type or "mermaid").lower()
@@ -66,42 +118,9 @@ def generate_diagram_script(diagram_type: str, spec: dict[str, Any]) -> dict[str
     nodes = spec.get("nodes") or []
     edges = spec.get("edges") or []
 
-    if diagram_type == "mermaid":
-        lines = ["graph TD;"]
-        for i, n in enumerate(nodes):
-            lines.append(f"    n{i}[{n}];")
-        for a, b in edges:
-            lines.append(f"    n{a} --> n{b};")
-        script = "\n".join(lines)
-    elif diagram_type == "graphviz":
-        lines = ["digraph G {"]
-        for i, n in enumerate(nodes):
-            lines.append(f'    n{i} [label="{n}"];')
-        for a, b in edges:
-            lines.append(f"    n{a} -> n{b};")
-        lines.append("}")
-        script = "\n".join(lines)
-    elif diagram_type == "tikz":
-        lines = ["\\begin{tikzpicture}[auto, node distance=2cm]"]
-        for i, n in enumerate(nodes):
-            lines.append(f"    \\node[draw] (n{i}) {{{n}}};")
-        for a, b in edges:
-            lines.append(f"    \\draw[->] (n{a}) -- (n{b});")
-        lines.append("\\end{tikzpicture}")
-        script = "\n".join(lines)
-    elif diagram_type == "matplotlib":
-        lines = [
-            "import matplotlib.pyplot as plt",
-            "import networkx as nx",
-            "",
-            "G = nx.DiGraph()",
-            f"G.add_nodes_from(range({len(nodes)}))",
-        ]
-        for a, b in edges:
-            lines.append(f"G.add_edge({a}, {b})")
-        lines.append("nx.draw(G, with_labels=True)")
-        lines.append("plt.show()")
-        script = "\n".join(lines)
+    renderer = _DIAGRAM_RENDERERS.get(diagram_type)
+    if renderer:
+        script = renderer(title, nodes, edges)
     else:
         script = f"# unsupported diagram_type: {diagram_type}"
 
@@ -126,6 +145,102 @@ def _numbers(row: list[str]) -> list[float]:
     return out
 
 
+def _chart_x(i: int, pad_l: int, plot_w: int, n_labels: int) -> float:
+    return pad_l + plot_w * (i + 0.5) / max(1, n_labels)
+
+
+def _chart_y(v: float, pad_t: int, plot_h: int, vmax: float, vmin: float) -> float:
+    span = (vmax - vmin) or 1.0
+    return pad_t + plot_h * (1 - (v - vmin) / span)
+
+
+def _render_bar(
+    values: list[float],
+    labels: list[str],
+    pad_l: int,
+    pad_t: int,
+    plot_w: int,
+    plot_h: int,
+    vmax: float,
+    vmin: float,
+) -> list[str]:
+    n_labels = len(labels)
+    bw = plot_w / max(1, n_labels) * 0.6
+    shapes: list[str] = []
+    for i, v in enumerate(values):
+        y = _chart_y(v, pad_t, plot_h, vmax, vmin)
+        y0 = _chart_y(0, pad_t, plot_h, vmax, vmin)
+        x = _chart_x(i, pad_l, plot_w, n_labels)
+        shapes.append(
+            f'<rect x="{x-bw/2:.1f}" y="{min(y,y0):.1f}" width="{bw:.1f}" height="{abs(y0-y):.1f}" fill="#3b82f6"/>'
+        )
+    return shapes
+
+
+def _render_line(
+    values: list[float],
+    labels: list[str],
+    pad_l: int,
+    pad_t: int,
+    plot_w: int,
+    plot_h: int,
+    vmax: float,
+    vmin: float,
+) -> list[str]:
+    n_labels = len(labels)
+    pts = " ".join(
+        f"{_chart_x(i, pad_l, plot_w, n_labels):.1f},{_chart_y(v, pad_t, plot_h, vmax, vmin):.1f}"
+        for i, v in enumerate(values)
+    )
+    shapes = [f'<polyline points="{pts}" fill="none" stroke="#3b82f6" stroke-width="2"/>']
+    for i, v in enumerate(values):
+        shapes.append(
+            f'<circle cx="{_chart_x(i, pad_l, plot_w, n_labels):.1f}" cy="{_chart_y(v, pad_t, plot_h, vmax, vmin):.1f}" r="3" fill="#3b82f6"/>'
+        )
+    return shapes
+
+
+def _render_radar(
+    values: list[float],
+    labels: list[str],
+    pad_l: int,
+    pad_t: int,
+    plot_w: int,
+    plot_h: int,
+    vmax: float,
+    vmin: float,
+) -> list[str]:
+    import math
+
+    cx, cy, r = pad_l + plot_w / 2, pad_t + plot_h / 2, min(plot_w, plot_h) / 2 * 0.8
+    n = max(1, len(values))
+    pts = []
+    for i, v in enumerate(values):
+        ang = -math.pi / 2 + 2 * math.pi * i / n
+        ratio = (v - vmin) / ((vmax - vmin) or 1.0)
+        pts.append(f"{cx + r*ratio*math.cos(ang):.1f},{cy + r*ratio*math.sin(ang):.1f}")
+    return [f'<polygon points="{" ".join(pts)}" fill="rgba(59,130,246,0.3)" stroke="#3b82f6"/>']
+
+
+_CHART_RENDERERS = {"bar": _render_bar, "line": _render_line, "radar": _render_radar}
+
+
+def _render_table(header: list[str], data: list[list[str]], width: int) -> dict[str, Any]:
+    cells: list[str] = []
+    all_rows = [header] + data
+    row_h = 24
+    for ri, row in enumerate(all_rows):
+        for ci, cell in enumerate(row[:4]):
+            cells.append(
+                f'<text x="{60+ci*130}" y="{40+ri*row_h}" font-size="11">{html.escape(str(cell)[:20])}</text>'
+            )
+    return {
+        "backend": "rule",
+        "chart_type": "table",
+        "svg": _svg(width, max(100, 40 + len(all_rows) * row_h), "".join(cells)),
+    }
+
+
 def csv_to_chart(
     csv_text: str, chart_type: str = "bar", width: int = 600, height: int = 320
 ) -> dict[str, Any]:
@@ -133,6 +248,9 @@ def csv_to_chart(
     chart_type = (chart_type or "bar").lower()
     if not data:
         return {"backend": "rule", "chart_type": chart_type, "error": "CSV 无有效数据行", "svg": ""}
+
+    if chart_type == "table":
+        return _render_table(header, data, width)
 
     labels = [row[0] for row in data]
     values = _numbers([row[1] if len(row) > 1 else "0" for row in data])
@@ -143,70 +261,21 @@ def csv_to_chart(
     vmax = max(values) if values else 1.0
     vmin = min(values + [0.0])
 
-    def _x(i: int) -> float:
-        return pad_l + plot_w * (i + 0.5) / max(1, len(labels))
-
-    def _y(v: float) -> float:
-        span = (vmax - vmin) or 1.0
-        return pad_t + plot_h * (1 - (v - vmin) / span)
-
     # 坐标轴
     axis = [
         f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{pad_t+plot_h}" stroke="#888"/>',
         f'<line x1="{pad_l}" y1="{pad_t+plot_h}" x2="{pad_l+plot_w}" y2="{pad_t+plot_h}" stroke="#888"/>',
     ]
-    marks = []
+    marks: list[str] = []
+    n_labels = len(labels)
     for i, label in enumerate(labels):
         label = html.escape(str(label)[:12])
         marks.append(
-            f'<text x="{_x(i):.1f}" y="{pad_t+plot_h+16}" font-size="10" text-anchor="middle">{label}</text>'
+            f'<text x="{_chart_x(i, pad_l, plot_w, n_labels):.1f}" y="{pad_t+plot_h+16}" font-size="10" text-anchor="middle">{label}</text>'
         )
 
-    if chart_type == "bar":
-        bw = plot_w / max(1, len(labels)) * 0.6
-        shapes = []
-        for i, v in enumerate(values):
-            y = _y(v)
-            y0 = _y(0)
-            shapes.append(
-                f'<rect x="{_x(i)-bw/2:.1f}" y="{min(y,y0):.1f}" width="{bw:.1f}" height="{abs(y0-y):.1f}" fill="#3b82f6"/>'
-            )
-    elif chart_type == "line":
-        pts = " ".join(f"{_x(i):.1f},{_y(v):.1f}" for i, v in enumerate(values))
-        shapes = [f'<polyline points="{pts}" fill="none" stroke="#3b82f6" stroke-width="2"/>']
-        for i, v in enumerate(values):
-            shapes.append(f'<circle cx="{_x(i):.1f}" cy="{_y(v):.1f}" r="3" fill="#3b82f6"/>')
-    elif chart_type == "radar":
-        cx, cy, r = pad_l + plot_w / 2, pad_t + plot_h / 2, min(plot_w, plot_h) / 2 * 0.8
-        import math
-
-        n = max(1, len(values))
-        pts = []
-        for i, v in enumerate(values):
-            ang = -math.pi / 2 + 2 * math.pi * i / n
-            ratio = (v - vmin) / ((vmax - vmin) or 1.0)
-            pts.append(f"{cx + r*ratio*math.cos(ang):.1f},{cy + r*ratio*math.sin(ang):.1f}")
-        shapes = [
-            f'<polygon points="{" ".join(pts)}" fill="rgba(59,130,246,0.3)" stroke="#3b82f6"/>'
-        ]
-        marks = marks  # 复用标签
-    elif chart_type == "table":
-        # 表格型 SVG：直接渲染 header + data
-        cells = []
-        all_rows = [header] + data
-        row_h = 24
-        for ri, row in enumerate(all_rows):
-            for ci, cell in enumerate(row[:4]):
-                cells.append(
-                    f'<text x="{60+ci*130}" y="{40+ri*row_h}" font-size="11">{html.escape(str(cell)[:20])}</text>'
-                )
-        return {
-            "backend": "rule",
-            "chart_type": chart_type,
-            "svg": _svg(width, max(100, 40 + len(all_rows) * row_h), "".join(cells)),
-        }
-    else:
-        shapes = []
+    renderer = _CHART_RENDERERS.get(chart_type)
+    shapes = renderer(values, labels, pad_l, pad_t, plot_w, plot_h, vmax, vmin) if renderer else []
 
     body = "".join(axis + marks + shapes)
     return {"backend": "rule", "chart_type": chart_type, "svg": _svg(width, height, body)}

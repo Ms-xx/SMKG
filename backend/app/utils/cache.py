@@ -12,6 +12,7 @@
 - Redis 可用：命中返回缓存 JSON；未命中调用 producer 并回填缓存；
 - Redis 不可用/序列化失败：静默降级为直接调用 producer，不抛异常、不影响业务。
 """
+
 import asyncio
 import json
 import logging

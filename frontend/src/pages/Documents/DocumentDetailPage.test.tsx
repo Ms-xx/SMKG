@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import DocumentDetailPage from "./DocumentDetailPage";
 import { useDocumentStore } from "@store/documentStore";
@@ -10,7 +10,11 @@ vi.mock("@api/modules", async (importOriginal) => {
   const spread = (o: unknown) => ({ ...(o as object) });
   return {
     ...actual,
-    documentApi: { ...spread(actual.documentApi), getFullText: vi.fn() },
+    documentApi: {
+      ...spread(actual.documentApi),
+      getFullText: vi.fn(),
+      exportJats: vi.fn(),
+    },
     citationLinkApi: { ...spread(actual.citationLinkApi), map: vi.fn() },
     writingAssistantApi: {
       ...spread(actual.writingAssistantApi),
@@ -85,6 +89,11 @@ describe("DocumentDetailPage", () => {
       text: "译文占位",
       target: "zh",
     });
+    vi.mocked(documentApi.exportJats).mockResolvedValue(
+      new Blob(['<?xml version="1.0" encoding="UTF-8"?>'], {
+        type: "application/xml",
+      }),
+    );
   });
 
   it("无当前文档时显示加载态", () => {
@@ -224,5 +233,32 @@ describe("DocumentDetailPage", () => {
 
     expect(await screen.findByText("注意力机制是核心。")).toBeInTheDocument();
     expect(writingAssistantApi.translate).toHaveBeenCalled();
+  });
+
+  it("导出 JATS 触发导出接口并下载（步骤13 P2）", async () => {
+    const createSpy = vi.fn().mockReturnValue("blob:mock-jats");
+    const revokeSpy = vi.fn();
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      writable: true,
+      value: createSpy,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      writable: true,
+      value: revokeSpy,
+    });
+    try {
+      useDocumentStore.setState({ currentDocument: { ...doc, status: "parsed" } });
+      renderPage();
+      const btn = await screen.findByRole("button", { name: /导出 JATS/ });
+      fireEvent.click(btn);
+      expect(documentApi.exportJats).toHaveBeenCalledWith("d1");
+      await waitFor(() => expect(createSpy).toHaveBeenCalled());
+      expect(revokeSpy).toHaveBeenCalled();
+    } finally {
+      delete (URL as any).createObjectURL;
+      delete (URL as any).revokeObjectURL;
+    }
   });
 });

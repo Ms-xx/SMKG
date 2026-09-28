@@ -1,31 +1,33 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  Card,
-  Input,
-  Button,
-  Space,
-  Typography,
-  Spin,
-  Tag,
-  Badge,
-  Row,
-  Col,
-  Statistic,
   Alert,
+  Badge,
+  Button,
+  Card,
+  Col,
   Divider,
+  Input,
+  Row,
+  Space,
+  Spin,
+  Statistic,
+  Tag,
   Tooltip,
+  Typography,
   message,
 } from "antd";
 import {
-  RobotOutlined,
-  UserOutlined,
-  NodeIndexOutlined,
-  ThunderboltOutlined,
-  ApiOutlined,
   AimOutlined,
+  ApiOutlined,
   ClearOutlined,
+  FileTextOutlined,
   LoadingOutlined,
+  NodeIndexOutlined,
+  RobotOutlined,
+  ThunderboltOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 import { graphApi } from "@api/modules";
 import dayjs from "dayjs";
 
@@ -62,6 +64,7 @@ export default function GraphRAGPage() {
   const [showContext, setShowContext] = useState(false);
   const [lastContext, setLastContext] = useState<any>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     checkServices();
@@ -446,9 +449,25 @@ export default function GraphRAGPage() {
                       </Text>
                       {(msg.sources ?? []).slice(0, 5).map((s: any, i: number) => (
                         <div key={i} style={{ marginTop: 3 }}>
-                          <Tag color="gold" style={{ fontSize: 10, marginRight: 4 }}>
+                          <Tag
+                            color="gold"
+                            style={{ fontSize: 10, marginRight: 4, cursor: "pointer" }}
+                            onClick={() =>
+                              s.document_id &&
+                              navigate(
+                                `/documents/${s.document_id}${
+                                  typeof s.page_number === "number" ? `?page=${s.page_number}` : ""
+                                }`,
+                              )
+                            }
+                          >
                             {s.document_id || "?"}
                           </Tag>
+                          {typeof s.page_number === "number" && (
+                            <Tag color="blue" style={{ fontSize: 10, marginRight: 4 }}>
+                              <FileTextOutlined /> 第 {s.page_number} 页
+                            </Tag>
+                          )}
                           {s.snippet?.slice(0, 60) || ""}
                           {typeof s.score === "number" && (
                             <Text type="secondary" style={{ fontSize: 10 }}>

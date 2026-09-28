@@ -3,7 +3,9 @@
 import sys
 import os
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
+)
 
 from app.services.multi_agent_service import (  # noqa: E402
     AGENT_QA,
@@ -51,8 +53,16 @@ def test_run_session_stored():
 
 def test_resolve_conflicts_merge_dedup():
     proposals = [
-        {"agent": "a1", "items": [{"text": "钙钛矿", "type": "Material"}], "content": None},
-        {"agent": "a2", "items": [{"text": "钙钛矿", "type": "Material"}], "content": None},
+        {
+            "agent": "a1",
+            "items": [{"text": "钙钛矿", "type": "Material"}],
+            "content": None,
+        },
+        {
+            "agent": "a2",
+            "items": [{"text": "钙钛矿", "type": "Material"}],
+            "content": None,
+        },
     ]
     out = resolve_conflicts(proposals, "merge")
     assert out["final_items"] == [{"text": "钙钛矿", "type": "Material"}]
@@ -61,9 +71,21 @@ def test_resolve_conflicts_merge_dedup():
 
 def test_resolve_conflicts_vote_majority():
     proposals = [
-        {"agent": "a1", "items": [{"text": "钙钛矿", "type": "Material"}], "content": None},
-        {"agent": "a2", "items": [{"text": "钙钛矿", "type": "Material"}], "content": None},
-        {"agent": "a3", "items": [{"text": "钙钛矿", "type": "Property"}], "content": None},
+        {
+            "agent": "a1",
+            "items": [{"text": "钙钛矿", "type": "Material"}],
+            "content": None,
+        },
+        {
+            "agent": "a2",
+            "items": [{"text": "钙钛矿", "type": "Material"}],
+            "content": None,
+        },
+        {
+            "agent": "a3",
+            "items": [{"text": "钙钛矿", "type": "Property"}],
+            "content": None,
+        },
     ]
     out = resolve_conflicts(proposals, "vote")
     assert out["final_items"] == [{"text": "钙钛矿", "type": "Material"}]
@@ -72,8 +94,16 @@ def test_resolve_conflicts_vote_majority():
 
 def test_resolve_conflicts_arbitrate_highest_confidence():
     proposals = [
-        {"agent": "a1", "items": [{"text": "钙钛矿", "type": "Material", "confidence": 0.6}], "content": None},
-        {"agent": "a2", "items": [{"text": "钙钛矿", "type": "Device", "confidence": 0.9}], "content": None},
+        {
+            "agent": "a1",
+            "items": [{"text": "钙钛矿", "type": "Material", "confidence": 0.6}],
+            "content": None,
+        },
+        {
+            "agent": "a2",
+            "items": [{"text": "钙钛矿", "type": "Device", "confidence": 0.9}],
+            "content": None,
+        },
     ]
     out = resolve_conflicts(proposals, "arbitrate")
     assert out["final_items"] == [{"text": "钙钛矿", "type": "Device"}]
@@ -82,8 +112,16 @@ def test_resolve_conflicts_arbitrate_highest_confidence():
 
 def test_resolve_conflicts_detects_entity_type_conflict():
     proposals = [
-        {"agent": "a1", "items": [{"text": "钙钛矿", "type": "Material"}], "content": None},
-        {"agent": "a2", "items": [{"text": "钙钛矿", "type": "Property"}], "content": None},
+        {
+            "agent": "a1",
+            "items": [{"text": "钙钛矿", "type": "Material"}],
+            "content": None,
+        },
+        {
+            "agent": "a2",
+            "items": [{"text": "钙钛矿", "type": "Property"}],
+            "content": None,
+        },
     ]
     out = resolve_conflicts(proposals, "merge")
     assert len(out["conflicts"]) == 1
@@ -112,7 +150,12 @@ def test_resolve_conflicts_answer_merge_joins():
 def test_resolve_conflicts_answer_arbitrate_picks_highest_confidence():
     proposals = [
         {"agent": "qa", "content": "低置信答案", "confidence": 0.5, "items": None},
-        {"agent": "summarize", "content": "高置信答案", "confidence": 0.95, "items": None},
+        {
+            "agent": "summarize",
+            "content": "高置信答案",
+            "confidence": 0.95,
+            "items": None,
+        },
     ]
     out = resolve_conflicts(proposals, "arbitrate")
     assert out["final_text"] == "高置信答案"

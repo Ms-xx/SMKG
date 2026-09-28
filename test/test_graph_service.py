@@ -45,7 +45,9 @@ async def test_graph_get_entity_hit_and_miss():
     svc.neo4j_client = _FakeNeo4jService([{"id": "1", "name": "X"}])
     assert await svc.get_entity("1") == {"id": "1", "name": "X"}
     assert await svc.get_entity_relations("1", depth=2) == [{"id": "1", "name": "X"}]
-    assert await svc.execute_cypher("MATCH (n) RETURN n", {"x": 1}) == [{"id": "1", "name": "X"}]
+    assert await svc.execute_cypher("MATCH (n) RETURN n", {"x": 1}) == [
+        {"id": "1", "name": "X"}
+    ]
 
     svc.neo4j_client = _FakeNeo4jService([])
     assert await svc.get_entity("missing") is None

@@ -257,16 +257,6 @@ class GraphRAGIntegration:
         except Exception as e:
             return {"error": str(e)}
 
-    def seed_demo_data(self) -> dict[str, Any]:
-        """初始化示例数据"""
-        try:
-            with self._client() as client:
-                resp = client.post(f"{self.base_url}/seed/demo")
-                resp.raise_for_status()
-                return resp.json()
-        except Exception as e:
-            return {"error": str(e)}
-
 
 # 全局单例
 graphrag_integration = GraphRAGIntegration()

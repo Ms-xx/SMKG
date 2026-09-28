@@ -19,12 +19,13 @@ import {
   SearchOutlined,
   ReloadOutlined,
   NodeIndexOutlined,
-  DatabaseOutlined,
   DeleteOutlined,
   BarChartOutlined,
   ClusterOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import ForceGraph from "@components/Graph/ForceGraph";
+import GraphInsights from "@components/GraphInsights";
 import { graphApi } from "@api/modules";
 import { useAuthStore } from "@store/authStore";
 import { useNavigate } from "react-router-dom";
@@ -32,23 +33,18 @@ import type { GraphEntity, GraphRelation } from "@/types";
 
 const { Title, Text } = Typography;
 
-const nodeTypeOptions = [
-  { value: "Material", label: "材料", color: "#1890ff" },
-  { value: "Property", label: "性能", color: "#52c41a" },
-  { value: "Method", label: "方法", color: "#faad14" },
-  { value: "Document", label: "文档", color: "#13c2c2" },
-  { value: "Result", label: "结果", color: "#eb2f96" },
-  { value: "Parameter", label: "参数", color: "#722ed1" },
-];
-
-const relationTypeOptions = [
-  { value: "ACHIEVES", label: "实现" },
-  { value: "HAS_CHALLENGE", label: "面临挑战" },
-  { value: "EXHIBITS", label: "展现" },
-  { value: "PRODUCES", label: "产生" },
-  { value: "TRANSPORTS_HOLE", label: "传输空穴" },
-  { value: "TRANSPORTS_ELECTRON", label: "传输电子" },
-  { value: "REQUIRES", label: "需要" },
+// 预设色板（新自定义类型未指定颜色时按序取用）
+const presetColors = [
+  "#1890ff",
+  "#52c41a",
+  "#faad14",
+  "#13c2c2",
+  "#eb2f96",
+  "#722ed1",
+  "#f5222d",
+  "#ff7a45",
+  "#a0d911",
+  "#08979c",
 ];
 
 export default function GraphExplorer() {
@@ -60,8 +56,12 @@ export default function GraphExplorer() {
   const [stats, setStats] = useState<any>(null);
   const [selectedNode, setSelectedNode] = useState<GraphEntity | null>(null);
   const [_nodeDetails, setNodeDetails] = useState<any>(null);
-  const [seeding, setSeeding] = useState(false);
   const [initReady, setInitReady] = useState(false);
+  const [nodeTypeOptions, setNodeTypeOptions] = useState<any[]>([]);
+  const [newTypeLabel, setNewTypeLabel] = useState("");
+  const [newTypeName, setNewTypeName] = useState("");
+  const [newTypeColor, setNewTypeColor] = useState(presetColors[0]);
+  const [highlightNodes, setHighlightNodes] = useState<Set<string>>(new Set());
 
   const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
@@ -88,6 +88,49 @@ export default function GraphExplorer() {
       setStats(res.data || res);
     } catch {
       // ignore
+    }
+  };
+
+  // 获取节点类型列表（默认在前，自定义在后）
+  const fetchNodeTypes = async () => {
+    try {
+      const res: any = await graphApi.getNodeTypes();
+      setNodeTypeOptions(res?.data?.items ?? []);
+    } catch {
+      setNodeTypeOptions([]);
+    }
+  };
+
+  // 添加自定义节点类型
+  const handleAddNodeType = async () => {
+    if (!newTypeLabel.trim()) {
+      message.warning("请输入节点类型的英文 label");
+      return;
+    }
+    try {
+      await graphApi.createNodeType({
+        label: newTypeLabel.trim(),
+        name: newTypeName.trim(),
+        color: newTypeColor,
+      });
+      message.success("节点类型已添加");
+      setNewTypeLabel("");
+      setNewTypeName("");
+      setNewTypeColor(presetColors[0]);
+      await fetchNodeTypes();
+    } catch {
+      message.error("添加节点类型失败");
+    }
+  };
+
+  // 删除自定义节点类型（默认类型不可删）
+  const handleDeleteNodeType = async (label: string) => {
+    try {
+      await graphApi.deleteNodeType(label);
+      message.success("节点类型已删除");
+      await fetchNodeTypes();
+    } catch {
+      message.error("删除节点类型失败");
     }
   };
 
@@ -139,14 +182,20 @@ export default function GraphExplorer() {
     }
   };
 
-  // 加载所有节点
+  // 加载所有节点（按图内实际标签加载，而非配置的类型列表，保证任意领域/自定义类型都能显示）
   const loadAllNodes = async () => {
     setLoading(true);
     try {
+      let st = stats;
+      if (!st?.node_labels) {
+        const sres: any = await graphApi.ragGraphStats();
+        st = sres.data || sres;
+      }
+      const labels = Object.keys(st?.node_labels || {});
       const allEntities: GraphEntity[] = [];
-      for (const typeOpt of nodeTypeOptions) {
+      for (const label of labels) {
         try {
-          const res: any = await graphApi.ragNodesByLabel(typeOpt.value, 30);
+          const res: any = await graphApi.ragNodesByLabel(label, 200);
           const data = res.data || res;
           const nodes = data.nodes || [];
           nodes.forEach((n: any) => {
@@ -161,7 +210,7 @@ export default function GraphExplorer() {
         }
       }
       setEntities(allEntities);
-      await loadRelations();
+      await loadRelations(st);
     } catch {
       message.error("加载图谱失败");
     } finally {
@@ -169,12 +218,18 @@ export default function GraphExplorer() {
     }
   };
 
-  // 加载关系
-  const loadRelations = async () => {
+  // 加载关系（按图内实际关系类型加载）
+  const loadRelations = async (st?: any) => {
+    let s = st;
+    if (!s?.relation_types) {
+      const sres: any = await graphApi.ragGraphStats();
+      s = sres.data || sres;
+    }
     const allRels: GraphRelation[] = [];
-    for (const relOpt of relationTypeOptions.slice(0, 3)) {
+    const types = Object.keys(s?.relation_types || {});
+    for (const relType of types) {
       try {
-        const res: any = await graphApi.ragGraphSearch(relOpt.value, 20);
+        const res: any = await graphApi.ragGraphSearch(relType, 200);
         const data = res.data || res;
         const rels = data.relations || [];
         rels.forEach((r: any) => {
@@ -193,22 +248,6 @@ export default function GraphExplorer() {
     setRelations(allRels);
   };
 
-  // 初始化示例数据
-  const handleSeedData = async () => {
-    setSeeding(true);
-    try {
-      const res: any = await graphApi.ragSeedDemoData();
-      const data = res.data || res;
-      message.success(data.message || "示例数据初始化成功");
-      await loadAllNodes();
-      await fetchStats();
-    } catch (e: any) {
-      message.error(e?.response?.data?.detail || "初始化失败");
-    } finally {
-      setSeeding(false);
-    }
-  };
-
   // 清空图谱
   const handleClearGraph = async () => {
     try {
@@ -225,10 +264,18 @@ export default function GraphExplorer() {
   // 初始加载
   useEffect(() => {
     if (!initReady) return;
+    fetchNodeTypes();
     fetchStats();
     loadAllNodes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initReady]);
+
+  // 节点类型列表就绪后加载各类型节点（避免初始空列表导致无数据）
+  useEffect(() => {
+    if (!initReady || nodeTypeOptions.length === 0) return;
+    loadAllNodes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodeTypeOptions, initReady]);
 
   // 节点点击
   const handleNodeClick = useCallback((entity: GraphEntity) => {
@@ -357,20 +404,68 @@ export default function GraphExplorer() {
               <Text type="secondary" style={{ fontSize: 12 }}>
                 节点分布：
               </Text>
-              {nodeTypeOptions.map((t) => (
-                <Tag
-                  key={t.value}
-                  color={t.color}
-                  style={{
-                    margin: 0,
-                    borderRadius: 12,
-                    padding: "2px 10px",
-                    fontSize: 12,
-                  }}
-                >
-                  {t.label} {stats?.node_labels?.[t.value] || 0}
-                </Tag>
-              ))}
+              {(() => {
+                // 按图内实际节点类型分布渲染（剔除 0 计数的配置类型），用配置的颜色/名称，未知类型用回退配色
+                const fallback = [
+                  "#1890ff",
+                  "#52c41a",
+                  "#faad14",
+                  "#722ed1",
+                  "#13c2c2",
+                  "#eb2f96",
+                  "#8c8c8c",
+                ];
+                const entries = Object.entries(stats?.node_labels || {})
+                  .map(([label, count], i) => {
+                    const conf = nodeTypeOptions.find((t) => t.label === label);
+                    return {
+                      label,
+                      count: count as number,
+                      name: conf?.name || label,
+                      color: conf?.color || fallback[i % fallback.length],
+                    };
+                  })
+                  .sort((a, b) => b.count - a.count);
+                if (!entries.length) {
+                  return (
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      暂无数据
+                    </Text>
+                  );
+                }
+                const max = entries[0].count || 1;
+                return entries.map((d) => (
+                  <div
+                    key={d.label}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      borderRadius: 12,
+                      border: `1px solid ${d.color}55`,
+                      padding: "2px 10px",
+                      fontSize: 12,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: d.color,
+                        display: "inline-block",
+                      }}
+                    />
+                    <span>{d.name}</span>
+                    <span style={{ fontWeight: 600, color: d.color, marginLeft: 4 }}>
+                      {d.count}
+                    </span>
+                    <span style={{ color: "#bfbfbf", fontSize: 11, minWidth: 34 }}>
+                      {Math.round((d.count / max) * 100)}%
+                    </span>
+                  </div>
+                ));
+              })()}
             </div>
           </Card>
         </Col>
@@ -396,7 +491,11 @@ export default function GraphExplorer() {
             placeholder="筛选节点类型"
             style={{ width: 140 }}
             allowClear
-            options={nodeTypeOptions}
+            options={nodeTypeOptions.map((t) => ({
+              value: t.label,
+              label: t.name || t.label,
+              color: t.color,
+            }))}
             onChange={(v) => {
               setEntityTypeFilter(v);
               if (v) loadNodesByType(v);
@@ -411,14 +510,6 @@ export default function GraphExplorer() {
             }}
           >
             刷新
-          </Button>
-          <Button
-            icon={<DatabaseOutlined />}
-            onClick={handleSeedData}
-            loading={seeding}
-            style={{ background: "#1890ff", borderColor: "#1890ff", color: "#fff" }}
-          >
-            初始化示例数据
           </Button>
           <Popconfirm
             title="确定要清空图谱吗？"
@@ -450,9 +541,6 @@ export default function GraphExplorer() {
               <Button type="primary" onClick={loadAllNodes}>
                 加载图谱
               </Button>
-              <Button icon={<DatabaseOutlined />} onClick={handleSeedData} loading={seeding}>
-                初始化示例
-              </Button>
             </Space>
           </Empty>
         ) : (
@@ -461,9 +549,13 @@ export default function GraphExplorer() {
             relations={relations}
             onNodeClick={handleNodeClick}
             loading={loading}
+            highlightNodes={highlightNodes}
           />
         )}
       </Card>
+
+      {/* 知识图谱高级能力：趋势分析 + 异常检测 */}
+      <GraphInsights onAnomalyHighlight={setHighlightNodes} />
 
       {/* 图例 */}
       <Card
@@ -476,7 +568,7 @@ export default function GraphExplorer() {
             节点类型：
           </Text>
           {nodeTypeOptions.map((t) => (
-            <Space key={t.value} size={6}>
+            <Space key={t.label} size={6}>
               <span
                 style={{
                   width: 14,
@@ -487,9 +579,67 @@ export default function GraphExplorer() {
                   boxShadow: `0 2px 4px ${t.color}40`,
                 }}
               />
-              <Text style={{ fontSize: 13 }}>{t.label}</Text>
+              <Text style={{ fontSize: 13 }}>{t.name || t.label}</Text>
+              {t.is_default === false && (
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  onClick={() => handleDeleteNodeType(t.label)}
+                  style={{ fontSize: 12, color: "#ff4d4f" }}
+                />
+              )}
             </Space>
           ))}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+              marginTop: 12,
+              paddingTop: 12,
+              borderTop: "1px dashed #e8e8e8",
+              width: "100%",
+            }}
+          >
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              添加自定义节点类型：
+            </Text>
+            <Input
+              placeholder="label（英文）"
+              value={newTypeLabel}
+              onChange={(e) => setNewTypeLabel(e.target.value)}
+              style={{ width: 140 }}
+            />
+            <Input
+              placeholder="中文名（可选）"
+              value={newTypeName}
+              onChange={(e) => setNewTypeName(e.target.value)}
+              style={{ width: 140 }}
+            />
+            <Space size={4}>
+              {presetColors.map((c) => (
+                <span
+                  key={c}
+                  onClick={() => setNewTypeColor(c)}
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: "50%",
+                    background: c,
+                    cursor: "pointer",
+                    display: "inline-block",
+                    border: newTypeColor === c ? "2px solid #333" : "2px solid transparent",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                  }}
+                />
+              ))}
+            </Space>
+            <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleAddNodeType}>
+              添加
+            </Button>
+          </div>
           <Text type="secondary" style={{ fontSize: 12, marginLeft: 16 }}>
             点击节点查看详情 | 拖拽移动节点 | 滚轮缩放
           </Text>
@@ -503,7 +653,7 @@ export default function GraphExplorer() {
             <ClusterOutlined
               style={{
                 color: selectedNode
-                  ? nodeTypeOptions.find((t) => t.value === selectedNode.labels[0])?.color
+                  ? nodeTypeOptions.find((t) => t.label === selectedNode.labels[0])?.color
                   : "#1890ff",
               }}
             />
@@ -534,13 +684,13 @@ export default function GraphExplorer() {
                   height: 56,
                   borderRadius: 16,
                   background:
-                    nodeTypeOptions.find((t) => t.value === selectedNode.labels[0])?.color ||
+                    nodeTypeOptions.find((t) => t.label === selectedNode.labels[0])?.color ||
                     "#1890ff",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   marginBottom: 16,
-                  boxShadow: `0 4px 12px ${nodeTypeOptions.find((t) => t.value === selectedNode.labels[0])?.color}40`,
+                  boxShadow: `0 4px 12px ${nodeTypeOptions.find((t) => t.label === selectedNode.labels[0])?.color}40`,
                 }}
               >
                 <NodeIndexOutlined style={{ fontSize: 28, color: "#fff" }} />
@@ -550,7 +700,7 @@ export default function GraphExplorer() {
               </Title>
               <Space size={8}>
                 <Tag
-                  color={nodeTypeOptions.find((t) => t.value === selectedNode.labels[0])?.color}
+                  color={nodeTypeOptions.find((t) => t.label === selectedNode.labels[0])?.color}
                   style={{ borderRadius: 12 }}
                 >
                   {selectedNode.labels[0]}

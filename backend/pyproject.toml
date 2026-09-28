@@ -4,8 +4,11 @@ target-version = "py311"
 exclude = [".venv", "__pycache__", "storage"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "B", "C4"]
+select = ["E", "F", "W", "I", "B", "C4", "C901"]
 ignore = ["E501"] # 行长度由 Black 统一处理
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]

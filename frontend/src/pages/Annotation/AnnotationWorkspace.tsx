@@ -8,6 +8,7 @@ import RelationEditor from "./components/RelationEditor";
 import AnnotationHistory from "./components/AnnotationHistory";
 import CommentPanel from "./components/CommentPanel";
 import { annotationApi } from "@api/modules";
+import api from "@api/index";
 import { buildAnnotationWsUrl } from "@api/ws";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useAuthStore } from "@/store/authStore";
@@ -20,6 +21,24 @@ export default function AnnotationWorkspace() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [fileUrl, setFileUrl] = useState<string | Blob>("");
+
+  // 用带鉴权的客户端拉取 PDF Blob（react-pdf 直接接收 Blob，Worker 无需携带 token 再请求）
+  useEffect(() => {
+    if (!documentId) return;
+    let cancelled = false;
+    api
+      .get(`/documents/${documentId}/file`, { responseType: "blob" })
+      .then((blob) => {
+        if (!cancelled && blob instanceof Blob) setFileUrl(blob);
+      })
+      .catch(() => {
+        if (!cancelled) setFileUrl("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [documentId]);
 
   // ── 实时协作：WebSocket 订阅文档频道，接收他人标注变更并实时同步 ──
   const meId = useAuthStore((s) => s.user?.id);
@@ -236,7 +255,7 @@ export default function AnnotationWorkspace() {
       </div>
       <DualPaneView
         documentId={documentId!}
-        fileUrl={`/api/v1/documents/${documentId}/file`}
+        fileUrl={fileUrl}
         elements={[]}
         selectedElement={selectedElement}
         onElementSelect={setSelectedElement}

@@ -41,7 +41,9 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
     }
-    const errorMessage = (error.response?.data as any)?.detail || error.message || "请求失败";
+    const detail = (error.response?.data as any)?.detail;
+    // FastAPI 422 校验错误 detail 是对象数组，不能直接作为 message 子节点渲染（会导致 React 崩溃），统一转字符串
+    const errorMessage = typeof detail === "string" ? detail : error.message || "请求失败";
     message.error(errorMessage);
     return Promise.reject(error);
   },

@@ -74,6 +74,8 @@ export const documentApi = {
     page_count: number;
     pages: { page_number: number; text: string }[];
   }> => api.get(`/documents/${documentId}/fulltext`),
+  exportJats: async (documentId: string): Promise<Blob> =>
+    api.get(`/documents/${documentId}/export`, { responseType: "blob" }),
 };
 
 export const taskApi = {
@@ -221,6 +223,13 @@ export const graphApi = {
   executeCypher: async (cypher: string, params?: Record<string, any>) =>
     api.post("/knowledge-graph/query", { cypher, params }),
   getStatistics: async () => api.get("/knowledge-graph/statistics"),
+  // ── 节点类型注册表 (默认 + 自定义) - 需要认证
+  getNodeTypes: async () => api.get("/knowledge-graph/node-types"),
+  createNodeType: async (data: { label: string; name?: string; color?: string }) =>
+    api.post("/knowledge-graph/node-types", data),
+  updateNodeType: async (label: string, data: { name?: string; color?: string }) =>
+    api.put(`/knowledge-graph/node-types/${label}`, data),
+  deleteNodeType: async (label: string) => api.delete(`/knowledge-graph/node-types/${label}`),
   // ── GraphRAG 集成 (代理到 GraphRAGTest :8001) - 需要认证
   ragHealth: async () => api.get("/knowledge-graph/rag/health"),
   ragStatus: async () => api.get("/knowledge-graph/rag/llm/status"),
@@ -262,7 +271,9 @@ export const graphApi = {
       properties,
     }),
   ragClearGraph: async () => api.post("/knowledge-graph/rag/graph/clear"),
-  ragSeedDemoData: async () => api.post("/knowledge-graph/rag/graph/seed"),
+  // ── 知识图谱高级能力（趋势分析 + 异常检测） - 需要认证
+  getTrends: async () => api.get("/knowledge-graph/trends"),
+  getAnomalies: async () => api.get("/knowledge-graph/anomalies"),
 };
 
 export const multiAgentApi = {

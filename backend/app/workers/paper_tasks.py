@@ -18,6 +18,7 @@
 - 网络失败、Redis 缺失、数据库/存储不可用时仅返回记录，不抛异常；
 - 未配置默认用户时不触发自动入库（跳过并说明）。
 """
+
 import asyncio
 import datetime
 import json
@@ -30,9 +31,9 @@ try:
 except Exception:  # noqa: BLE001
     _redis_cli = None
 
-from app.core.celery_app import celery_app
-from app.core.config import settings
-from app.services.paper_retrieval_service import search_arxiv, search_pubmed
+from app.core.celery_app import celery_app  # noqa: E402
+from app.core.config import settings  # noqa: E402
+from app.services.paper_retrieval_service import search_arxiv, search_pubmed  # noqa: E402
 
 # Redis 追踪存储（持久化，跨 worker/beat 进程共享）；不可用时降级为内存态
 _redis_client = None
@@ -128,9 +129,7 @@ async def _ingest_result(result: dict) -> dict:
             doc = await DocumentService().create_document_from_bytes(
                 db, meta["filename"], data, "application/pdf", title, user_id
             )
-            parsing = await DocumentService().trigger_parsing(
-                db, doc.id, user_id, scope_all=True
-            )
+            parsing = await DocumentService().trigger_parsing(db, doc.id, user_id, scope_all=True)
             await db.commit()
             return {"ingested": True, "document_id": doc.id, "download": meta, "parsing": parsing}
     except Exception as e:  # noqa: BLE001

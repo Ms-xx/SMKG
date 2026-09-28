@@ -34,6 +34,7 @@ celery_app.conf.update(
         "app.workers.extraction_tasks.*": {"queue": "extraction"},
         "app.workers.graph_tasks.*": {"queue": "graph"},
         "app.workers.paper_tasks.*": {"queue": "extraction"},
+        "app.workers.active_learning_tasks.*": {"queue": "training"},
     },
     # 错误处理配置
     task_throws=(),
@@ -52,6 +53,7 @@ celery_app.conf.beat_schedule = {
 
 # Import task modules to register them with the worker
 from app.workers import (  # noqa: E402
+    active_learning_tasks,  # noqa: F401
     extraction_tasks,  # noqa: F401
     graph_tasks,  # noqa: F401
     paper_tasks,  # noqa: F401

@@ -23,7 +23,13 @@ async def _make_user(db, username, email):
 
 
 async def _make_annotation(db, user_id, status):
-    a = Annotation(document_id="doc1", annotation_type="entity", content={}, annotated_by=user_id, status=status)
+    a = Annotation(
+        document_id="doc1",
+        annotation_type="entity",
+        content={},
+        annotated_by=user_id,
+        status=status,
+    )
     db.add(a)
     await db.flush()
 

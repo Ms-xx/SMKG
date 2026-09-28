@@ -176,6 +176,43 @@ def core_set_indices(features: list[Iterable[float]], k: int) -> list[int]:
     return selected
 
 
+def _select_next_center(
+    features: list[Iterable[float]],
+    selected: list[int],
+    min_d2: list[float],
+    n: int,
+    rng: random.Random,
+) -> tuple[int, bool]:
+    """按距离平方加权概率选取下一个聚类中心，返回 (chosen, should_update)。"""
+    total = sum(min_d2[j] for j in range(n) if j not in selected)
+    if total <= 1e-12:
+        for j in range(n):
+            if j not in selected:
+                return j, False
+        return -1, False
+    r = rng.random() * total
+    cum = 0.0
+    for j in range(n):
+        if j in selected:
+            continue
+        cum += min_d2[j]
+        if cum >= r:
+            return j, True
+    return next(j for j in range(n) if j not in selected), True
+
+
+def _update_min_distances(
+    features: list[Iterable[float]], selected: list[int], min_d2: list[float], chosen: int
+) -> None:
+    """选中新中心后更新各点最小距离平方。"""
+    for j in range(len(features)):
+        if j in selected:
+            continue
+        d2 = _euclidean(features[j], features[chosen]) ** 2
+        if d2 < min_d2[j]:
+            min_d2[j] = d2
+
+
 def kmeans_pp_indices(features: list[Iterable[float]], k: int, seed: int = 42) -> list[int]:
     """
     K-Means++ 初始化：按距离平方加权概率反复选取聚类中心，返回代表性样本下标。
@@ -190,32 +227,12 @@ def kmeans_pp_indices(features: list[Iterable[float]], k: int, seed: int = 42) -
     selected = [0]
     min_d2 = [_euclidean(features[i], features[0]) ** 2 for i in range(n)]
     while len(selected) < k:
-        total = sum(min_d2[j] for j in range(n) if j not in selected)
-        if total <= 1e-12:
-            for j in range(n):
-                if j not in selected:
-                    selected.append(j)
-                    break
-            continue
-        r = rng.random() * total
-        cum = 0.0
-        chosen = -1
-        for j in range(n):
-            if j in selected:
-                continue
-            cum += min_d2[j]
-            if cum >= r:
-                chosen = j
-                break
+        chosen, update = _select_next_center(features, selected, min_d2, n, rng)
         if chosen < 0:
-            chosen = next(j for j in range(n) if j not in selected)
+            break
         selected.append(chosen)
-        for j in range(n):
-            if j in selected:
-                continue
-            d2 = _euclidean(features[j], features[chosen]) ** 2
-            if d2 < min_d2[j]:
-                min_d2[j] = d2
+        if update:
+            _update_min_distances(features, selected, min_d2, chosen)
     return selected
 
 
@@ -226,6 +243,78 @@ def diversity_select(
     if method == "kmeans":
         return list(kmeans_pp_indices(features, int(k), seed))
     return list(core_set_indices(features, int(k)))
+
+
+def _compute_base_scores(
+    items: list[dict[str, Any]], strategy: str, has_unc: bool, has_qbc: bool, um: str, qm: str
+) -> list[float]:
+    """计算每个样本的基础得分（uncertainty/qbc/hybrid 三分支）。"""
+    base: list[float] = []
+    for s in items:
+        if strategy == "uncertainty":
+            base.append(uncertainty_score(s.get("probs") or [], um))
+        elif strategy == "qbc":
+            base.append(qbc_score(s.get("predictions") or [], qm))
+        else:
+            parts: list[float] = []
+            if has_unc:
+                parts.append(uncertainty_score(s.get("probs") or [], um))
+            if has_qbc:
+                parts.append(qbc_score(s.get("predictions") or [], qm))
+            base.append(_mean(parts) if parts else 1.0)
+    return base
+
+
+def _hybrid_mmr_pick(items: list[dict[str, Any]], norm_base: list[float], top_k: int) -> list[int]:
+    """MMR 贪心多样 top-k 选取（兼顾不确定性与分散度）。"""
+    feats = [s["features"] for s in items]
+    max_dist = (
+        max(
+            (
+                _euclidean(feats[i], feats[j])
+                for i in range(len(feats))
+                for j in range(i + 1, len(feats))
+            ),
+            default=1.0,
+        )
+        or 1.0
+    )
+    order = sorted(range(len(items)), key=lambda j: -norm_base[j])
+    picked: list[int] = []
+    while len(picked) < min(top_k, len(order)):
+        best_j, best_val = -1, -1.0
+        for j in order:
+            if j in picked:
+                continue
+            div = (
+                (min((_euclidean(feats[j], feats[p]) for p in picked), default=0.0)) / max_dist
+                if picked
+                else 0.0
+            )
+            val = 0.5 * norm_base[j] + 0.5 * div
+            if val > best_val:
+                best_val, best_j = val, j
+        if best_j < 0:
+            break
+        picked.append(best_j)
+    return picked
+
+
+def _build_scored_entry(
+    idx: int, norm_base: list[float], strategy: str, has_unc: bool, has_qbc: bool, um: str, qm: str
+) -> dict[str, Any]:
+    """构建得分排序分支的结果 entry。"""
+    entry: dict[str, Any] = {"index": idx, "score": round(norm_base[idx], 4)}
+    if strategy == "hybrid":
+        entry["method"] = (
+            " + ".join(m for m, flag in (("uncertainty", has_unc), ("qbc", has_qbc)) if flag)
+            or "none"
+        )
+    elif strategy == "uncertainty":
+        entry["method"] = um
+    else:
+        entry["method"] = qm
+    return entry
 
 
 # ── 门面服务 ─────────────────────────────────────────────
@@ -276,12 +365,6 @@ class ActiveLearningService:
         has_qbc = any(("predictions" in s) and s["predictions"] for s in items)
         has_div = any(("features" in s) and s["features"] for s in items)
 
-        def _unc(i: dict) -> float:
-            return uncertainty_score(i.get("probs") or [], um)
-
-        def _qbc(i: dict) -> float:
-            return qbc_score(i.get("predictions") or [], qm)
-
         results: list[dict[str, Any]] = []
 
         # 1) 纯多样性：直接选取代表性下标
@@ -296,55 +379,12 @@ class ActiveLearningService:
             return self._wrap(strategy, "builtin", top_k, results, len(items))
 
         # 2) 计算每个样本的基础得分（不确定性 / QBC / 混合）
-        base: list[float] = []
-        for s in items:
-            if strategy == "uncertainty":
-                base.append(_unc(s))
-            elif strategy == "qbc":
-                base.append(_qbc(s))
-            else:  # hybrid（含不可用的降级）
-                parts = []
-                if has_unc:
-                    parts.append(_unc(s))
-                if has_qbc:
-                    parts.append(_qbc(s))
-                base.append(_mean(parts) if parts else 1.0)
-
+        base = _compute_base_scores(items, strategy, has_unc, has_qbc, um, qm)
         norm_base = _minmax_norm(base)
 
         # 3) 混合策略 + 有特征向量：贪心多样 top-k（MMR 风格，兼顾不确定性与分散度）
         if strategy == "hybrid" and has_div and (has_unc or has_qbc):
-            feats = [s["features"] for s in items]
-            max_dist = (
-                max(
-                    (
-                        _euclidean(feats[i], feats[j])
-                        for i in range(len(feats))
-                        for j in range(i + 1, len(feats))
-                    ),
-                    default=1.0,
-                )
-                or 1.0
-            )
-            order = sorted(range(len(items)), key=lambda j: -norm_base[j])
-            picked: list[int] = []
-            while len(picked) < min(top_k, len(order)):
-                best_j, best_val = -1, -1.0
-                for j in order:
-                    if j in picked:
-                        continue
-                    div = (
-                        (min((_euclidean(feats[j], feats[p]) for p in picked), default=0.0))
-                        / max_dist
-                        if picked
-                        else 0.0
-                    )
-                    val = 0.5 * norm_base[j] + 0.5 * div
-                    if val > best_val:
-                        best_val, best_j = val, j
-                if best_j < 0:
-                    break
-                picked.append(best_j)
+            picked = _hybrid_mmr_pick(items, norm_base, top_k)
             for idx in picked:
                 entry = {
                     "index": idx,
@@ -359,20 +399,8 @@ class ActiveLearningService:
         # 4) 规则 / 不确定性 / QBC：按得分降序取 top_k
         order = sorted(range(len(items)), key=lambda j: -norm_base[j])
         for idx in order[:top_k]:
-            entry = {"index": idx, "score": round(norm_base[idx], 4)}
-            s = items[idx]
-            if strategy == "hybrid":
-                entry["method"] = (
-                    " + ".join(
-                        m for m, flag in (("uncertainty", has_unc), ("qbc", has_qbc)) if flag
-                    )
-                    or "none"
-                )
-            elif strategy == "uncertainty":
-                entry["method"] = um
-            else:
-                entry["method"] = qm
-            entry.update(self._meta(s))
+            entry = _build_scored_entry(idx, norm_base, strategy, has_unc, has_qbc, um, qm)
+            entry.update(self._meta(items[idx]))
             results.append(entry)
 
         return self._wrap(strategy, "builtin", top_k, results, len(items))

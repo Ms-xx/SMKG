@@ -11,7 +11,9 @@ def svc(monkeypatch):
     # 关闭 NER / REBEL 模型加载，仅走规则匹配路径，保证测试确定性（离线、无下载）
     monkeypatch.setattr(ExtractionService, "_extract_by_ner", lambda self, text: [])
     monkeypatch.setattr(
-        ExtractionService, "_extract_relations_by_rebel", lambda self, text, entities: []
+        ExtractionService,
+        "_extract_relations_by_rebel",
+        lambda self, text, entities: [],
     )
     return ExtractionService()
 
@@ -31,7 +33,15 @@ async def test_extract_entities_rule_match(svc):
 
 async def test_extract_entities_ner_merge(monkeypatch):
     def fake_ner(self, text):
-        return [{"text": "钙钛矿", "type": "Material", "start": 0, "end": 3, "confidence": 0.99}]
+        return [
+            {
+                "text": "钙钛矿",
+                "type": "Material",
+                "start": 0,
+                "end": 3,
+                "confidence": 0.99,
+            }
+        ]
 
     monkeypatch.setattr(ExtractionService, "_extract_by_ner", fake_ner)
     svc = ExtractionService()
@@ -89,7 +99,9 @@ async def test_process_document(svc, db):
     await db.flush()
 
     el = DocumentElement(
-        page_id="p1", element_type="text", bbox=[0, 0, 1, 1],
+        page_id="p1",
+        element_type="text",
+        bbox=[0, 0, 1, 1],
         content="钙钛矿材料具有优异的效率和稳定性",
     )
     db.add(el)

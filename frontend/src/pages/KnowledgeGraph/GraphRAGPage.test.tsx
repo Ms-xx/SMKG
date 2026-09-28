@@ -88,6 +88,39 @@ describe("GraphRAGPage", () => {
     expect(apiHolder.graphApi.ragQuery).toHaveBeenCalledWith("问题内容", true);
   });
 
+  it("溯源来源含 page_number 时展示页码标签", async () => {
+    apiHolder.graphApi.ragQuery.mockResolvedValue({
+      data: {
+        answer: "有来源的回答",
+        keywords: [],
+        sources: [
+          {
+            document_id: "doc1",
+            page_number: 5,
+            snippet: "钙钛矿效率提升",
+            score: 0.92,
+          },
+        ],
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <GraphRAGPage />
+      </MemoryRouter>,
+    );
+
+    await screen.findByText("GraphRAG 已连接");
+    const textarea = screen.getByPlaceholderText(
+      "输入问题，按 Enter 或点击发送... (Shift+Enter 换行)",
+    );
+    await userEvent.type(textarea, "页码问题");
+    await userEvent.click(screen.getByRole("button", { name: /发\s*送/ }));
+
+    expect(await screen.findByText("第 5 页")).toBeInTheDocument();
+    expect(screen.getByText("溯源来源 (1):")).toBeInTheDocument();
+  });
+
   it("清空对话回到空状态", async () => {
     render(
       <MemoryRouter>

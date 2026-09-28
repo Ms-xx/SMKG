@@ -23,6 +23,10 @@ def chat(prompt):
 
 
 print("== 9.1 翻译 ==")
-print(chat("将以下英文翻译为中文，仅输出译文：\nGraph neural networks enable materials property prediction."))
+print(
+    chat(
+        "将以下英文翻译为中文，仅输出译文：\nGraph neural networks enable materials property prediction."
+    )
+)
 print("== 9.2 生成 ==")
 print(chat("写一段关于石墨烯电池应用的 100 字中文学术引言。"))

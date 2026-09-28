@@ -15,7 +15,9 @@ from app.services.operation_log_service import OperationLogService
 @pytest.mark.asyncio
 async def test_log_and_list(db):
     svc = OperationLogService()
-    await svc.log_operation(db, "u1", "create", "annotation", "ann1", {"k": "v"}, "1.2.3.4")
+    await svc.log_operation(
+        db, "u1", "create", "annotation", "ann1", {"k": "v"}, "1.2.3.4"
+    )
     await svc.log_operation(db, "u2", "update", "task", "task1")
     await db.flush()
 

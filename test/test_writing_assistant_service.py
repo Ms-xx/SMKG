@@ -19,7 +19,9 @@ def test_generate_outline_no_hallucination():
 
 
 def test_generate_diagram_script_mermaid():
-    out = generate_diagram_script("mermaid", {"title": "Arch", "nodes": ["A", "B"], "edges": [[0, 1]]})
+    out = generate_diagram_script(
+        "mermaid", {"title": "Arch", "nodes": ["A", "B"], "edges": [[0, 1]]}
+    )
     assert "graph TD" in out["script"]
     assert "n0 --> n1" in out["script"]
 
@@ -33,7 +35,7 @@ def test_csv_to_chart_bar():
     csv_text = "name,value\nA,10\nB,20\n"
     out = csv_to_chart(csv_text, "bar")
     assert out["chart_type"] == "bar"
-    assert out["svg"].startswith('<svg')
+    assert out["svg"].startswith("<svg")
     assert "<rect" in out["svg"]
 
 
@@ -44,7 +46,9 @@ def test_csv_to_chart_table():
 
 
 def test_figure_caption():
-    cap = figure_caption({"title": "Latency", "x_label": "time", "y_label": "ms", "point_count": 5})
+    cap = figure_caption(
+        {"title": "Latency", "x_label": "time", "y_label": "ms", "point_count": 5}
+    )
     assert "Latency" in cap
 
 

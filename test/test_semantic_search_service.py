@@ -42,7 +42,9 @@ def test_suggest_empty_prefix():
 
 
 def test_keyword_score_ranks_relevant_higher():
-    assert keyword_score("钙钛矿", "钙钛矿吸光材料") > keyword_score("钙钛矿", "二氧化钛电子传输层")
+    assert keyword_score("钙钛矿", "钙钛矿吸光材料") > keyword_score(
+        "钙钛矿", "二氧化钛电子传输层"
+    )
 
 
 def test_facet_search_facets():

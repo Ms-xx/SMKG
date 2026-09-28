@@ -57,8 +57,6 @@ async def translate(body: TranslateRequest, current_user: dict = Depends(get_cur
 
 
 @router.post("/llm-generate")
-async def llm_generate(
-    body: LlmGenerateRequest, current_user: dict = Depends(get_current_user)
-):
+async def llm_generate(body: LlmGenerateRequest, current_user: dict = Depends(get_current_user)):
     """真实 LLM 文本生成（9.2）：可插拔。未配置 LLM 端点时降级为规则占位。"""
     return writing_assistant_service.llm_generate(body.prompt, body.max_tokens)

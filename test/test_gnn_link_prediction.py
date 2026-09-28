@@ -44,7 +44,10 @@ def test_gnn_predict_links_excludes_existing():
     """GNN 链路预测不返回已存在的事实。"""
     pred = GNNLinkPredictor(dim=20, layers=2, epochs=120).fit(FACTS)
     cands = pred.predict_links(
-        "etl_A", "TRANSPORTS_HOLE", top_k=5, exclude={("etl_A", "TRANSPORTS_HOLE", "mat_A")}
+        "etl_A",
+        "TRANSPORTS_HOLE",
+        top_k=5,
+        exclude={("etl_A", "TRANSPORTS_HOLE", "mat_A")},
     )
     assert "mat_A" not in {c["entity"] for c in cands}
 

@@ -7,7 +7,9 @@ vector_store 单元测试
 import os
 import sys
 
-GRAPHRAG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "GraphRAGTest"))
+GRAPHRAG_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "GraphRAGTest")
+)
 if GRAPHRAG_DIR not in sys.path:
     sys.path.insert(0, GRAPHRAG_DIR)
 

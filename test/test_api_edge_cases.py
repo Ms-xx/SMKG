@@ -8,7 +8,9 @@ from conftest import API_PREFIX
 @pytest.mark.asyncio
 async def test_task_endpoints_not_found(client, token):
     headers = token("u1", "admin")
-    r = await client.post(f"{API_PREFIX}/tasks/no-id/assign", json={"assigned_to": "x"}, headers=headers)
+    r = await client.post(
+        f"{API_PREFIX}/tasks/no-id/assign", json={"assigned_to": "x"}, headers=headers
+    )
     assert r.status_code == 404
     r = await client.get(f"{API_PREFIX}/tasks/no-id/progress", headers=headers)
     assert r.status_code == 404
@@ -28,13 +30,19 @@ async def test_admin_manage_nonexistent_user(client, token):
     r = await client.get(f"{API_PREFIX}/users/no-id", headers=admin)
     assert r.status_code == 404
 
-    r = await client.put(f"{API_PREFIX}/users/no-id", json={"full_name": "X"}, headers=admin)
+    r = await client.put(
+        f"{API_PREFIX}/users/no-id", json={"full_name": "X"}, headers=admin
+    )
     assert r.status_code == 404
 
-    r = await client.put(f"{API_PREFIX}/users/no-id/role", params={"role": "annotator"}, headers=admin)
+    r = await client.put(
+        f"{API_PREFIX}/users/no-id/role", params={"role": "annotator"}, headers=admin
+    )
     assert r.status_code == 404
 
-    r = await client.put(f"{API_PREFIX}/users/no-id/status", params={"is_active": "false"}, headers=admin)
+    r = await client.put(
+        f"{API_PREFIX}/users/no-id/status", params={"is_active": "false"}, headers=admin
+    )
     assert r.status_code == 404
 
 

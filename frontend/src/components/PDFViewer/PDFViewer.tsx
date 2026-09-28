@@ -8,7 +8,7 @@ import "react-pdf/dist/esm/Page/TextLayer.css";
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 interface PDFViewerProps {
-  fileUrl: string;
+  fileUrl: string | Blob;
   onPageChange?: (page: number) => void;
   onElementClick?: (bbox: number[]) => void;
 }
@@ -50,6 +50,9 @@ export default function PDFViewer({ fileUrl, onPageChange }: PDFViewerProps) {
         <Document
           file={fileUrl}
           onLoadSuccess={onDocumentLoadSuccess}
+          onItemClick={({ pageNumber }) => {
+            if (typeof pageNumber === "number" && pageNumber >= 1) setPageNumber(pageNumber);
+          }}
           loading={<Spin size="large" />}
         >
           <Page

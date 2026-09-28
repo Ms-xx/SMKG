@@ -192,11 +192,13 @@ class Neo4jClient:
         """搜索关系"""
         driver = await self.get_driver()
         type_clause = f":`{rel_type}`" if rel_type else ""
-        query = (
-            f"MATCH (s)-[r{type_clause}]->(t) "
-            "WHERE any(key IN keys(r) WHERE toLower(r[key]) CONTAINS toLower($keyword)) "
-            "RETURN s, r, t LIMIT $limit"
-        )
+        query = f"MATCH (s)-[r{type_clause}]->(t) "
+        # keyword 为空时不应加过滤条件：`any(... WHERE CONTAINS "")` 在关系无属性时恒为 false，会漏掉全部关系
+        if keyword:
+            query += (
+                "WHERE any(key IN keys(r) WHERE toLower(r[key]) CONTAINS toLower($keyword)) "
+            )
+        query += "RETURN s, r, t LIMIT $limit"
         async with driver.session(database=settings.NEO4J_DATABASE) as session:
             result = await session.run(query, keyword=keyword, limit=limit)
             return [
@@ -321,37 +323,7 @@ class Neo4jClient:
         ]
         """
         driver = await self.get_driver()
-        query = (
-            "UNWIND $relations AS rel "
-            "MATCH (s {id: rel.source_id}) "
-            "MATCH (t {id: rel.target_id}) "
-            "CALL apoc.merge.relationship(s, rel.rel_type, {}, rel.properties || {}, t, {}) YIELD rel2 "
-            "RETURN count(rel2) AS cnt"
-        )
-        # 如果没有 APOC, 退化为普通 MERGE:
-        fallback_query = (
-            "UNWIND $relations AS rel "
-            "MATCH (s {id: rel.source_id}) "
-            "MATCH (t {id: rel.target_id}) "
-            "CALL apoc.merge.relationship(s, rel.rel_type, {}, rel.properties, t) YIELD rel as r "
-            "RETURN count(r) AS cnt"
-        )
-        # 简化版: 用普通 CREATE
-        simple_query = (
-            "UNWIND $relations AS rel "
-            "OPTIONAL MATCH (s:`" + "`+rel.get('source_label','')+`"+ "` {id: rel.source_id}) "
-            "OPTIONAL MATCH (t {id: rel.target_id}) "
-            "RETURN 0 AS cnt"
-        )
-        # 正确实现
-        correct_query = (
-            "UNWIND $relations AS rel "
-            "MATCH (s) WHERE s.id = rel.source_id AND s:`" + "`+rel.source_label+`"
-            "MATCH (t) WHERE t.id = rel.target_id AND t:`" + "`+rel.target_label+`"
-            "CREATE (s)-[r:`" + "`+rel.rel_type+`]->(t) "
-            "SET r += rel.properties "
-            "RETURN count(r) AS cnt"
-        )
+
         # 最终正确版 (避免动态标签拼接问题)
         final_query = (
             "UNWIND $relations AS rel "

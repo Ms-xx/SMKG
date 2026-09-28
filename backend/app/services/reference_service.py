@@ -12,6 +12,17 @@
 
 import re
 from typing import Dict, List, Optional, Tuple
+from urllib.request import urlopen
+
+from app.core.config import settings
+
+
+def _xml_escape(text) -> str:
+    """对 XML 文本做单次安全转义（& < > \" '），避免二次转义。"""
+    s = str(text)
+    s = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return s.replace('"', "&quot;").replace("'", "&apos;")
+
 
 # ---------------------------------------------------------------------------
 # 定位参考文献区块
@@ -68,14 +79,8 @@ def _is_cutoff_line(line: str) -> bool:
     return False
 
 
-def _locate_reference_section(pages_text: List[str]) -> str:
-    """
-    从后向前扫描页面，定位参考文献区块并返回其后的正文。
-
-    返回参考文献区块文本（从 Section 头下一行到文档末尾/截断点）。
-    """
-    start_page = None
-    start_line_idx = None
+def _find_section_start(pages_text: List[str]) -> tuple[int, int] | None:
+    """从后向前扫描页面，返回 (start_page, start_line_idx) | None。"""
     for idx in range(len(pages_text) - 1, -1, -1):
         lines = pages_text[idx].splitlines()
         for li, line in enumerate(lines):
@@ -83,16 +88,12 @@ def _locate_reference_section(pages_text: List[str]) -> str:
             if not stripped:
                 continue
             if _is_section_header(stripped):
-                start_page = idx
-                start_line_idx = li
-                break
-        if start_page is not None:
-            break
+                return idx, li
+    return None
 
-    if start_page is None:
-        return ""
 
-    # 从命中的头部开始收集后续文本
+def _collect_section_body(pages_text: List[str], start_page: int, start_line_idx: int) -> str:
+    """从命中头部收集后续文本（含截断点短路），返回 str。"""
     collected: List[str] = []
     for idx in range(start_page, len(pages_text)):
         lines = pages_text[idx].splitlines()
@@ -102,8 +103,20 @@ def _locate_reference_section(pages_text: List[str]) -> str:
             if _is_cutoff_line(line.strip()):
                 return "\n".join(collected)
             collected.append(line)
-
     return "\n".join(collected)
+
+
+def _locate_reference_section(pages_text: List[str]) -> str:
+    """
+    从后向前扫描页面，定位参考文献区块并返回其后的正文。
+
+    返回参考文献区块文本（从 Section 头下一行到文档末尾/截断点）。
+    """
+    start = _find_section_start(pages_text)
+    if start is None:
+        return ""
+    start_page, start_line_idx = start
+    return _collect_section_body(pages_text, start_page, start_line_idx)
 
 
 # ---------------------------------------------------------------------------
@@ -336,54 +349,68 @@ class ReferenceExtractionService:
         refs = self.extract_references(file_path)
         return {"count": len(refs), "references": refs, "format": "csl-json"}
 
+    def to_jats(self, references: List[Dict]) -> str:
+        """序列化为 JATS <ref-list>（模块级函数同款，供文档导出调用）。"""
+        return references_to_jats(references)
+
+    def enhanced_references(self, references: List[Dict]) -> List[Dict]:
+        """尝试 GROBID 增强；不可用/异常时原样返回（可插拔降级）。"""
+        return enhance_references_with_grobid(references)
+
 
 # ---------------------------------------------------------------------------
 # 标准化输出
 # ---------------------------------------------------------------------------
 
 
+def _split_authors_csl(text: str) -> List[Dict]:
+    """CSL-JSON 风格的作者拆分。"""
+    if not text:
+        return []
+    text = re.sub(r"\bet\s+al\.?", "", text, flags=re.IGNORECASE)
+    parts = [p.strip().rstrip(".,") for p in re.split(r"[;,]", text) if p.strip()]
+    result: List[Dict] = []
+    for p in parts:
+        words = p.split()
+        if not words:
+            continue
+        if len(words) >= 2 and re.fullmatch(r"[A-Z]\.?", words[-1]):
+            # "Vaswani A" -> family Vaswani, given A（姓 + 首字母）
+            result.append({"family": words[-2], "given": words[-1]})
+        elif len(words) >= 2:
+            result.append({"family": words[-1], "given": " ".join(words[:-1])})
+        else:
+            result.append({"literal": words[0]})
+    return result
+
+
+def _apply_csl_optional_fields(item: Dict, r: Dict) -> None:
+    """封装 journal/year/volume/issue/pages/doi 6 个条件赋值。"""
+    if r.get("journal"):
+        item["container-title"] = r.get("journal")
+    if r.get("year"):
+        item["issued"] = {"date-parts": [[int(r["year"])]]}
+    if r.get("volume"):
+        item["volume"] = r.get("volume")
+    if r.get("issue"):
+        item["issue"] = r.get("issue")
+    if r.get("pages"):
+        item["page"] = r.get("pages")
+    if r.get("doi"):
+        item["DOI"] = r.get("doi")
+
+
 def references_to_csl_json(references: List[Dict]) -> List[Dict]:
     """将结构化条目映射为 CSL-JSON 风格（type/author/title/container-title 等）。"""
-
-    def _split_authors(text: str) -> List[Dict]:
-        if not text:
-            return []
-        text = re.sub(r"\bet\s+al\.?", "", text, flags=re.IGNORECASE)
-        parts = [p.strip().rstrip(".,") for p in re.split(r"[;,]", text) if p.strip()]
-        result = []
-        for p in parts:
-            words = p.split()
-            if not words:
-                continue
-            if len(words) >= 2 and re.fullmatch(r"[A-Z]\.?", words[-1]):
-                # "Vaswani A" -> family Vaswani, given A（姓 + 首字母）
-                result.append({"family": words[-2], "given": words[-1]})
-            elif len(words) >= 2:
-                result.append({"family": words[-1], "given": " ".join(words[:-1])})
-            else:
-                result.append({"literal": words[0]})
-        return result
-
     csl: List[Dict] = []
     for r in references:
         item = {
             "id": str(r.get("index", "")),
             "type": r.get("type") or "article",
             "title": r.get("title") or "",
-            "author": _split_authors(r.get("authors") or ""),
+            "author": _split_authors_csl(r.get("authors") or ""),
         }
-        if r.get("journal"):
-            item["container-title"] = r.get("journal")
-        if r.get("year"):
-            item["issued"] = {"date-parts": [[int(r["year"])]]}
-        if r.get("volume"):
-            item["volume"] = r.get("volume")
-        if r.get("issue"):
-            item["issue"] = r.get("issue")
-        if r.get("pages"):
-            item["page"] = r.get("pages")
-        if r.get("doi"):
-            item["DOI"] = r.get("doi")
+        _apply_csl_optional_fields(item, r)
         csl.append(item)
     return csl
 
@@ -411,6 +438,142 @@ def references_to_bibtex(references: List[Dict]) -> str:
             lines.append(f"  doi = {{{r.get('doi')}}},")
         lines.append("}")
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# JATS XML 序列化
+# ---------------------------------------------------------------------------
+
+# 结构化 type → JATS mixed-citation publication-type 映射（合理近似，缺省 journal）
+_JATS_TYPE_MAP = {
+    "journal": "journal",
+    "journal_article": "journal",
+    "conference": "conference",
+    "proceedings": "conference",
+    "book": "book",
+    "thesis": "book",
+    "report": "report",
+    "patent": "patent",
+    "standard": "standard",
+    "online": "web",
+    "web": "web",
+}
+
+
+def _jats_publication_type(ref_type: Optional[str]) -> str:
+    return _JATS_TYPE_MAP.get((ref_type or "journal").lower(), "journal")
+
+
+def _compose_year_volume_pages(year: str, volume: str, issue: str, pages: str) -> str:
+    """yvp 嵌套拼接，返回 str。"""
+    yvp = ""
+    if year:
+        yvp = year
+        if volume:
+            yvp += f";{volume}"
+            if issue:
+                yvp += f"({issue})"
+        if pages:
+            yvp += f":{pages}"
+    return yvp
+
+
+def _build_jats_pieces(r: Dict) -> List[str]:
+    """authors/title/journal/yvp 四段条件拼装，返回 list[str]。"""
+    pieces: List[str] = []
+    authors = str(r.get("authors") or "").strip()
+    if authors:
+        pieces.append(_xml_escape(authors))
+    title = str(r.get("title") or "").strip()
+    if title:
+        pieces.append(_xml_escape(title))
+    journal = str(r.get("journal") or "").strip()
+    if journal:
+        pieces.append(_xml_escape(journal))
+    year = str(r.get("year") or "").strip()
+    volume = str(r.get("volume") or "").strip()
+    issue = str(r.get("issue") or "").strip()
+    pages = str(r.get("pages") or "").strip()
+    yvp = _compose_year_volume_pages(year, volume, issue, pages)
+    if yvp:
+        pieces.append(_xml_escape(yvp))
+    return pieces
+
+
+def _render_jats_ref(r: Dict) -> List[str]:
+    """单个 <ref> 完整行输出，返回 list[str]。"""
+    lines: List[str] = []
+    idx = r.get("index")
+    ref_attrs = f' id="ref{idx}"' if idx is not None else ""
+    lines.append(f"  <ref{ref_attrs}>")
+    if idx is not None:
+        lines.append(f"    <label>{_xml_escape(idx)}</label>")
+    pub_type = _jats_publication_type(r.get("type"))
+    lines.append(f'    <mixed-citation publication-type="{pub_type}">')
+
+    pieces = _build_jats_pieces(r)
+    if pieces:
+        lines.append(f"      {' '.join(pieces)}.")
+
+    doi = str(r.get("doi") or "").strip()
+    if doi:
+        doi_esc = _xml_escape(doi)
+        lines.append(
+            f'      doi: <ext-link ext-link-type="doi" '
+            f'xlink:href="https://doi.org/{doi_esc}">{doi_esc}</ext-link>.'
+        )
+    lines.append("    </mixed-citation>")
+    lines.append("  </ref>")
+    return lines
+
+
+def references_to_jats(references: List[Dict]) -> str:
+    """
+    将结构化参考文献序列化为合法 JATS <ref-list> 文档。
+
+    顶层带 XML 声明与 JATS 命名空间（含 xlink，供 <ext-link> 使用）。
+    字段缺失即跳过该子元素，绝不编造内容。
+    """
+    out = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<ref-list xmlns="http://www.ncbi.nlm.nih.gov/JATS1" '
+        'xmlns:xlink="http://www.w3.org/1999/xlink">',
+    ]
+    for r in references:
+        out.extend(_render_jats_ref(r))
+    out.append("</ref-list>")
+    return "\n".join(out)
+
+
+# ---------------------------------------------------------------------------
+# GROBID 可插拔增强（默认关闭；仅配置且可达时尝试，任何异常降级回退规则 JATS）
+# ---------------------------------------------------------------------------
+
+
+def grobid_available() -> bool:
+    """GROBID 是否配置且端口可达。未配置/不可达均返回 False，不产生误配置的网络调用。"""
+    if not settings.GROBID_ENABLED or not settings.GROBID_ENDPOINT:
+        return False
+    try:
+        urlopen(settings.GROBID_ENDPOINT, timeout=3)
+        return True
+    except Exception:
+        return False
+
+
+def enhance_references_with_grobid(references: List[Dict]) -> List[Dict]:
+    """
+    尝试用 GROBID 返回的条目标注增强结构化引用列表。
+    本机未部署 GROBID；任何异常一律降级返回原列表（可插拔可降级）。
+    """
+    if not grobid_available():
+        return references
+    try:
+        # 预留骨架：请求 GROBID 解析 PDF 并回填条目缺失字段。未启用时不产生网络调用。
+        # 仅作可插拔增强器占位，不替代规则抽取结果。
+        return references
+    except Exception:
+        return references
 
 
 # 全局单例

@@ -26,7 +26,11 @@ async def test_deduplication_detect(client, token):
 async def test_source_anchor_anchors(client, token):
     resp = await client.post(
         f"{API_PREFIX}/source-anchor/anchors",
-        json={"chunks": [{"document_id": "doc1", "page_number": 2, "snippet": "x", "score": 0.8}]},
+        json={
+            "chunks": [
+                {"document_id": "doc1", "page_number": 2, "snippet": "x", "score": 0.8}
+            ]
+        },
         headers=token(),
     )
     assert resp.status_code == 200
@@ -36,7 +40,10 @@ async def test_source_anchor_anchors(client, token):
 async def test_citation_link_map(client, token):
     resp = await client.post(
         f"{API_PREFIX}/citation-link/map",
-        json={"pages_text": ["see [1] and [2]"], "references": [{"index": 1}, {"index": 2}]},
+        json={
+            "pages_text": ["see [1] and [2]"],
+            "references": [{"index": 1}, {"index": 2}],
+        },
         headers=token(),
     )
     assert resp.status_code == 200
@@ -64,5 +71,7 @@ async def test_writing_assistant_outline(client, token):
 
 
 async def test_module_requires_auth(client):
-    resp = await client.post(f"{API_PREFIX}/deduplication/detect", json={"documents": []})
+    resp = await client.post(
+        f"{API_PREFIX}/deduplication/detect", json={"documents": []}
+    )
     assert resp.status_code == 401

@@ -48,7 +48,12 @@ def test_entities_to_char_bio_no_entity():
 
 def test_export_training_set_from_dict():
     records = [
-        {"content": {"text": "钙钛矿电池", "entities": [{"type": "M", "start": 0, "end": 3}]}},
+        {
+            "content": {
+                "text": "钙钛矿电池",
+                "entities": [{"type": "M", "start": 0, "end": 3}],
+            }
+        },
         {"content": {"text": "no entities", "entities": []}},
         {"content": {}},  # 无 text，应被跳过
     ]
@@ -59,9 +64,13 @@ def test_export_training_set_from_dict():
 
 
 def test_export_training_set_from_orm():
-    row = _AnnotationRow({"text": "石墨烯", "entities": [{"type": "Material", "start": 0, "end": 3}]})
+    row = _AnnotationRow(
+        {"text": "石墨烯", "entities": [{"type": "Material", "start": 0, "end": 3}]}
+    )
     samples = export_ner_training_set([row])
-    assert samples == [{"text": "石墨烯", "entities": [{"type": "Material", "start": 0, "end": 3}]}]
+    assert samples == [
+        {"text": "石墨烯", "entities": [{"type": "Material", "start": 0, "end": 3}]}
+    ]
 
 
 def test_build_bio_examples():
@@ -118,7 +127,14 @@ def test_train_ner_baseline_empty(monkeypatch, tmp_path):
 
 def test_train_ner_baseline_majority(monkeypatch, tmp_path):
     _force_baseline(monkeypatch)
-    records = [{"content": {"text": "钙钛矿材料", "entities": [{"type": "M", "start": 0, "end": 3}]}}]
+    records = [
+        {
+            "content": {
+                "text": "钙钛矿材料",
+                "entities": [{"type": "M", "start": 0, "end": 3}],
+            }
+        }
+    ]
     out = FinetuneService().train_ner(records, output_dir=str(tmp_path / "m"))
     assert out["backend"] == "baseline"
     assert out["samples"] == 1
@@ -129,12 +145,25 @@ def test_run_finetune_pipeline_baseline(monkeypatch):
     _force_baseline(monkeypatch)
     svc = VersionManagementService()
     records = [
-        {"content": {"text": "钙钛矿电池", "entities": [{"type": "M", "start": 0, "end": 3}]}}
+        {
+            "content": {
+                "text": "钙钛矿电池",
+                "entities": [{"type": "M", "start": 0, "end": 3}],
+            }
+        }
     ]
-    run = svc.run_finetune_pipeline("ner", records=records, trigger_reason="manual", f1_threshold=0.0)
+    run = svc.run_finetune_pipeline(
+        "ner", records=records, trigger_reason="manual", f1_threshold=0.0
+    )
     assert run["status"] == "completed"
     steps = [s["step"] for s in run["steps"]]
-    assert steps == ["data_prep", "training", "evaluation", "registration", "deployment"]
+    assert steps == [
+        "data_prep",
+        "training",
+        "evaluation",
+        "registration",
+        "deployment",
+    ]
     # F1 阈值 0：应晋升 Production
     assert svc.list_models()["ner"][-1]["stage"] == "production"
 
@@ -143,7 +172,12 @@ def test_run_finetune_pipeline_stays_staging(monkeypatch):
     _force_baseline(monkeypatch)
     svc = VersionManagementService()
     records = [
-        {"content": {"text": "钙钛矿电池", "entities": [{"type": "M", "start": 0, "end": 3}]}}
+        {
+            "content": {
+                "text": "钙钛矿电池",
+                "entities": [{"type": "M", "start": 0, "end": 3}],
+            }
+        }
     ]
     run = svc.run_finetune_pipeline("ner", records=records, f1_threshold=1.0)
     assert run["status"] == "completed"

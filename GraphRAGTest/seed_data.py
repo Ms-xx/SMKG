@@ -221,7 +221,7 @@ async def seed_data():
     created_nodes = 0
     for node_data in SEED_NODES:
         try:
-            result = await neo4j_client.create_or_update_node(
+            await neo4j_client.create_or_update_node(
                 label=node_data["label"],
                 match_key="id",
                 match_value=node_data["id"],
@@ -238,7 +238,7 @@ async def seed_data():
     created_relations = 0
     for rel_data in SEED_RELATIONS:
         try:
-            result = await neo4j_client.create_relation(
+            await neo4j_client.create_relation(
                 source_label=rel_data["source_label"],
                 source_key="id",
                 source_value=rel_data["source_id"],

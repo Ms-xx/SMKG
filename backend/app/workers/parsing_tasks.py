@@ -4,6 +4,7 @@
 """
 
 import json
+import logging
 import os
 import tempfile
 
@@ -14,6 +15,157 @@ from app.models.task import Task
 from app.services.deduplication_service import extract_affiliations
 from app.services.parsing_service import ParsingService
 from app.utils.minio_client import MinioClient
+
+logger = logging.getLogger(__name__)
+
+
+def _download_to_temp(document_id: str, minio_client) -> str:
+    """步骤 1：下载文件到临时路径，返回 tmp_path。"""
+    with get_db_context() as db:
+        from sqlalchemy import select
+
+        result = db.execute(select(Document).where(Document.id == document_id))
+        document = result.scalar_one_or_none()
+
+        if not document:
+            raise ValueError(f"Document {document_id} not found")
+
+        file_path = document.file_path
+
+    file_data = minio_client.download_file(file_path)
+
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+        tmp.write(file_data)
+        tmp_path = tmp.name
+
+    return tmp_path
+
+
+def _extract_all_content(self, parsing_service, tmp_path: str, document_id: str, minio_client):
+    """步骤 2-5：提取全部内容，返回 (text_result, tables, images, references)。"""
+    self.update_state(state="PROGRESS", meta={"progress": 30, "step": "extracting_text"})
+    text_result = parsing_service.extract_text_with_pymupdf(tmp_path)
+
+    self.update_state(state="PROGRESS", meta={"progress": 50, "step": "extracting_tables"})
+    tables = parsing_service.extract_tables_with_pdfplumber(tmp_path)
+
+    self.update_state(state="PROGRESS", meta={"progress": 70, "step": "extracting_images"})
+    with tempfile.TemporaryDirectory() as output_dir:
+        images = parsing_service.extract_images(tmp_path, output_dir)
+
+        image_paths = []
+        for img_path in images:
+            img_name = os.path.basename(img_path)
+            with open(img_path, "rb") as _f:
+                img_data = _f.read()
+
+            minio_path = f"images/{document_id}/{img_name}"
+            minio_client.upload_file(minio_path, img_data, "image/png")
+            image_paths.append(minio_path)
+
+    self.update_state(state="PROGRESS", meta={"progress": 85, "step": "extracting_references"})
+    references = parsing_service.extract_references(tmp_path)
+    return text_result, tables, images, references
+
+
+def _save_parsing_results(
+    document_id: str, text_result: dict, tables: list, references: list
+) -> None:
+    """步骤 6：保存解析结果到数据库。"""
+    from sqlalchemy import select
+
+    with get_db_context() as db:
+        document = db.execute(
+            select(Document).where(Document.id == document_id)
+        ).scalar_one_or_none()
+
+        if text_result["metadata"]:
+            metadata = text_result["metadata"]
+            if metadata.get("title"):
+                document.title = metadata["title"]
+            if metadata.get("author"):
+                authors_list = [metadata["author"]]
+                document.authors = authors_list
+
+        document.page_count = text_result["metadata"]["page_count"]
+        document.status = "parsed"
+        document.references = references
+        full_text = " ".join(p.get("text") or "" for p in text_result["pages"])
+        document.affiliations = extract_affiliations(full_text)
+
+        for page_info in text_result["pages"]:
+            page = DocumentPage(
+                document_id=document_id,
+                page_number=page_info["page_number"],
+                image_path=f"images/{document_id}/page_{page_info['page_number']}.png",
+            )
+            db.add(page)
+            db.flush()
+            db.refresh(page)
+
+            if page_info.get("text"):
+                element = DocumentElement(
+                    page_id=page.id,
+                    element_type="text",
+                    bbox=json.dumps([0, 0, page_info["width"], page_info["height"]]),
+                    content=page_info["text"],
+                    confidence=0.95,
+                )
+                db.add(element)
+
+        for table_info in tables:
+            page_result = db.execute(
+                select(DocumentPage).where(
+                    DocumentPage.document_id == document_id,
+                    DocumentPage.page_number == table_info["page_number"],
+                )
+            )
+            page = page_result.scalar_one_or_none()
+
+            if page:
+                element = DocumentElement(
+                    page_id=page.id,
+                    element_type="table",
+                    bbox=json.dumps([]),
+                    content=None,
+                    metadata={"data": table_info["data"]},
+                    confidence=0.90,
+                )
+                db.add(element)
+
+        db.commit()
+
+
+def _handle_parse_failure(document_id: str, error_msg: str) -> None:
+    """失败时 document + task 状态回写（两处 try/except 合并）。"""
+    from sqlalchemy import select
+
+    try:
+        with get_db_context() as db:
+            document = db.execute(
+                select(Document).where(Document.id == document_id)
+            ).scalar_one_or_none()
+            if document:
+                document.status = "failed"
+                db.commit()
+    except Exception as e:  # noqa: BLE001
+        logger.warning("解析失败后更新文档状态失败: %s", e)
+
+    try:
+        with get_db_context() as db:
+            task_result = db.execute(
+                select(Task)
+                .where(Task.document_id == document_id, Task.task_type == "parsing")
+                .order_by(Task.created_at.desc())
+                .limit(1)
+            )
+            task = task_result.scalar_one_or_none()
+            if task:
+                task.status = "failed"
+                task.error_message = error_msg
+                db.commit()
+    except Exception as e:  # noqa: BLE001
+        logger.warning("解析失败后更新任务状态失败: %s", e)
 
 
 @celery_app.task(name="parse_document", bind=True, queue="parsing")
@@ -29,152 +181,18 @@ def parse_document_task(self, document_id: str):
     minio_client = MinioClient()
 
     try:
-        # 步骤1: 下载文件
         self.update_state(state="PROGRESS", meta={"progress": 10, "step": "downloading"})
-
-        # 从数据库获取文档信息
-        with get_db_context() as db:
-            from sqlalchemy import select
-
-            result = db.execute(select(Document).where(Document.id == document_id))
-            document = result.scalar_one_or_none()
-
-            if not document:
-                raise ValueError(f"Document {document_id} not found")
-
-            file_path = document.file_path
-
-        # 从MinIO下载文件
-        file_data = minio_client.download_file(file_path)
-
-        # 保存到临时文件
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-            tmp.write(file_data)
-            tmp_path = tmp.name
+        tmp_path = _download_to_temp(document_id, minio_client)
 
         try:
-            # 步骤2: 提取文本和元数据
-            self.update_state(
-                state="PROGRESS",
-                meta={"progress": 30, "step": "extracting_text"},
-            )
-            text_result = parsing_service.extract_text_with_pymupdf(tmp_path)
-
-            # 步骤3: 提取表格
-            self.update_state(
-                state="PROGRESS",
-                meta={"progress": 50, "step": "extracting_tables"},
-            )
-            tables = parsing_service.extract_tables_with_pdfplumber(tmp_path)
-
-            # 步骤4: 提取图像
-            self.update_state(
-                state="PROGRESS",
-                meta={"progress": 70, "step": "extracting_images"},
+            text_result, tables, images, references = _extract_all_content(
+                self, parsing_service, tmp_path, document_id, minio_client
             )
 
-            # 创建临时目录存储图像
-            with tempfile.TemporaryDirectory() as output_dir:
-                images = parsing_service.extract_images(tmp_path, output_dir)
+            self.update_state(state="PROGRESS", meta={"progress": 90, "step": "saving_results"})
+            _save_parsing_results(document_id, text_result, tables, references)
 
-                # 将图像上传到MinIO
-                image_paths = []
-                for img_path in images:
-                    img_name = os.path.basename(img_path)
-                    img_data = open(img_path, "rb").read()
-
-                    # 上传图像
-                    minio_path = f"images/{document_id}/{img_name}"
-                    minio_client.upload_file(minio_path, img_data, "image/png")
-                    image_paths.append(minio_path)
-
-            # 步骤5: 提取参考文献
-            self.update_state(
-                state="PROGRESS",
-                meta={"progress": 85, "step": "extracting_references"},
-            )
-            references = parsing_service.extract_references(tmp_path)
-
-            # 步骤6: 保存解析结果到数据库
-            self.update_state(
-                state="PROGRESS",
-                meta={"progress": 90, "step": "saving_results"},
-            )
-
-            with get_db_context() as db:
-                # 更新文档元数据
-                document = db.execute(
-                    select(Document).where(Document.id == document_id)
-                ).scalar_one_or_none()
-
-                # 更新文档的元数据信息
-                if text_result["metadata"]:
-                    metadata = text_result["metadata"]
-                    if metadata.get("title"):
-                        document.title = metadata["title"]
-                    if metadata.get("author"):
-                        # 如果metadata中有author信息,更新authors字段
-                        authors_list = [metadata["author"]]
-                        document.authors = authors_list
-
-                document.page_count = text_result["metadata"]["page_count"]
-                document.status = "parsed"
-                document.references = references
-                # 抽取作者机构信息（复用语义去重模块的启发式抽取），结构化入库
-                full_text = " ".join(p.get("text") or "" for p in text_result["pages"])
-                document.affiliations = extract_affiliations(full_text)
-
-                # 创建页面记录
-                for page_info in text_result["pages"]:
-                    page = DocumentPage(
-                        document_id=document_id,
-                        page_number=page_info["page_number"],
-                        image_path=f"images/{document_id}/page_{page_info['page_number']}.png",
-                    )
-                    db.add(page)
-                    db.flush()
-                    db.refresh(page)
-
-                    # 创建文本元素
-                    if page_info.get("text"):
-                        element = DocumentElement(
-                            page_id=page.id,
-                            element_type="text",
-                            bbox=json.dumps([0, 0, page_info["width"], page_info["height"]]),
-                            content=page_info["text"],
-                            confidence=0.95,
-                        )
-                        db.add(element)
-
-                # 创建表格元素
-                for table_info in tables:
-                    # 找到对应的页面
-                    page_result = db.execute(
-                        select(DocumentPage).where(
-                            DocumentPage.document_id == document_id,
-                            DocumentPage.page_number == table_info["page_number"],
-                        )
-                    )
-                    page = page_result.scalar_one_or_none()
-
-                    if page:
-                        element = DocumentElement(
-                            page_id=page.id,
-                            element_type="table",
-                            bbox=json.dumps([]),
-                            content=None,
-                            metadata={"data": table_info["data"]},
-                            confidence=0.90,
-                        )
-                        db.add(element)
-
-                db.commit()
-
-            # 步骤7: 完成
-            self.update_state(
-                state="PROGRESS",
-                meta={"progress": 100, "step": "completed"},
-            )
+            self.update_state(state="PROGRESS", meta={"progress": 100, "step": "completed"})
 
             return {
                 "status": "success",
@@ -187,45 +205,13 @@ def parse_document_task(self, document_id: str):
             }
 
         finally:
-            # 清理临时文件
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
     except Exception as e:
         error_msg = str(e)
+        _handle_parse_failure(document_id, error_msg)
 
-        # 更新文档状态为失败
-        try:
-            with get_db_context() as db:
-                document = db.execute(
-                    select(Document).where(Document.id == document_id)
-                ).scalar_one_or_none()
-                if document:
-                    document.status = "failed"
-                    db.commit()
-        except Exception:
-            pass
-
-        # 更新任务状态
-        try:
-            with get_db_context() as db:
-                from sqlalchemy import select
-
-                task_result = db.execute(
-                    select(Task)
-                    .where(Task.document_id == document_id, Task.task_type == "parsing")
-                    .order_by(Task.created_at.desc())
-                    .limit(1)
-                )
-                task = task_result.scalar_one_or_none()
-                if task:
-                    task.status = "failed"
-                    task.error_message = error_msg
-                    db.commit()
-        except Exception:
-            pass
-
-        # 返回失败结果而不是抛出异常
         return {
             "status": "failed",
             "document_id": document_id,

@@ -6,15 +6,24 @@ from conftest import API_PREFIX
 
 
 async def _register(client, username):
-    await client.post(f"{API_PREFIX}/auth/register", json={
-        "username": username, "email": f"{username}@example.com", "password": "pw123456",
-    })
+    await client.post(
+        f"{API_PREFIX}/auth/register",
+        json={
+            "username": username,
+            "email": f"{username}@example.com",
+            "password": "pw123456",
+        },
+    )
 
 
 async def _login_headers(client, username):
-    login = await client.post(f"{API_PREFIX}/auth/login", json={
-        "username": username, "password": "pw123456",
-    })
+    login = await client.post(
+        f"{API_PREFIX}/auth/login",
+        json={
+            "username": username,
+            "password": "pw123456",
+        },
+    )
     return {"Authorization": f"Bearer {login.json()['access_token']}"}
 
 
@@ -33,7 +42,9 @@ async def test_list_users_admin_only(client, token):
     assert r.json()["total"] == 2
 
     # 过滤
-    r = await client.get(f"{API_PREFIX}/users/", params={"role": "user"}, headers=token("a", "admin"))
+    r = await client.get(
+        f"{API_PREFIX}/users/", params={"role": "user"}, headers=token("a", "admin")
+    )
     assert r.status_code == 200
     assert r.json()["total"] == 2
 
@@ -55,7 +66,9 @@ async def test_get_and_update_own_user(client):
     assert r.json()["username"] == "self"
 
     # 更新自己的资料
-    r = await client.put(f"{API_PREFIX}/users/{uid}", json={"full_name": "Self User"}, headers=headers)
+    r = await client.put(
+        f"{API_PREFIX}/users/{uid}", json={"full_name": "Self User"}, headers=headers
+    )
     assert r.status_code == 200
     assert r.json()["full_name"] == "Self User"
 
@@ -88,12 +101,20 @@ async def test_admin_manage_user(client, token):
     admin = token("admin-1", "admin")
 
     # 修改角色
-    r = await client.put(f"{API_PREFIX}/users/{victim_id}/role", params={"role": "annotator"}, headers=admin)
+    r = await client.put(
+        f"{API_PREFIX}/users/{victim_id}/role",
+        params={"role": "annotator"},
+        headers=admin,
+    )
     assert r.status_code == 200
     assert r.json()["role"] == "annotator"
 
     # 修改状态
-    r = await client.put(f"{API_PREFIX}/users/{victim_id}/status", params={"is_active": "false"}, headers=admin)
+    r = await client.put(
+        f"{API_PREFIX}/users/{victim_id}/status",
+        params={"is_active": "false"},
+        headers=admin,
+    )
     assert r.status_code == 200
     assert r.json()["is_active"] is False
 

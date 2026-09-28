@@ -22,7 +22,8 @@ class FakeUploadFile:
 
 def _mock_minio(monkeypatch):
     monkeypatch.setattr(
-        MinioClient, "upload_file",
+        MinioClient,
+        "upload_file",
         lambda self, object_name, data, content_type="application/pdf": object_name,
     )
     monkeypatch.setattr(MinioClient, "delete_file", lambda self, object_name: None)
@@ -40,7 +41,9 @@ async def test_get_document_forbidden(db, monkeypatch):
     assert exc.value.status_code == 403
 
     # scope_all 绕过归属校验
-    assert (await svc.get_document(db, doc.id, user_id="intruder", scope_all=True)).id == doc.id
+    assert (
+        await svc.get_document(db, doc.id, user_id="intruder", scope_all=True)
+    ).id == doc.id
 
 
 @pytest.mark.asyncio
@@ -152,7 +155,11 @@ async def test_get_page_elements_success(db, monkeypatch):
     page = DocumentPage(document_id=doc.id, page_number=1)
     db.add(page)
     await db.flush()
-    db.add(DocumentElement(page_id=page.id, element_type="text", bbox=[0, 0, 1, 1], content="x"))
+    db.add(
+        DocumentElement(
+            page_id=page.id, element_type="text", bbox=[0, 0, 1, 1], content="x"
+        )
+    )
     await db.commit()
 
     p, elements = await svc.get_page_elements(db, doc.id, 1)

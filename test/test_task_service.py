@@ -15,10 +15,24 @@ from app.schemas.task import TaskCreate, TaskAssign
 from app.services.task_service import TaskService
 
 
-async def _make_task(db, task_type="parsing", assigned_to=None, assigned_by=None, status="pending", celery_task_id=None, document_id="doc1", progress=0):
+async def _make_task(
+    db,
+    task_type="parsing",
+    assigned_to=None,
+    assigned_by=None,
+    status="pending",
+    celery_task_id=None,
+    document_id="doc1",
+    progress=0,
+):
     t = Task(
-        task_type=task_type, document_id=document_id, assigned_to=assigned_to,
-        assigned_by=assigned_by, status=status, celery_task_id=celery_task_id, progress=progress,
+        task_type=task_type,
+        document_id=document_id,
+        assigned_to=assigned_to,
+        assigned_by=assigned_by,
+        status=status,
+        celery_task_id=celery_task_id,
+        progress=progress,
     )
     db.add(t)
     await db.flush()
@@ -51,7 +65,9 @@ async def test_get_task_scoped_permission(db):
     # 负责人可访问
     assert (await svc.get_task_scoped(db, t.id, user_id="owner")).id == t.id
     # scope_all 绕过归属校验
-    assert (await svc.get_task_scoped(db, t.id, user_id="intruder", scope_all=True)).id == t.id
+    assert (
+        await svc.get_task_scoped(db, t.id, user_id="intruder", scope_all=True)
+    ).id == t.id
     # 不存在返回 None
     assert await svc.get_task_scoped(db, "no-id", "owner") is None
 
@@ -60,17 +76,29 @@ async def test_get_task_scoped_permission(db):
 async def test_assign_task(db):
     svc = TaskService()
     t = await _make_task(db)
-    updated = await svc.assign_task(db, t.id, TaskAssign(assigned_to="u2", priority=5), user_id="admin")
+    updated = await svc.assign_task(
+        db, t.id, TaskAssign(assigned_to="u2", priority=5), user_id="admin"
+    )
     assert updated.assigned_to == "u2"
     assert updated.priority == 5
-    assert await svc.assign_task(db, "no-id", TaskAssign(assigned_to="x"), "admin") is None
+    assert (
+        await svc.assign_task(db, "no-id", TaskAssign(assigned_to="x"), "admin") is None
+    )
 
 
 @pytest.mark.asyncio
 async def test_list_tasks_filters(db):
     svc = TaskService()
-    await _make_task(db, task_type="parsing", assigned_to="u1", assigned_by="a", status="pending")
-    await _make_task(db, task_type="extraction", assigned_to="u2", assigned_by="b", status="completed")
+    await _make_task(
+        db, task_type="parsing", assigned_to="u1", assigned_by="a", status="pending"
+    )
+    await _make_task(
+        db,
+        task_type="extraction",
+        assigned_to="u2",
+        assigned_by="b",
+        status="completed",
+    )
 
     tasks, total = await svc.list_tasks(db, 1, 10)
     assert total == 2

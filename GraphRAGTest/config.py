@@ -7,7 +7,7 @@ os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional
+
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_ROOT = os.path.dirname(_BASE_DIR)

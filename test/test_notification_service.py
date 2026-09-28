@@ -15,7 +15,12 @@ from app.services.notification_service import NotificationService
 
 
 async def _make_user(db, username="sender", user_id_suffix=""):
-    u = User(username=username, email=f"{username}{user_id_suffix}@x.com", password_hash="x", role="annotator")
+    u = User(
+        username=username,
+        email=f"{username}{user_id_suffix}@x.com",
+        password_hash="x",
+        role="annotator",
+    )
     db.add(u)
     await db.flush()
     return u

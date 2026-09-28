@@ -22,6 +22,7 @@ export default defineConfig({
       "/api": {
         target: "http://localhost:8000",
         changeOrigin: true,
+        ws: true, // 标注实时协作等走 /api/v1/ws/* 的 WebSocket 升级
       },
       "/ws": {
         target: "http://localhost:8000",

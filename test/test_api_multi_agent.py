@@ -26,7 +26,11 @@ async def test_multi_agent_full_flow(client, token):
     # 任务编排
     r = await client.post(
         f"{MA}/run",
-        json={"query": "钙钛矿有哪些性能特点？", "context": "钙钛矿太阳能电池具有高效率。", "mode": "merge"},
+        json={
+            "query": "钙钛矿有哪些性能特点？",
+            "context": "钙钛矿太阳能电池具有高效率。",
+            "mode": "merge",
+        },
         headers=headers,
     )
     assert r.status_code == 200

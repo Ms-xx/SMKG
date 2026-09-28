@@ -11,7 +11,9 @@
 import os
 import sys
 
-GRAPHRAG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "GraphRAGTest"))
+GRAPHRAG_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "GraphRAGTest")
+)
 if GRAPHRAG_DIR not in sys.path:
     sys.path.insert(0, GRAPHRAG_DIR)
 
@@ -29,16 +31,16 @@ def main() -> None:
     # ─── 1. 真实嵌入(BGE-M3) ───────────────────────────────────────
     vs = hr.vs
     print(f"[嵌入] backend = {vs.embedding_backend}, dim = {vs.dim}")
-    assert vs.embedding_backend.startswith("sentence-transformers"), (
-        f"未加载真实 BGE-M3 嵌入: {vs.embedding_backend}"
-    )
+    assert vs.embedding_backend.startswith(
+        "sentence-transformers"
+    ), f"未加载真实 BGE-M3 嵌入: {vs.embedding_backend}"
     assert vs.dim == 1024, f"BGE-M3 应为 1024 维，实际 {vs.dim}"
 
     # ─── 2. 真实精排(bge-reranker) ─────────────────────────────────
     print(f"[精排] rerank_backend = {hr.rerank_backend}")
-    assert hr.rerank_backend == "cross-encoder", (
-        f"未加载真实 bge-reranker 精排: {hr.rerank_backend}"
-    )
+    assert (
+        hr.rerank_backend == "cross-encoder"
+    ), f"未加载真实 bge-reranker 精排: {hr.rerank_backend}"
 
     # ─── 3. 写入数据并检索 ─────────────────────────────────────────
     hr.add_entity("钙钛矿", "Material", {"name": "钙钛矿"})
@@ -50,13 +52,17 @@ def main() -> None:
     # 纯向量检索(嵌入路径)
     vec_hits = hr.vs.search("光电转换效率", top_k=2)
     assert vec_hits, "向量检索应返回结果"
-    print(f"[嵌入] 向量检索 top1: {vec_hits[0]['text']!r} score={vec_hits[0]['score']:.4f}")
+    print(
+        f"[嵌入] 向量检索 top1: {vec_hits[0]['text']!r} score={vec_hits[0]['score']:.4f}"
+    )
 
     # 混合检索 + 精排
     res = hr.search("钙钛矿的光电转换效率", top_k=3)
     assert res["rerank_backend"] == "cross-encoder"
     assert res["results"], "混合检索应返回结果"
-    assert all(r["rerank_score"] is not None for r in res["results"]), "精排后应有 rerank_score"
+    assert all(
+        r["rerank_score"] is not None for r in res["results"]
+    ), "精排后应有 rerank_score"
 
     print("[精排] 混合检索结果(按精排分降序):")
     for r in res["results"]:

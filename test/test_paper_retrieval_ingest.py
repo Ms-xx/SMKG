@@ -17,7 +17,9 @@ def test_pdf_url_pubmed_none():
 
 def test_download_pdf_success(monkeypatch):
     monkeypatch.setattr(prs, "_http_get_bytes", lambda url, timeout=15.0: _PDF_BYTES)
-    out = prs.paper_retrieval_service.download_pdf({"source": "arxiv", "arxiv_id": "1706.03762"})
+    out = prs.paper_retrieval_service.download_pdf(
+        {"source": "arxiv", "arxiv_id": "1706.03762"}
+    )
     assert out["downloaded"] is True
     assert out["filename"] == "1706.03762.pdf"
     assert out["file_size"] == len(_PDF_BYTES)
@@ -28,13 +30,17 @@ def test_download_pdf_network_degrades(monkeypatch):
         raise OSError("timeout")
 
     monkeypatch.setattr(prs, "_http_get_bytes", boom)
-    out = prs.paper_retrieval_service.download_pdf({"source": "arxiv", "arxiv_id": "1706.03762"})
+    out = prs.paper_retrieval_service.download_pdf(
+        {"source": "arxiv", "arxiv_id": "1706.03762"}
+    )
     assert out["downloaded"] is False
     assert "error" in out
 
 
 def test_download_pdf_pubmed_degrades():
-    out = prs.paper_retrieval_service.download_pdf({"source": "pubmed", "pubmed_id": "123"})
+    out = prs.paper_retrieval_service.download_pdf(
+        {"source": "pubmed", "pubmed_id": "123"}
+    )
     assert out["downloaded"] is False
     assert out["pdf_url"] is None
 
@@ -49,7 +55,9 @@ def test_register_and_list_tracking():
 
 def test_register_tracking_fields():
     svc = prs.PaperRetrievalService()
-    rec = svc.register_tracking("materials informatics", source="pubmed", interval_days=30)
+    rec = svc.register_tracking(
+        "materials informatics", source="pubmed", interval_days=30
+    )
     assert rec["id"]
     assert rec["source"] == "pubmed"
     assert rec["interval_days"] == 30

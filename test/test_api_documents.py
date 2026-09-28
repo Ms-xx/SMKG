@@ -66,11 +66,15 @@ async def test_list_and_update_and_delete(client, token):
     assert r.json()["total"] == 2
 
     # 关键字过滤
-    r = await client.get(f"{API_PREFIX}/documents/", params={"keyword": "Doc A"}, headers=headers)
+    r = await client.get(
+        f"{API_PREFIX}/documents/", params={"keyword": "Doc A"}, headers=headers
+    )
     assert r.json()["total"] == 1
 
     # 更新
-    r = await client.put(f"{API_PREFIX}/documents/{did}", json={"title": "Renamed"}, headers=headers)
+    r = await client.put(
+        f"{API_PREFIX}/documents/{did}", json={"title": "Renamed"}, headers=headers
+    )
     assert r.status_code == 200
     assert r.json()["title"] == "Renamed"
 
@@ -125,11 +129,15 @@ async def test_page_elements(client, token, db):
     db.add(DocumentPage(document_id=did, page_number=1))
     await db.commit()
 
-    r = await client.get(f"{API_PREFIX}/documents/{did}/pages/1/elements", headers=headers)
+    r = await client.get(
+        f"{API_PREFIX}/documents/{did}/pages/1/elements", headers=headers
+    )
     assert r.status_code == 200
     assert r.json()["page_number"] == 1
     assert r.json()["elements"] == []
 
     # 页面不存在
-    r = await client.get(f"{API_PREFIX}/documents/{did}/pages/99/elements", headers=headers)
+    r = await client.get(
+        f"{API_PREFIX}/documents/{did}/pages/99/elements", headers=headers
+    )
     assert r.status_code == 404

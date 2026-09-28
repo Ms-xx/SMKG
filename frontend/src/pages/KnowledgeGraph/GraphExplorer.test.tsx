@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, act, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import GraphExplorer from "./GraphExplorer";
@@ -27,13 +27,22 @@ const apiHolder = vi.hoisted(() => ({
     ragSearchNodes: vi.fn(),
     ragNodesByLabel: vi.fn(),
     ragGraphSearch: vi.fn(),
-    ragSeedDemoData: vi.fn(),
     ragClearGraph: vi.fn(),
+    getNodeTypes: vi.fn(),
+    createNodeType: vi.fn(),
+    deleteNodeType: vi.fn(),
+    getTrends: vi.fn(),
+    getAnomalies: vi.fn(),
   },
 }));
 
 vi.mock("@api/modules", () => ({
   graphApi: apiHolder.graphApi,
+}));
+
+// mock echarts 渲染，避免真实 canvas 依赖
+vi.mock("echarts-for-react", () => ({
+  default: (_props: any) => <div data-testid="trend-chart" />,
 }));
 
 describe("GraphExplorer", () => {
@@ -54,8 +63,21 @@ describe("GraphExplorer", () => {
     apiHolder.graphApi.ragNodesByLabel.mockResolvedValue({ data: { nodes: [] } });
     apiHolder.graphApi.ragGraphSearch.mockResolvedValue({ data: { relations: [] } });
     apiHolder.graphApi.ragSearchNodes.mockResolvedValue({ data: { nodes: [] } });
-    apiHolder.graphApi.ragSeedDemoData.mockResolvedValue({ data: { message: "ok" } });
     apiHolder.graphApi.ragClearGraph.mockResolvedValue({ data: {} });
+    apiHolder.graphApi.getNodeTypes.mockResolvedValue({
+      data: { items: [{ label: "Material", name: "材料", color: "#1890ff", is_default: true }] },
+    });
+    apiHolder.graphApi.createNodeType.mockResolvedValue({ data: {} });
+    apiHolder.graphApi.deleteNodeType.mockResolvedValue({ data: {} });
+    apiHolder.graphApi.getTrends.mockResolvedValue({ data: { timeline: [], top_entities: [] } });
+    apiHolder.graphApi.getAnomalies.mockResolvedValue({
+      data: {
+        anomalies: [],
+        isolated: { count: 0, nodes: [] },
+        high_connectivity: { count: 0, nodes: [] },
+        low_connectivity: { count: 0, nodes: [] },
+      },
+    });
   });
 
   it("渲染页面标题与统计卡片", async () => {
@@ -87,20 +109,9 @@ describe("GraphExplorer", () => {
       </MemoryRouter>,
     );
 
-    const el = await screen.findByTestId("force-graph-mock");
-    expect(el.getAttribute("data-entities")).toBe("6");
-  });
-
-  it("点击初始化示例数据调用 seed 接口", async () => {
-    render(
-      <MemoryRouter>
-        <GraphExplorer />
-      </MemoryRouter>,
-    );
-
-    await screen.findByText("实体总数");
-    await userEvent.click(screen.getByRole("button", { name: /初始化示例数据/ }));
-    expect(apiHolder.graphApi.ragSeedDemoData).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(forceGraphHolder.props?.entities?.length ?? 0).toBe(1);
+    });
   });
 
   it("搜索节点调用 ragSearchNodes", async () => {
@@ -140,5 +151,50 @@ describe("GraphExplorer", () => {
     expect(await screen.findByText("实体详情")).toBeInTheDocument();
     expect(screen.getByText("氧化铝")).toBeInTheDocument();
     expect(screen.getByText("CH3NH3PbI3")).toBeInTheDocument();
+  });
+
+  it("添加自定义节点类型调用 createNodeType", async () => {
+    render(
+      <MemoryRouter>
+        <GraphExplorer />
+      </MemoryRouter>,
+    );
+
+    await screen.findByText("实体总数");
+    await userEvent.type(screen.getByPlaceholderText("label（英文）"), "Catalyst");
+    await userEvent.type(screen.getByPlaceholderText("中文名（可选）"), "催化剂");
+    await userEvent.click(screen.getByRole("button", { name: /添加/ }));
+
+    expect(apiHolder.graphApi.createNodeType).toHaveBeenCalledWith({
+      label: "Catalyst",
+      name: "催化剂",
+      color: "#1890ff",
+    });
+  });
+
+  it("加载趋势分析与异常检测并高亮异常节点", async () => {
+    apiHolder.graphApi.getAnomalies.mockResolvedValue({
+      data: {
+        anomalies: [{ kind: "isolated", node_id: "e1", node_label: "节点A" }],
+        isolated: { count: 1, nodes: [{ id: "e1" }] },
+        high_connectivity: { count: 0, nodes: [] },
+        low_connectivity: { count: 0, nodes: [] },
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <GraphExplorer />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(apiHolder.graphApi.getTrends).toHaveBeenCalled();
+      expect(apiHolder.graphApi.getAnomalies).toHaveBeenCalled();
+      // 异常节点 id 集合经 onAnomalyHighlight 回传给 ForceGraph
+      expect(forceGraphHolder.props?.highlightNodes?.has("e1")).toBe(true);
+    });
+    // 异常检测面板渲染出异常标签
+    expect(screen.getByText("节点A")).toBeInTheDocument();
   });
 });

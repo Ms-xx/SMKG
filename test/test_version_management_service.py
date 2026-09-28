@@ -29,7 +29,9 @@ def test_dataset_hash_differs():
 
 
 def test_data_quality_distribution():
-    out = data_quality([{"label": "A"}, {"label": "A"}, {"label": "B"}, {"label": None}])
+    out = data_quality(
+        [{"label": "A"}, {"label": "A"}, {"label": "B"}, {"label": None}]
+    )
     assert out["n_records"] == 4
     assert out["n_labeled"] == 3
     assert out["n_missing"] == 1
@@ -39,11 +41,16 @@ def test_data_quality_distribution():
 
 
 def test_evaluate_retrain_trigger_manual():
-    assert evaluate_retrain_trigger(force=True) == {"trigger": True, "reasons": ["manual"]}
+    assert evaluate_retrain_trigger(force=True) == {
+        "trigger": True,
+        "reasons": ["manual"],
+    }
 
 
 def test_evaluate_retrain_trigger_threshold():
-    out = evaluate_retrain_trigger(new_annotated=150, last_train_count=50, threshold=100)
+    out = evaluate_retrain_trigger(
+        new_annotated=150, last_train_count=50, threshold=100
+    )
     assert out["trigger"] is True and "threshold" in out["reasons"]
 
 
@@ -53,7 +60,9 @@ def test_evaluate_retrain_trigger_periodic():
 
 
 def test_evaluate_retrain_trigger_none():
-    assert evaluate_retrain_trigger(new_annotated=10, last_train_count=0, threshold=100) == {"trigger": False, "reasons": []}
+    assert evaluate_retrain_trigger(
+        new_annotated=10, last_train_count=0, threshold=100
+    ) == {"trigger": False, "reasons": []}
 
 
 def test_compare_metrics_best():
@@ -123,5 +132,11 @@ def test_run_pipeline_completes():
     svc = VersionManagementService()
     run = svc.run_pipeline("ner", trigger_reason="manual")
     assert run["status"] == "completed"
-    assert [s["step"] for s in run["steps"]] == ["data_prep", "training", "evaluation", "registration", "deployment"]
+    assert [s["step"] for s in run["steps"]] == [
+        "data_prep",
+        "training",
+        "evaluation",
+        "registration",
+        "deployment",
+    ]
     assert svc.pipeline_status(run["id"])["status"] == "completed"

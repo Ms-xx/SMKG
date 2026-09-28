@@ -100,6 +100,53 @@ def fleiss_kappa(ratings: list[list[Any]]) -> float | None:
     return (mean_p - pe) / (1.0 - pe)
 
 
+def _delta_nominal(i: int, j: int, nums: list[float] | None = None) -> float:
+    """名义度量：不同类别视为完全不一致。"""
+    return 0.0 if i == j else 1.0
+
+
+def _delta_interval(i: int, j: int, nums: list[float] | None = None) -> float:
+    """区间度量：数值差的平方。"""
+    return (nums[i] - nums[j]) ** 2
+
+
+def _delta_ratio(i: int, j: int, nums: list[float] | None = None) -> float:
+    """比值度量：归一化差的平方。"""
+    s = nums[i] + nums[j]
+    return ((nums[i] - nums[j]) / s) ** 2 if s != 0 else 0.0
+
+
+_METRIC_DELTA = {"nominal": _delta_nominal, "interval": _delta_interval, "ratio": _delta_ratio}
+
+
+def _resolve_numeric_values(vals: list[Any], vidx: dict[Any, int]) -> list[float]:
+    """解析 interval/ratio 度量所需的数值列表（无法转 float 时回退为索引）。"""
+    nums: list[float] = []
+    for v in vals:
+        try:
+            nums.append(float(v))
+        except (TypeError, ValueError):
+            nums.append(float(vidx[v]))
+    return nums
+
+
+def _build_cooccurrence_matrix(
+    rows: list[list[Any]], vidx: dict[Any, int], nv: int
+) -> list[list[float]]:
+    """构建共现矩阵：同一样本内不同标注员的两两取值，权重 1/(m-1)。"""
+    o = [[0.0] * nv for _ in range(nv)]
+    for row in rows:
+        m = len(row)
+        w = 1.0 / (m - 1)
+        for a in range(m):
+            ia = vidx[row[a]]
+            for b in range(m):
+                if a == b:
+                    continue
+                o[ia][vidx[row[b]]] += w
+    return o
+
+
 def krippendorff_alpha(ratings: list[list[Any]], metric: str = "nominal") -> float | None:
     """
     Krippendorff's Alpha：任意标注员数量的一致性，基于共现矩阵 + 距离函数。
@@ -122,43 +169,17 @@ def krippendorff_alpha(ratings: list[list[Any]], metric: str = "nominal") -> flo
     nv = len(vals)
 
     metric = metric or "nominal"
-    nums: list[float] | None = None
-    if metric in ("interval", "ratio"):
-        nums = []
-        for v in vals:
-            try:
-                nums.append(float(v))
-            except (TypeError, ValueError):
-                nums.append(float(vidx[v]))
+    nums = _resolve_numeric_values(vals, vidx) if metric in ("interval", "ratio") else None
+    delta = _METRIC_DELTA.get(metric, _delta_nominal)
 
-    def delta(i: int, j: int) -> float:
-        if metric == "interval":
-            return (nums[i] - nums[j]) ** 2
-        if metric == "ratio":
-            s = nums[i] + nums[j]
-            return ((nums[i] - nums[j]) / s) ** 2 if s != 0 else 0.0
-        # nominal（含未知度量回退）
-        return 0.0 if i == j else 1.0
-
-    # 共现矩阵：同一样本内不同标注员的两两取值，权重 1/(m-1)
-    o = [[0.0] * nv for _ in range(nv)]
-    for row in rows:
-        m = len(row)
-        w = 1.0 / (m - 1)
-        for a in range(m):
-            ia = vidx[row[a]]
-            for b in range(m):
-                if a == b:
-                    continue
-                o[ia][vidx[row[b]]] += w
-
+    o = _build_cooccurrence_matrix(rows, vidx, nv)
     total = sum(sum(r) for r in o)
     if total <= 0:
         return None
 
-    do = sum(o[a][b] * delta(a, b) for a in range(nv) for b in range(nv)) / total
+    do = sum(o[a][b] * delta(a, b, nums) for a in range(nv) for b in range(nv)) / total
     marg = [sum(o[a]) for a in range(nv)]
-    de_num = sum(marg[a] * marg[b] * delta(a, b) for a in range(nv) for b in range(nv))
+    de_num = sum(marg[a] * marg[b] * delta(a, b, nums) for a in range(nv) for b in range(nv))
     de = de_num / (total * (total - 1)) if total > 1 else 0.0
     if abs(de) < 1e-12:
         return 1.0 if do <= 1e-12 else 0.0

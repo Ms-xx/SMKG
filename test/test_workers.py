@@ -35,7 +35,9 @@ def test_parse_batch_documents_task(monkeypatch):
         def delay(self, doc_id):
             return _FakeAsyncTask(f"task-{doc_id}")
 
-    monkeypatch.setattr("app.workers.parsing_tasks.parse_document_task", _FakeParseTask())
+    monkeypatch.setattr(
+        "app.workers.parsing_tasks.parse_document_task", _FakeParseTask()
+    )
     r = parse_batch_documents_task(["d1", "d2"])
     assert r["status"] == "submitted"
     assert r["total_documents"] == 2

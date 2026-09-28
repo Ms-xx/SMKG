@@ -40,7 +40,16 @@ print("== 触发 paper_tracking_poll ==")
 from app.workers.paper_tasks import _run_poll  # noqa: E402
 
 res = _run_poll()
-print("status:", res["status"], "| checked:", res["checked"], "| new:", res["new_papers"], "| ingested:", res["ingested"])
+print(
+    "status:",
+    res["status"],
+    "| checked:",
+    res["checked"],
+    "| new:",
+    res["new_papers"],
+    "| ingested:",
+    res["ingested"],
+)
 for it in res["items"][:3]:
     print("  new title:", (it.get("title") or "")[:50], "| ingest:", it.get("ingest"))
 

@@ -12,6 +12,7 @@ from app.api.v1 import (
     comments,
     deduplication,
     documents,
+    graph_insights,
     knowledge_graph,
     multi_agent,
     notifications,
@@ -42,6 +43,11 @@ router.include_router(comments.router, prefix="/comments", tags=["评论讨论"]
 router.include_router(notifications.router, prefix="/notifications", tags=["通知"])
 router.include_router(permissions.router, prefix="/permissions", tags=["权限管理"])
 router.include_router(knowledge_graph.router, prefix="/knowledge-graph", tags=["Knowledge Graph"])
+router.include_router(
+    graph_insights.router,
+    prefix="/knowledge-graph",
+    tags=["Knowledge Graph"],
+)
 router.include_router(active_learning.router, prefix="/active-learning", tags=["主动学习"])
 router.include_router(version_management.router, prefix="/version-management", tags=["版本管理"])
 router.include_router(ab_test.router, prefix="/ab-test", tags=["A/B 测试"])

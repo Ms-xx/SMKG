@@ -3,10 +3,20 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from app.core.permissions import (
+    DOCUMENT_READ,
+    DOCUMENT_WRITE,
+    require_permission,
+)
 from app.core.security import get_current_user
+from app.schemas.node_type import NodeTypeCreate, NodeTypeUpdate
 from app.services.entity_linking_service import entity_linking_service
 from app.services.graph_service import GraphService
 from app.services.graphrag_integration import graphrag_integration
+from app.services.node_type_service import (
+    NodeTypeNotFoundError,
+    node_type_service,
+)
 from app.services.relation_inference_service import relation_inference_service
 from app.services.semantic_search_service import semantic_search_service
 from app.services.text_to_cypher_service import text_to_cypher_service
@@ -197,7 +207,12 @@ async def triple_score(
     score = relation_inference_service.score_triple(
         body.head, body.relation, body.tail, body.triples
     )
-    return {"head": body.head, "relation": body.relation, "tail": body.tail, "score": score}
+    return {
+        "head": body.head,
+        "relation": body.relation,
+        "tail": body.tail,
+        "score": score,
+    }
 
 
 @router.post("/suggest")
@@ -324,7 +339,7 @@ async def rag_search_nodes(
 @router.get("/rag/graph/relations/type/{rel_type}")
 async def rag_get_relations_by_type(
     rel_type: str,
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(1000, ge=1, le=5000),
     current_user: dict = Depends(get_current_user),
 ):
     """按类型查询图谱关系"""
@@ -397,16 +412,53 @@ async def rag_clear_graph(
     return result
 
 
-@router.post("/rag/graph/seed")
-async def rag_seed_demo_data(
-    current_user: dict = Depends(get_current_user),
-):
-    """
-    初始化示例数据到 Neo4j 图谱
+# ─────────── 节点类型注册表 ───────────
 
-    包含钙钛矿太阳能电池领域的10个实体和10条关系
-    """
-    result = graphrag_integration.seed_demo_data()
-    if "error" in result:
-        raise HTTPException(status_code=500, detail=result["error"])
-    return result
+
+@router.get("/node-types")
+async def list_node_types(
+    current_user: dict = Depends(require_permission(DOCUMENT_READ)),
+):
+    """返回全部节点类型：默认在前、自定义在后。"""
+    return {"items": node_type_service.list_types()}
+
+
+@router.post("/node-types")
+async def create_node_type(
+    body: NodeTypeCreate,
+    current_user: dict = Depends(require_permission(DOCUMENT_WRITE)),
+):
+    """新增自定义节点类型；label 已存在则返回 400。"""
+    try:
+        return node_type_service.create_type(body.label, body.name, body.color)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+
+
+@router.put("/node-types/{label}")
+async def update_node_type(
+    label: str,
+    body: NodeTypeUpdate,
+    current_user: dict = Depends(require_permission(DOCUMENT_WRITE)),
+):
+    """更新节点类型的名称/颜色；不存在返回 404。"""
+    try:
+        return node_type_service.update_type(label, body.name, body.color)
+    except NodeTypeNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from None
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+
+
+@router.delete("/node-types/{label}")
+async def delete_node_type(
+    label: str,
+    current_user: dict = Depends(require_permission(DOCUMENT_WRITE)),
+):
+    """删除自定义节点类型；不存在返回 404，默认类型不可删返回 400。"""
+    try:
+        return node_type_service.delete_type(label)
+    except NodeTypeNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from None
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None

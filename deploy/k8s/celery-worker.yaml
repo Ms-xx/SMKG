@@ -1,4 +1,4 @@
-# Celery 异步任务 worker（消费 parsing/extraction/graph 队列）。
+# Celery 异步任务 worker（消费 parsing/extraction/graph/training 队列）。
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -26,7 +26,7 @@ spec:
             - -l
             - info
             - -Q
-            - parsing,extraction,graph
+            - parsing,extraction,graph,training
           envFrom:
             - configMapRef:
                 name: smkg-config

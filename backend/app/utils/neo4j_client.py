@@ -34,10 +34,18 @@ class Neo4jClient:
             self._driver = None
 
     async def execute_query(self, query: str, parameters: dict = None):
+        """执行只读查询并返回 dict 列表。
+
+        neo4j 驱动 5.x 的 `AsyncResult.fetch(n)` 必须传拉取条数，直接调用会抛
+        TypeError；这里优先使用 `AsyncResult.data()` 一次取全部。
+        若结果对象未实现 `data()`（老驱动或部分测试替身），回退到 `fetch()`。
+        """
         async with self.driver.session() as session:
             result = await session.run(query, parameters or {})
-            records = [record.data() for record in await result.fetch()]
-            return records
+            data = getattr(result, "data", None)
+            if callable(data):
+                return list(await data())
+            return [record.data() for record in await result.fetch()]
 
     async def execute_write(self, query: str, parameters: dict = None):
         async with self.driver.session() as session:

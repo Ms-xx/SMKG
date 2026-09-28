@@ -7,11 +7,24 @@ from app.schemas.task import TaskAssign
 from app.services.task_service import TaskService
 
 
-async def _make_task(db, task_type="parsing", assigned_to=None, assigned_by=None,
-                     status="pending", celery_task_id=None, document_id="doc1", progress=0):
+async def _make_task(
+    db,
+    task_type="parsing",
+    assigned_to=None,
+    assigned_by=None,
+    status="pending",
+    celery_task_id=None,
+    document_id="doc1",
+    progress=0,
+):
     t = Task(
-        task_type=task_type, document_id=document_id, assigned_to=assigned_to,
-        assigned_by=assigned_by, status=status, celery_task_id=celery_task_id, progress=progress,
+        task_type=task_type,
+        document_id=document_id,
+        assigned_to=assigned_to,
+        assigned_by=assigned_by,
+        status=status,
+        celery_task_id=celery_task_id,
+        progress=progress,
     )
     db.add(t)
     await db.flush()
@@ -28,7 +41,8 @@ async def test_get_task_with_celery_status(db, monkeypatch):
     assert r["celery_status"] is None
 
     monkeypatch.setattr(
-        TaskService, "_get_celery_task_status",
+        TaskService,
+        "_get_celery_task_status",
         lambda self, cid: {"state": "SUCCESS", "info": {}},
     )
     t2 = await _make_task(db, celery_task_id="celery-1")
@@ -41,30 +55,42 @@ async def test_sync_task_progress_states(db, monkeypatch):
     svc = TaskService()
 
     # PROGRESS → running
-    monkeypatch.setattr(TaskService, "_get_celery_task_status",
-                        lambda self, cid: {"state": "PROGRESS", "info": {"progress": 42}})
+    monkeypatch.setattr(
+        TaskService,
+        "_get_celery_task_status",
+        lambda self, cid: {"state": "PROGRESS", "info": {"progress": 42}},
+    )
     t = await _make_task(db, status="pending", celery_task_id="c1")
     out = await svc.sync_task_progress(db, t.id)
     assert out["status"] == "running"
     assert out["progress"] == 42
 
     # SUCCESS → completed
-    monkeypatch.setattr(TaskService, "_get_celery_task_status",
-                        lambda self, cid: {"state": "SUCCESS", "info": {}})
+    monkeypatch.setattr(
+        TaskService,
+        "_get_celery_task_status",
+        lambda self, cid: {"state": "SUCCESS", "info": {}},
+    )
     t2 = await _make_task(db, status="running", celery_task_id="c2")
     out = await svc.sync_task_progress(db, t2.id)
     assert out["status"] == "completed" and out["progress"] == 100
 
     # FAILURE → failed
-    monkeypatch.setattr(TaskService, "_get_celery_task_status",
-                        lambda self, cid: {"state": "FAILURE", "info": "boom"})
+    monkeypatch.setattr(
+        TaskService,
+        "_get_celery_task_status",
+        lambda self, cid: {"state": "FAILURE", "info": "boom"},
+    )
     t3 = await _make_task(db, status="running", celery_task_id="c3")
     out = await svc.sync_task_progress(db, t3.id)
     assert out["status"] == "failed"
 
     # REVOKED → cancelled
-    monkeypatch.setattr(TaskService, "_get_celery_task_status",
-                        lambda self, cid: {"state": "REVOKED", "info": {}})
+    monkeypatch.setattr(
+        TaskService,
+        "_get_celery_task_status",
+        lambda self, cid: {"state": "REVOKED", "info": {}},
+    )
     t4 = await _make_task(db, status="running", celery_task_id="c4")
     out = await svc.sync_task_progress(db, t4.id)
     assert out["status"] == "cancelled"
@@ -73,9 +99,14 @@ async def test_sync_task_progress_states(db, monkeypatch):
 @pytest.mark.asyncio
 async def test_list_tasks_sync_progress(db, monkeypatch):
     svc = TaskService()
-    await _make_task(db, task_type="parsing", assigned_to="u1", status="pending", celery_task_id="c1")
-    monkeypatch.setattr(TaskService, "_get_celery_task_status",
-                        lambda self, cid: {"state": "PROGRESS", "info": {"progress": 55}})
+    await _make_task(
+        db, task_type="parsing", assigned_to="u1", status="pending", celery_task_id="c1"
+    )
+    monkeypatch.setattr(
+        TaskService,
+        "_get_celery_task_status",
+        lambda self, cid: {"state": "PROGRESS", "info": {"progress": 55}},
+    )
     tasks, total = await svc.list_tasks(db, 1, 10, sync_progress=True)
     assert total == 1
     assert tasks[0].progress == 55
@@ -86,7 +117,9 @@ async def test_list_tasks_sync_progress(db, monkeypatch):
 async def test_cancel_pause_with_revoke(db, monkeypatch):
     svc = TaskService()
     calls = []
-    monkeypatch.setattr(TaskService, "_revoke_celery_task", lambda self, cid: calls.append(cid))
+    monkeypatch.setattr(
+        TaskService, "_revoke_celery_task", lambda self, cid: calls.append(cid)
+    )
 
     t = await _make_task(db, status="running", celery_task_id="c1")
     await svc.cancel_task(db, t.id)

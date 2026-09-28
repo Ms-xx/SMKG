@@ -13,7 +13,12 @@ import {
   Tooltip,
   Alert,
 } from "antd";
-import { ArrowLeftOutlined, PlayCircleOutlined, SwapOutlined } from "@ant-design/icons";
+import {
+  ArrowLeftOutlined,
+  DownloadOutlined,
+  PlayCircleOutlined,
+  SwapOutlined,
+} from "@ant-design/icons";
 import { useDocumentStore } from "@store/documentStore";
 import { citationLinkApi, documentApi, writingAssistantApi } from "@api/modules";
 import type { CitationMapResult, InlineCitation } from "@/types";
@@ -292,6 +297,21 @@ export default function DocumentDetailPage() {
     }
   }, [selAnchor]);
 
+  const handleExportJats = useCallback(async () => {
+    if (!id) return;
+    try {
+      const blob = await documentApi.exportJats(id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${currentDocument?.title || id}.jats.xml`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      /* 导出失败不阻塞页面 */
+    }
+  }, [id, currentDocument?.title]);
+
   const syncScroll = useCallback((source: "left" | "right") => {
     const left = leftScrollRef.current;
     const right = rightScrollRef.current;
@@ -367,7 +387,7 @@ export default function DocumentDetailPage() {
             {doc.publication_date ? dayjs(doc.publication_date).format("YYYY-MM-DD") : "-"}
           </Descriptions.Item>
           <Descriptions.Item label="页数">{doc.page_count || "-"}</Descriptions.Item>
-          <Descriptions.Item label="文件大小">
+          <Descriptions.Item label="文件大小" span={2}>
             {doc.file_size ? `${(doc.file_size / 1024 / 1024).toFixed(2)} MB` : "-"}
           </Descriptions.Item>
           <Descriptions.Item label="关键词" span={2}>
@@ -585,13 +605,14 @@ export default function DocumentDetailPage() {
       )}
 
       {doc.status === "parsed" && (
-        <Button
-          type="primary"
-          style={{ marginTop: 16 }}
-          onClick={() => navigate(`/annotation/${doc.id}`)}
-        >
-          进入标注工作台
-        </Button>
+        <Space style={{ marginTop: 16, display: "flex" }}>
+          <Button type="primary" onClick={() => navigate(`/annotation/${doc.id}`)}>
+            进入标注工作台
+          </Button>
+          <Button icon={<DownloadOutlined />} onClick={handleExportJats}>
+            导出 JATS
+          </Button>
+        </Space>
       )}
     </div>
   );

@@ -46,10 +46,20 @@ def test_string_similarity():
 def test_disambiguate_picks_alias_exact_match():
     svc = EntityLinkingService()
     candidates = [
-        {"source": "wikidata", "id": "Q1", "label": "Perovskite",
-         "description": "material", "aliases": ["calcium titanate"]},
-        {"source": "wikidata", "id": "Q2", "label": "Perovskite solar cell",
-         "description": "device", "aliases": []},
+        {
+            "source": "wikidata",
+            "id": "Q1",
+            "label": "Perovskite",
+            "description": "material",
+            "aliases": ["calcium titanate"],
+        },
+        {
+            "source": "wikidata",
+            "id": "Q2",
+            "label": "Perovskite solar cell",
+            "description": "device",
+            "aliases": [],
+        },
     ]
     best = svc.disambiguate("perovskite", candidates, "Material")
     assert best is not None

@@ -36,8 +36,18 @@ def test_search_arxiv_degrades_on_network_error(monkeypatch):
 def test_recommend_scores_candidates():
     local = [{"title": "Graph neural networks for materials", "journal": "Nature"}]
     candidates = [
-        {"title": "Graph neural networks for materials science", "source": "arxiv", "authors": ["A"], "summary": "..."},
-        {"title": "Unrelated genome sequencing", "source": "pubmed", "authors": ["B"], "summary": "..."},
+        {
+            "title": "Graph neural networks for materials science",
+            "source": "arxiv",
+            "authors": ["A"],
+            "summary": "...",
+        },
+        {
+            "title": "Unrelated genome sequencing",
+            "source": "pubmed",
+            "authors": ["B"],
+            "summary": "...",
+        },
     ]
     result = prs.recommend(local, candidates)
     assert len(result["recommendations"]) == 2

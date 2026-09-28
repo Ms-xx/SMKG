@@ -7,7 +7,9 @@ from app.services.graphrag_integration import GraphRAGIntegration
 
 
 class _FakeResponse:
-    def __init__(self, data=None, *, raise_http_error=False, status_code=200, text="boom"):
+    def __init__(
+        self, data=None, *, raise_http_error=False, status_code=200, text="boom"
+    ):
         self._data = data if data is not None else {"ok": True}
         self._raise_http_error = raise_http_error
         self.status_code = status_code
@@ -93,7 +95,11 @@ def test_rag_query(gr, monkeypatch):
     _install(monkeypatch, gr, _FakeClient(_FakeResponse({"answer": "A"})))
     assert gr.rag_query("q") == {"answer": "A"}
     # HTTPStatusError 分支
-    _install(monkeypatch, gr, _FakeClient(_FakeResponse(raise_http_error=True, status_code=500)))
+    _install(
+        monkeypatch,
+        gr,
+        _FakeClient(_FakeResponse(raise_http_error=True, status_code=500)),
+    )
     r = gr.rag_query("q")
     assert "500" in r["error"] and r["details"] == "boom"
     # 通用异常
@@ -155,10 +161,3 @@ def test_clear_graph(gr, monkeypatch):
     assert gr.clear_graph() == {"cleared": True}
     _install(monkeypatch, gr, _FakeClient(raise_exc=True))
     assert gr.clear_graph() == {"error": "down"}
-
-
-def test_seed_demo_data(gr, monkeypatch):
-    _install(monkeypatch, gr, _FakeClient(_FakeResponse({"seeded": True})))
-    assert gr.seed_demo_data() == {"seeded": True}
-    _install(monkeypatch, gr, _FakeClient(raise_exc=True))
-    assert gr.seed_demo_data() == {"error": "down"}

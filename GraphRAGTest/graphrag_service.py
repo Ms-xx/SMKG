@@ -2,7 +2,7 @@
 GraphRAG 核心服务
 实现: 关键词提取 / 图谱检索 / 上下文组装 / LLM 生成
 """
-from typing import Any, Optional
+from typing import Any
 from loguru import logger
 from neo4j_client import neo4j_client
 from lmstudio_client import llm_client

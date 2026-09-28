@@ -78,11 +78,14 @@ if _HAS_ASYNC_DEPS:
         from app.utils.minio_client import MinioClient
 
         monkeypatch.setattr(
-            MinioClient, "upload_file",
+            MinioClient,
+            "upload_file",
             lambda self, object_name, data, content_type="application/pdf": object_name,
         )
         monkeypatch.setattr(MinioClient, "delete_file", lambda self, object_name: None)
-        monkeypatch.setattr(MinioClient, "download_file", lambda self, object_name: b"fake-pdf")
+        monkeypatch.setattr(
+            MinioClient, "download_file", lambda self, object_name: b"fake-pdf"
+        )
 
         session_factory = async_sessionmaker(engine, expire_on_commit=False)
 

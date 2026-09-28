@@ -34,7 +34,10 @@ def _paper_key(ref: dict[str, Any]) -> str:
 
 
 def build_citation_network(references: list[dict[str, Any]]) -> dict[str, Any]:
-    """每篇参考文献一个节点；同 key 去重；CITES 边基于共享作者/主题启发式（零元数据时为空图）。"""
+    """每篇参考文献一个节点；同 key 去重；CITES 边基于共享作者/主题启发式（零元数据时为空图）。
+
+    步骤 16.1.4：节点补 authors/venue/year 字段，使共享作者/年份启发式可产出真实 CITES 边。
+    """
     nodes: list[dict[str, Any]] = []
     seen: set[str] = set()
     for r in references or []:
@@ -49,6 +52,9 @@ def build_citation_network(references: list[dict[str, Any]]) -> dict[str, Any]:
                 "year": r.get("year"),
                 "doi": r.get("doi"),
                 "ref_index": r.get("index"),
+                "authors": r.get("authors") or [],
+                "venue": r.get("venue") or r.get("journal"),
+                "title": r.get("title"),
             }
         )
 
@@ -57,6 +63,19 @@ def build_citation_network(references: list[dict[str, Any]]) -> dict[str, Any]:
     for i in range(len(nodes)):
         for j in range(i + 1, len(nodes)):
             a, b = nodes[i], nodes[j]
+            # 共享作者启发式：作者列表有交集则建边
+            a_authors = set(a.get("authors") or [])
+            b_authors = set(b.get("authors") or [])
+            if a_authors and b_authors and a_authors & b_authors:
+                edges.append(
+                    {
+                        "source": a["id"],
+                        "target": b["id"],
+                        "type": "CITES",
+                        "match_type": "shared_author",
+                    }
+                )
+                continue
             if a["year"] and b["year"] and a["year"] == b["year"]:
                 continue
             # 简化：标题 n-gram 高度相似则视为同主题弱连接
@@ -96,8 +115,8 @@ def page_rank(
     return rank
 
 
-def betweenness_centrality(graph: dict[str, Any]) -> dict[str, float]:
-    """未加权 Brandes 介数中心性，纯 Python。"""
+def _build_undirected_adj(graph: dict[str, Any]) -> tuple[dict[str, list[str]], set[str]]:
+    """构建无向邻接表，返回 (adj, node_ids)。"""
     nodes = graph.get("nodes", [])
     node_ids = {n["id"] for n in nodes}
     adj: dict[str, list[str]] = {n: [] for n in node_ids}
@@ -105,32 +124,57 @@ def betweenness_centrality(graph: dict[str, Any]) -> dict[str, float]:
         if e["source"] in adj and e["target"] in adj:
             adj[e["source"]].append(e["target"])
             adj[e["target"]].append(e["source"])
+    return adj, node_ids
+
+
+def _brandes_sssp(
+    adj: dict[str, list[str]], node_ids: set[str], s: str
+) -> tuple[list[str], dict[str, list[str]], dict[str, int]]:
+    """单源最短路径 BFS，返回 (stack, pred, sigma)。"""
+    stack: list[str] = []
+    pred: dict[str, list[str]] = {n: [] for n in node_ids}
+    dist = dict.fromkeys(node_ids, -1)
+    sigma = dict.fromkeys(node_ids, 0)
+    dist[s] = 0
+    sigma[s] = 1
+    queue = [s]
+    while queue:
+        v = queue.pop(0)
+        stack.append(v)
+        for w in adj[v]:
+            if dist[w] < 0:
+                dist[w] = dist[v] + 1
+                queue.append(w)
+            if dist[w] == dist[v] + 1:
+                sigma[w] += sigma[v]
+                pred[w].append(v)
+    return stack, pred, sigma
+
+
+def _accumulate_backtrack(
+    stack: list[str],
+    pred: dict[str, list[str]],
+    sigma: dict[str, int],
+    cb: dict[str, float],
+    s: str,
+) -> None:
+    """回溯累积 delta 到 cb。"""
+    delta = dict.fromkeys(cb, 0.0)
+    while stack:
+        w = stack.pop()
+        for v in pred[w]:
+            delta[v] += (sigma[v] / sigma[w]) * (1 + delta[w]) if sigma[w] else 0.0
+        if w != s:
+            cb[w] += delta[w]
+
+
+def betweenness_centrality(graph: dict[str, Any]) -> dict[str, float]:
+    """未加权 Brandes 介数中心性，纯 Python。"""
+    adj, node_ids = _build_undirected_adj(graph)
     cb = dict.fromkeys(node_ids, 0.0)
     for s in node_ids:
-        stack: list[str] = []
-        pred: dict[str, list[str]] = {n: [] for n in node_ids}
-        dist = dict.fromkeys(node_ids, -1)
-        sigma = dict.fromkeys(node_ids, 0)
-        dist[s] = 0
-        sigma[s] = 1
-        queue = [s]
-        while queue:
-            v = queue.pop(0)
-            stack.append(v)
-            for w in adj[v]:
-                if dist[w] < 0:
-                    dist[w] = dist[v] + 1
-                    queue.append(w)
-                if dist[w] == dist[v] + 1:
-                    sigma[w] += sigma[v]
-                    pred[w].append(v)
-        delta = dict.fromkeys(node_ids, 0.0)
-        while stack:
-            w = stack.pop()
-            for v in pred[w]:
-                delta[v] += (sigma[v] / sigma[w]) * (1 + delta[w]) if sigma[w] else 0.0
-            if w != s:
-                cb[w] += delta[w]
+        stack, pred, sigma = _brandes_sssp(adj, node_ids, s)
+        _accumulate_backtrack(stack, pred, sigma, cb, s)
     if len(node_ids) > 2:
         norm = 2.0 / ((len(node_ids) - 1) * (len(node_ids) - 2))
         cb = {k: v * norm for k, v in cb.items()}
@@ -166,9 +210,7 @@ def _llm_chat_completion(
 ) -> str:
     """调用 OpenAI 兼容 /v1/chat/completions 生成综述正文，失败抛异常由调用方降级。"""
     url = endpoint.rstrip("/") + "/chat/completions"
-    payload = json.dumps(
-        {"model": model, "messages": messages, "temperature": 0.3}
-    ).encode("utf-8")
+    payload = json.dumps({"model": model, "messages": messages, "temperature": 0.3}).encode("utf-8")
     req = urllib.request.Request(
         url,
         data=payload,
@@ -197,9 +239,7 @@ def generate_survey(
         )
         for i, r in enumerate(references or [])
     ]
-    key_brief = "\n".join(
-        f"- {t}" for t in top_titles
-    ) or "（无）"
+    key_brief = "\n".join(f"- {t}" for t in top_titles) or "（无）"
     prompt = (
         "请基于下面给出的参考文献列表撰写一段中文学术领域综述（3-5 句），"
         "概述该领域的研究脉络、技术路线与代表性工作。不得编造参考文献中不存在的观点；"

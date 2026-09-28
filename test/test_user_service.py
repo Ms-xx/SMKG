@@ -14,8 +14,17 @@ from app.schemas.user import UserUpdate
 from app.services.user_service import UserService
 
 
-async def _make_user(db, username="alice", email="alice@x.com", role="annotator", is_active=True):
-    u = User(username=username, email=email, password_hash="x", role=role, is_active=is_active, full_name="Alice")
+async def _make_user(
+    db, username="alice", email="alice@x.com", role="annotator", is_active=True
+):
+    u = User(
+        username=username,
+        email=email,
+        password_hash="x",
+        role=role,
+        is_active=is_active,
+        full_name="Alice",
+    )
     db.add(u)
     await db.flush()
     return u
@@ -34,7 +43,9 @@ async def test_get_user_by_id(db):
 @pytest.mark.asyncio
 async def test_list_users_filters(db):
     await _make_user(db, username="alice", email="a@x.com", role="annotator")
-    await _make_user(db, username="bob", email="b@x.com", role="reviewer", is_active=False)
+    await _make_user(
+        db, username="bob", email="b@x.com", role="reviewer", is_active=False
+    )
     svc = UserService()
 
     users, total = await svc.list_users(db, 1, 10)

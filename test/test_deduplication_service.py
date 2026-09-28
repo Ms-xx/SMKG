@@ -27,8 +27,16 @@ def test_extract_arxiv_version():
 def test_detect_groups_duplicates():
     svc = DeduplicationService()
     docs = [
-        {"id": "d1", "title": "arXiv:1706.03762v1 Attention is all you need", "abstract": "transformer"},
-        {"id": "d2", "title": "arXiv:1706.03762v7 Attention is all you need", "abstract": "transformer"},
+        {
+            "id": "d1",
+            "title": "arXiv:1706.03762v1 Attention is all you need",
+            "abstract": "transformer",
+        },
+        {
+            "id": "d2",
+            "title": "arXiv:1706.03762v7 Attention is all you need",
+            "abstract": "transformer",
+        },
         {"id": "d3", "title": "Some unrelated chemistry paper", "abstract": "molecule"},
     ]
     result = svc.detect(docs, threshold=0.80)

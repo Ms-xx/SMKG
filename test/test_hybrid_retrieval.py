@@ -6,7 +6,9 @@ hybrid_retrieval 单元测试
 import os
 import sys
 
-GRAPHRAG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "GraphRAGTest"))
+GRAPHRAG_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "GraphRAGTest")
+)
 if GRAPHRAG_DIR not in sys.path:
     sys.path.insert(0, GRAPHRAG_DIR)
 
@@ -28,13 +30,23 @@ def test_search_returns_fused_results():
     res = hr.search("钙钛矿 光电转换效率", top_k=5)
 
     assert res["query"] == "钙钛矿 光电转换效率"
-    assert res["rerank_backend"] in {"none", "cross-encoder"}  # 有无 sentence-transformers 均可用
+    assert res["rerank_backend"] in {
+        "none",
+        "cross-encoder",
+    }  # 有无 sentence-transformers 均可用
     assert len(res["results"]) >= 1
 
     for r in res["results"]:
-        assert {"id", "type", "text", "metadata", "score", "vector_score", "bm25_score", "rerank_score"} <= set(
-            r.keys()
-        )
+        assert {
+            "id",
+            "type",
+            "text",
+            "metadata",
+            "score",
+            "vector_score",
+            "bm25_score",
+            "rerank_score",
+        } <= set(r.keys())
 
     # 融合分数按降序排列
     scores = [r["score"] for r in res["results"]]

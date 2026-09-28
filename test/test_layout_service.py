@@ -44,8 +44,8 @@ def test_normalize_boxes():
 
 def test_map_token_labels_to_words():
     id2label = {0: "TEXT", 1: "TITLE", 2: "LIST"}
-    word_ids = [0, 0, 1, 2]          # word0, word0(子词), word1, word2
-    preds = [0, 0, 1, 2]            # TEXT, TEXT, TITLE, LIST
+    word_ids = [0, 0, 1, 2]  # word0, word0(子词), word1, word2
+    preds = [0, 0, 1, 2]  # TEXT, TEXT, TITLE, LIST
     labels = map_token_labels_to_words(word_ids, preds, id2label)
     assert labels == ["paragraph", "title", "list"]
 
@@ -96,8 +96,8 @@ def test_detect_header_footer():
     # 页面高度 1000px：顶部 <120 为页眉，底部 >880 为页脚
     elements = [
         {"type": "paragraph", "text": "正文", "bbox": [0, 200, 100, 220]},
-        {"type": "paragraph", "text": "钙钛矿材料", "bbox": [0, 10, 50, 25]},      # 页眉
-        {"type": "paragraph", "text": "5", "bbox": [0, 950, 20, 970]},            # 页脚页码
+        {"type": "paragraph", "text": "钙钛矿材料", "bbox": [0, 10, 50, 25]},  # 页眉
+        {"type": "paragraph", "text": "5", "bbox": [0, 950, 20, 970]},  # 页脚页码
     ]
     out = detect_header_footer(elements, page_height=1000)
     assert out[0]["type"] == "paragraph"  # 正文不变

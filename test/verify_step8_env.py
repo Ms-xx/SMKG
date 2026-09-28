@@ -31,7 +31,9 @@ async def main():
         from app.utils.minio_client import MinioClient
 
         mc = MinioClient()
-        print("MinIO bucket exists:", mc.client.bucket_exists(settings.MINIO_BUCKET_NAME))
+        print(
+            "MinIO bucket exists:", mc.client.bucket_exists(settings.MINIO_BUCKET_NAME)
+        )
     except Exception as e:  # noqa: BLE001
         print("MinIO FAIL:", e)
     # MySQL
@@ -39,7 +41,9 @@ async def main():
         async with async_session() as db:
             await db.execute(text("SELECT 1"))
             print("MySQL SELECT 1: ok")
-            total = (await db.execute(text("SELECT COUNT(*) c FROM documents"))).scalar()
+            total = (
+                await db.execute(text("SELECT COUNT(*) c FROM documents"))
+            ).scalar()
             print("documents count:", total)
     except Exception as e:  # noqa: BLE001
         print("MySQL FAIL:", e)
@@ -58,7 +62,9 @@ async def main():
 
     mc = MinioClient()
     try:
-        mc.client.remove_object(settings.MINIO_BUCKET_NAME, "original/admin/1706.03762.pdf")
+        mc.client.remove_object(
+            settings.MINIO_BUCKET_NAME, "original/admin/1706.03762.pdf"
+        )
     except Exception:  # noqa: BLE001
         pass
 
@@ -71,10 +77,24 @@ async def main():
     print("PDF bytes:", len(data))
     async with async_session() as db:
         doc = await DocumentService().create_document_from_bytes(
-            db, meta["filename"], data, "application/pdf", "Attention Is All You Need (实测)", uid
+            db,
+            meta["filename"],
+            data,
+            "application/pdf",
+            "Attention Is All You Need (实测)",
+            uid,
         )
-        print("document_id:", doc.id, "status:", doc.status, "MinIO object:", doc.file_path)
-        parsing = await DocumentService().trigger_parsing(db, doc.id, uid, scope_all=True)
+        print(
+            "document_id:",
+            doc.id,
+            "status:",
+            doc.status,
+            "MinIO object:",
+            doc.file_path,
+        )
+        parsing = await DocumentService().trigger_parsing(
+            db, doc.id, uid, scope_all=True
+        )
         print("parsing:", parsing)
         await db.commit()
 

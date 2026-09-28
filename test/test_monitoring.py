@@ -33,7 +33,11 @@ def _fake_alert(status="firing", name="BackendDown", summary="后端服务不可
 
 
 def _payload():
-    return {"receiver": "backend-webhook", "status": "firing", "alerts": [_fake_alert()]}
+    return {
+        "receiver": "backend-webhook",
+        "status": "firing",
+        "alerts": [_fake_alert()],
+    }
 
 
 # ── 业务指标 ──────────────────────────────────────────────
@@ -88,13 +92,17 @@ def test_sign_robot_is_stable():
 
 
 def test_build_webhook_dingtalk_with_secret():
-    req = build_webhook("https://oapi.dingtalk.com/robot/send?access_token=t", _payload(), "s3cret")
+    req = build_webhook(
+        "https://oapi.dingtalk.com/robot/send?access_token=t", _payload(), "s3cret"
+    )
     assert "timestamp=" in req["url"] and "sign=" in req["url"]
     assert req["json"]["msgtype"] == "markdown"
 
 
 def test_build_webhook_wecom():
-    req = build_webhook("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=k", _payload())
+    req = build_webhook(
+        "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=k", _payload()
+    )
     assert req["json"]["msgtype"] == "markdown"
 
 

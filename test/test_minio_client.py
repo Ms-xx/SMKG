@@ -60,14 +60,18 @@ def test_upload_file_minio(mc):
 
 
 def test_upload_file_local_fallback(mc, tmp_path, monkeypatch):
-    monkeypatch.setattr("app.utils.minio_client.LOCAL_STORAGE_DIR", str(tmp_path / "storage"))
+    monkeypatch.setattr(
+        "app.utils.minio_client.LOCAL_STORAGE_DIR", str(tmp_path / "storage")
+    )
     mc._available = False
     assert mc.upload_file("a.pdf", b"data") == "local://a.pdf"
     assert (tmp_path / "storage" / "a.pdf").exists()
 
 
 def test_upload_file_minio_error_fallback(mc, tmp_path, monkeypatch):
-    monkeypatch.setattr("app.utils.minio_client.LOCAL_STORAGE_DIR", str(tmp_path / "storage"))
+    monkeypatch.setattr(
+        "app.utils.minio_client.LOCAL_STORAGE_DIR", str(tmp_path / "storage")
+    )
 
     class BadMinio(_FakeMinio):
         def put_object(self, *a, **k):
@@ -92,7 +96,9 @@ def test_check_available_false_on_error(mc):
 
 # ── 下载 ────────────────────────────────────────────────────────────────
 def test_download_file_local(mc, tmp_path, monkeypatch):
-    monkeypatch.setattr("app.utils.minio_client.LOCAL_STORAGE_DIR", str(tmp_path / "storage"))
+    monkeypatch.setattr(
+        "app.utils.minio_client.LOCAL_STORAGE_DIR", str(tmp_path / "storage")
+    )
     (tmp_path / "storage").mkdir(parents=True)
     (tmp_path / "storage" / "a.pdf").write_bytes(b"localdata")
     assert mc.download_file("local://a.pdf") == b"localdata"
@@ -117,7 +123,10 @@ def test_download_file_error(mc):
 
 # ── 预签名 URL ──────────────────────────────────────────────────────────
 def test_get_presigned_url_local(mc):
-    assert mc.get_presigned_url("local://a.pdf") == "/api/v1/documents/local-file/local://a.pdf"
+    assert (
+        mc.get_presigned_url("local://a.pdf")
+        == "/api/v1/documents/local-file/local://a.pdf"
+    )
 
 
 def test_get_presigned_url_minio(mc):
@@ -128,7 +137,9 @@ def test_get_presigned_url_minio(mc):
 
 # ── 删除 ────────────────────────────────────────────────────────────────
 def test_delete_file_local(mc, tmp_path, monkeypatch):
-    monkeypatch.setattr("app.utils.minio_client.LOCAL_STORAGE_DIR", str(tmp_path / "storage"))
+    monkeypatch.setattr(
+        "app.utils.minio_client.LOCAL_STORAGE_DIR", str(tmp_path / "storage")
+    )
     (tmp_path / "storage").mkdir(parents=True)
     p = tmp_path / "storage" / "a.pdf"
     p.write_bytes(b"x")

@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     API_PREFIX: str = "/api/v1"
 
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:5173",
+    ]
+
     DATABASE_URL: str = "mysql+aiomysql://root:CHANGE_ME@127.0.0.1:3306/wx"
     DATABASE_POOL_SIZE: int = 20
     DATABASE_MAX_OVERFLOW: int = 10
@@ -126,6 +132,13 @@ class Settings(BaseSettings):
     TRANSE_LR: float = 0.01
     TRANSE_MARGIN: float = 1.0
     TRANSE_SEED: int = 42
+    # RotatE（步骤 17，复数旋转打分，纯 numpy 可选候选级）
+    ROTATE_DIM: int = 50
+    ROTATE_EPOCHS: int = 300
+    ROTATE_LR: float = 0.01
+    ROTATE_MARGIN: float = 1.0
+    ROTATE_GAMMA: float = 6.0
+    ROTATE_SEED: int = 42
 
     # 语义搜索（分面搜索 + 搜索建议；向量+BM25 混合检索由 GraphRAGTest 提供）
     SEMANTIC_SEARCH_ENABLED: bool = True
@@ -193,6 +206,17 @@ class Settings(BaseSettings):
 
     # 引用图谱挖掘与综述（10.2 模块五：PageRank/介数中心性 + 规则综述，纯 Python 零依赖）
     CITATION_GRAPH_ENABLED: bool = True
+
+    # 结构化导出补强（步骤 13 P2：JATS XML / GROBID）
+    JATS_EXPORT_ENABLED: bool = True
+    # GROBID 作为「可插拔可降级」增强器：仅当启用且 endpoint 可达时优先用其条目标注，
+    # 否则回退规则 `references_to_jats`。本机未部署时默认关闭，不影响 JATS 出口。
+    GROBID_ENABLED: bool = False
+    GROBID_ENDPOINT: str = ""
+
+    # 知识图谱高级能力（步骤 12 P2：趋势分析 + 异常检测；纯 Python 零依赖）
+    TREND_ANALYSIS_ENABLED: bool = True
+    ANOMALY_DETECTION_ENABLED: bool = True
 
     # 写作辅助与可视化 Copilot（10.2 模块六：框架/图脚本/CSV→SVG，纯 Python 零依赖）
     WRITING_ASSISTANT_ENABLED: bool = True
