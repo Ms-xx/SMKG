@@ -154,6 +154,9 @@ async def persist_record(db: AsyncSession, data: dict[str, Any]) -> dict[str, An
     )
     db.add(record)
     await db.flush()
+    # created_at 为 server_default，MySQL 无 RETURNING 回填；flush 后须 refresh 才会在
+    # Python 侧有值，否则 row_to_dict 访问 created_at 触发懒加载 SELECT → MissingGreenlet。
+    await db.refresh(record)
     return {"id": record.id, **row_to_dict(record)}
 
 
