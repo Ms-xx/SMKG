@@ -15,6 +15,8 @@ from datetime import datetime
 
 import requests
 
+from _env import ADMIN_PASSWORD, ADMIN_USERNAME
+
 
 def login(base, username, password):
     r = requests.post(
@@ -30,8 +32,8 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base", default="http://localhost:8000/api/v1")
     parser.add_argument("--out", default=None)
-    parser.add_argument("--user", default="admin")
-    parser.add_argument("--password", default="admin123")
+    parser.add_argument("--user", default=ADMIN_USERNAME)
+    parser.add_argument("--password", default=ADMIN_PASSWORD)
     args = parser.parse_args()
 
     out = args.out or os.path.abspath(

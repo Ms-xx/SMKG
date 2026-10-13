@@ -21,6 +21,8 @@ from datetime import datetime
 
 import requests
 
+from _env import ADMIN_PASSWORD, ADMIN_USERNAME
+
 # --------------------------------------------------------------------------
 # 后端真实 ExtractionService（复用既有抽取逻辑）
 # --------------------------------------------------------------------------
@@ -218,8 +220,8 @@ def main() -> int:
         default=None,
         help="结果 JSON 输出路径（默认 outputs/e2e_upload_to_kg.json）",
     )
-    parser.add_argument("--user", default="admin")
-    parser.add_argument("--password", default="admin123")
+    parser.add_argument("--user", default=ADMIN_USERNAME)
+    parser.add_argument("--password", default=ADMIN_PASSWORD)
     args = parser.parse_args()
 
     pdfs = [os.path.abspath(p) for p in args.pdfs]

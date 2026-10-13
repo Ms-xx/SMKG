@@ -329,6 +329,65 @@ def resolve_conflicts(proposals: list[dict[str, Any]], mode: str = "merge") -> d
     }
 
 
+# ── 图谱融合（创新点 D）：消解后实体/关系写回 Neo4j ──────────────
+def _build_relations_from_cooccurrence(
+    entities: list[dict[str, Any]],
+    text: str,
+    rel_type: str,
+) -> list[dict[str, Any]]:
+    """基于句内共现为消解后的实体构建关系（无图谱/无文本时可返回空）。
+
+    entities: [{"text", "type"}]（已消解、去重）
+    规则：同一句子内同时出现的实体对 → 一条 rel_type 关系，context 取该句。
+    纯函数、确定性、可单测。
+    """
+    if not entities:
+        return []
+    sentences = [s.strip() for s in re.split(r"[。；;,\n]", text or "") if s.strip()]
+
+    relations: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for sent in sentences:
+        # 找到该句命中的实体（按原文文本匹配，忽略大小写）
+        hit = [
+            e
+            for e in entities
+            if _normalize_text(e.get("text", ""))
+            and _normalize_text(e.get("text", "")) in _normalize_text(sent)
+        ]
+        for i in range(len(hit)):
+            for j in range(i + 1, len(hit)):
+                a, b = hit[i], hit[j]
+                key = tuple(sorted([_normalize_text(a["text"]), _normalize_text(b["text"])]))
+                if key in seen:
+                    continue
+                seen.add(key)
+                relations.append(
+                    {
+                        "source": a["text"],
+                        "source_type": a.get("type", "Entity"),
+                        "target": b["text"],
+                        "target_type": b.get("type", "Entity"),
+                        "relation_type": rel_type,
+                        "context": sent,
+                    }
+                )
+    return relations
+
+
+def _entities_to_graph_format(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """把消解后的 final_items 归一化为图谱写入的 entities 格式。"""
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for it in items:
+        txt = str(it.get("text", "")).strip()
+        if not txt or _normalize_text(txt) in seen:
+            continue
+        seen.add(_normalize_text(txt))
+        out.append({"text": txt, "entity_type": it.get("type", "Entity")})
+    return out
+
+
 # ── 会话存储 ─────────────────────────────────────────────────────
 class _SessionStore:
     """进程内会话注册表，线程安全，可 JSON 持久化（与 A/B 测试一致）。"""
@@ -388,6 +447,69 @@ class MultiAgentService:
     def list_agents(self) -> list[dict[str, str]]:
         return [dict(a) for a in AGENT_REGISTRY]
 
+    def fuse_to_graph(
+        self,
+        doc_id: str,
+        doc_title: str,
+        final_items: list[dict[str, Any]],
+        source_text: str,
+    ) -> dict[str, Any]:
+        """把冲突消解后的最终实体/关系写回 Neo4j 图谱（可插拔可降级）。
+
+        - 开关关闭或无可写实体：直接降级返回，不落图谱。
+        - 图谱服务不可用（GraphRAGTest 未启动 / Neo4j 未连接）：捕获异常降级，
+          保留 final_items，不阻断多 Agent 主流程。
+        """
+        if not settings.MULTI_AGENT_GRAPH_FUSION_ENABLED:
+            return {"graph_written": False, "reason": "disabled"}
+        if not final_items:
+            return {"graph_written": False, "reason": "no_entities"}
+
+        entities = _entities_to_graph_format(final_items)
+        # 懒导入，避免启动时依赖图谱服务与 httpx
+        from app.services.graphrag_integration import GraphRAGIntegration
+
+        relations = _build_relations_from_cooccurrence(
+            final_items, source_text, settings.MULTI_AGENT_FUSION_REL_TYPE_DEFAULT
+        )
+        chunks = [source_text] if source_text else []
+        try:
+            integ = GraphRAGIntegration()
+            result = integ.index_document(
+                doc_id=doc_id,
+                doc_title=doc_title,
+                entities=entities,
+                relations=relations,
+                metadata={"title": doc_title},
+                chunks=chunks,
+            )
+            if result.get("error"):
+                logger.warning(f"多智能体图谱融合写回失败，降级不落图谱：{result['error']}")
+                return {
+                    "graph_written": False,
+                    "reason": "graph_error",
+                    "error": result["error"],
+                    "entities": len(entities),
+                    "relations": len(relations),
+                }
+            return {
+                "graph_written": True,
+                "doc_id": doc_id,
+                "entities": result.get("entities_imported", len(entities)),
+                "relations": result.get("relations_imported", len(relations)),
+                "doc_entity_links": result.get("doc_entity_links", 0),
+                **result,
+            }
+        except Exception as exc:  # pragma: no cover - 图不可用时降级
+            logger.warning(f"多智能体图谱融合降级（图谱不可用）：{exc}")
+            return {
+                "graph_written": False,
+                "reason": "exception",
+                "error": str(exc),
+                "entities": len(entities),
+                "relations": len(relations),
+            }
+
     def run(
         self,
         query: str,
@@ -423,14 +545,26 @@ class MultiAgentService:
             )
 
         resolved = resolve_conflicts(agent_results, mode)
+        source_text = context or query
+        session_id = f"ma-{len(self._store.list()) + 1:04d}"
+
+        # 创新点 D：多智能体图谱融合（消解后实体/关系写回 Neo4j，可降级）
+        graph_fusion = self.fuse_to_graph(
+            doc_id=f"session:{session_id}",
+            doc_title=(query or source_text)[:120],
+            final_items=resolved["final_items"],
+            source_text=source_text,
+        )
+
         session = {
-            "session_id": f"ma-{len(self._store.list()) + 1:04d}",
+            "session_id": session_id,
             "query": query,
             "mode": mode,
             "backend": settings.MULTI_AGENT_BACKEND,
             "agents": selected,
             "agent_results": agent_results,
             "conflicts": resolved["conflicts"],
+            "graph_fusion": graph_fusion,
             "resolution": {
                 "mode": mode,
                 "final_text": resolved["final_text"],

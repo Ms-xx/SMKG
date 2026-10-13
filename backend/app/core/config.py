@@ -7,6 +7,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # backend/app/core
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(_BASE_DIR)))
 
+# 集中化配置目录：所有敏感配置统一放在 <repo>/config 下（见 config/README.md）
+CONFIG_DIR = os.path.join(PROJECT_ROOT, "config")
+
 # 模型统一存放目录（moulds），每个模型单独一个子文件夹
 MODELS_DIR = os.path.join(PROJECT_ROOT, "moulds")
 
@@ -23,6 +26,10 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     API_PREFIX: str = "/api/v1"
+
+    # 初始管理员账号（仅本地开发默认值，生产环境务必改为强口令，见 config/backend.env）
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "admin123"
 
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
@@ -154,6 +161,9 @@ class Settings(BaseSettings):
     ACTIVE_LEARNING_DIVERSITY: str = "core_set"  # core_set | kmeans
     ACTIVE_LEARNING_QBC: str = "vote_entropy"  # vote_entropy | disagreement
     ACTIVE_LEARNING_SEED: int = 42
+    # 主动学习闭环（创新点 C）：标注→训练代理分类器→评估→用模型概率再采样
+    ACTIVE_LEARNING_LOOP_ENABLED: bool = True
+    ACTIVE_LEARNING_LOOP_TEMPERATURE: float = 1.0  # 近邻软化的温度参数
 
     # 标注一致性评估（Fleiss' Kappa / Cohen's Kappa / Krippendorff's Alpha；纯 Python 零依赖）
     ANNOTATION_AGREEMENT_ENABLED: bool = True
@@ -179,6 +189,9 @@ class Settings(BaseSettings):
     )
     MULTI_AGENT_MAX_ROUNDS: int = 3  # 协调器聚合最大轮次（当前单轮聚合，预留）
     MULTI_AGENT_STORE_PATH: str = ""  # 留空 = 内存存储；否则 JSON 文件路径
+    # 多智能体图谱融合（创新点 D）：冲突消解后的最终实体/关系写回 Neo4j 图谱；图不可用时降级不落图谱但保留 final_items
+    MULTI_AGENT_GRAPH_FUSION_ENABLED: bool = True
+    MULTI_AGENT_FUSION_REL_TYPE_DEFAULT: str = "CO_OCCURS"  # 句内共现构建关系的默认类型
 
     # 系统性能探测（步骤 11：延迟基线探测，可插拔可降级）
     PERFORMANCE_CHECK_ENABLED: bool = True
@@ -255,7 +268,17 @@ class Settings(BaseSettings):
     LOG_JSON: bool = False  # 为 True 时输出 JSON 结构化日志（供 Filebeat/ELK 采集）
     LOG_FILE: str = ""  # 留空 = 仅 stdout；否则追加写 JSON 日志到该文件（供 Filebeat 采集）
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+    model_config = SettingsConfigDict(
+        # 依次加载共享配置与后端专有配置（后者优先级更高）。
+        # 使用绝对路径，避免之前 `env_file=".env"` 依赖启动工作目录的坑
+        # （在非 backend/ 目录下启动会读不到配置）。
+        env_file=(
+            os.path.join(CONFIG_DIR, "common.env"),
+            os.path.join(CONFIG_DIR, "backend.env"),
+        ),
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+    )
 
 
 @lru_cache()

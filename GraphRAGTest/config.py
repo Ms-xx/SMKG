@@ -12,6 +12,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_ROOT = os.path.dirname(_BASE_DIR)
 
+# 集中化配置目录：共享凭据与子服务专有配置统一放 <repo>/config（见 config/README.md）
+_CONFIG_DIR = os.path.join(_PROJECT_ROOT, "config")
+
 # 模型统一存放目录（moulds，每个模型单独一个子文件夹）
 MODELS_DIR = os.path.join(_PROJECT_ROOT, "moulds")
 
@@ -45,6 +48,18 @@ class Settings(BaseSettings):
     GRAPHRAG_RERANK_DEVICE: str = "cpu"
     GRAPHRAG_RERANK_MODEL_PATH: str = os.path.join(MODELS_DIR, "bge-reranker-base")
 
+    # ─── 创新点 B：图谱增强检索 + grounding_score（可插拔、可降级）───
+    # 1) 图谱邻居扩跳重排序：对检索出的候选节点按其在图谱中的 1/2 跳邻居的
+    #    连接强度（频次/度）加权重排上下文，突出"中心实体"。
+    GRAPH_HOP_RERANK_ENABLED: bool = True
+    GRAPH_HOP_DEPTH: int = 2  # 邻居扩跳深度（1=一跳，2=一跳+二跳）
+    GRAPH_HOP_BOOST_WEIGHT: float = 0.5  # 图谱邻居分相对原始检索分的权重(0~1)
+    # 2) grounding_score：评估"最终答案"是否被检索到的证据（页码片段/图节点名）支撑。
+    GROUNDING_ENABLED: bool = True
+    GROUNDING_DEVICE: str = "cpu"  # 预留语义加密设备（当前纯词法比对，预留 cuda）
+    GROUNDING_MIN_TOKEN_LEN: int = 2  # 支撑比对的有效 token 最小长度
+    GROUNDING_MAX_EVIDENCE_CHARS: int = 8000  # 证据拼接上限字符数
+
     # FastAPI
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8001
@@ -68,7 +83,12 @@ class Settings(BaseSettings):
     )
 
     model_config = SettingsConfigDict(
-        env_file=os.path.join(_BASE_DIR, ".env"), env_file_encoding="utf-8"
+        # 依次加载共享配置与子服务专有配置（后者优先级更高）
+        env_file=(
+            os.path.join(_CONFIG_DIR, "common.env"),
+            os.path.join(_CONFIG_DIR, "graphrag.env"),
+        ),
+        env_file_encoding="utf-8",
     )
 
 

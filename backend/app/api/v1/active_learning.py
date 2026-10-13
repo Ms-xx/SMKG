@@ -10,6 +10,7 @@ from app.core.permissions import ANNOTATION_READ, require_permission
 from app.core.security import get_current_user
 from app.models.annotation import Annotation
 from app.models.document import Document, DocumentElement, DocumentPage
+from app.services.active_learning_loop import active_learning_loop_service
 from app.services.active_learning_service import active_learning_service
 
 router = APIRouter()
@@ -35,6 +36,49 @@ class ActiveLearningSelectRequest(BaseModel):
     )
     diversity_method: Optional[str] = Field(None, description="core_set | kmeans")
     qbc_method: Optional[str] = Field(None, description="vote_entropy | disagreement")
+
+
+class LabeledSample(BaseModel):
+    """已标注样本（标注回写训练集）。"""
+
+    text: Optional[str] = None
+    label: Optional[str] = Field(None, description="标注类型/标签")
+    features: Optional[list[float]] = None
+
+
+class ActiveLearningCycleRequest(BaseModel):
+    labeled: list[LabeledSample] = Field(
+        default_factory=list, description="已标注样本（标注回写训练集）"
+    )
+    unlabeled: list[Sample] = Field(
+        default_factory=list, description="待标注样本池（候选，采样目标）"
+    )
+    strategy: Optional[str] = Field(
+        None, description="uncertainty | diversity | qbc | hybrid（缺省 hybrid）"
+    )
+    top_k: int = Field(10, ge=1, le=200)
+    seed: Optional[int] = Field(None, description="可复现种子；缺省用配置默认 42")
+
+
+@router.post("/cycle")
+async def run_active_learning_cycle(
+    body: ActiveLearningCycleRequest,
+    current_user: dict = Depends(require_permission(ANNOTATION_READ)),
+):
+    """主动学习闭环（创新点 C）：标注 → 训练代理分类器 → 评估 → 用模型概率再采样。
+
+    labeled 提供训练信号，unlabeled 为待标注池；服务用已标注数据训练确定性代理分类器，
+    在留出集上评估 accuracy/macro-F1，再用模型输出的软概率做不确定性/混合采样，返回
+    下一批最值得优先标注的样本。无已标注数据/未提供特征 → 自动降级（静态 1-confidence
+    采样），接口不变，不抛出。
+    """
+    return active_learning_loop_service.run_cycle(
+        labeled=[lb.model_dump() for lb in body.labeled],
+        unlabeled=[s.model_dump() for s in body.unlabeled],
+        strategy=body.strategy,
+        top_k=body.top_k,
+        seed=body.seed,
+    )
 
 
 @router.post("/select")

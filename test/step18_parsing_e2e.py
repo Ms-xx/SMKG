@@ -34,10 +34,12 @@ import requests
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT / "backend"))
 
+from _env import ADMIN_PASSWORD, ADMIN_USERNAME  # noqa: E402
+
 BASE_URL = "http://127.0.0.1:8000"
 API = f"{BASE_URL}/api/v1"
-USERNAME = "admin"
-PASSWORD = "admin123"
+USERNAME = ADMIN_USERNAME
+PASSWORD = ADMIN_PASSWORD
 
 SAMPLES_DIR = _REPO_ROOT / "outputs" / "samples"
 

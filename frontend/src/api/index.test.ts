@@ -30,6 +30,33 @@ describe("api axios 实例", () => {
     await expect(req.rejected(new Error("boom"))).rejects.toThrow("boom");
   });
 
+  it("LLM 生成接口自动放宽超时到 120s", () => {
+    const req = (api.interceptors.request as any).handlers[0];
+    // 继承全局 30s 默认值的 LLM 请求会被提升
+    const cfg = req.fulfilled({
+      headers: {},
+      url: "/knowledge-graph/rag/query",
+      timeout: 30000,
+    });
+    expect(cfg.timeout).toBe(120000);
+
+    // 未显式设置超时（undefined）同样会被提升
+    const cfg2 = req.fulfilled({ headers: {}, url: "/writing-assistant/translate" });
+    expect(cfg2.timeout).toBe(120000);
+  });
+
+  it("非 LLM 接口不调整超时", () => {
+    const req = (api.interceptors.request as any).handlers[0];
+    const cfg = req.fulfilled({ headers: {}, url: "/documents/", timeout: 30000 });
+    expect(cfg.timeout).toBe(30000);
+  });
+
+  it("调用方显式指定更长超时时不被覆盖", () => {
+    const req = (api.interceptors.request as any).handlers[0];
+    const cfg = req.fulfilled({ headers: {}, url: "/multi-agent/run", timeout: 300000 });
+    expect(cfg.timeout).toBe(300000);
+  });
+
   it("响应拦截器返回 data", () => {
     const res = (api.interceptors.response as any).handlers[0];
     expect(res.fulfilled({ data: { ok: 1 } })).toEqual({ ok: 1 });

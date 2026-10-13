@@ -4,7 +4,8 @@ import asyncio
 import os
 import sys
 
-# 从 backend 目录运行（需本地 backend/.env 被 pydantic 加载）
+# 后端配置现从 config/ 集中加载（绝对路径，不再依赖工作目录），
+# 本脚本仍从 backend 目录运行以导入 app.* 包。
 sys.path.insert(0, os.path.abspath("."))
 
 

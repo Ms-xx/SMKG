@@ -22,6 +22,11 @@ _cov_*.txt
 !.env.development
 !.env.production
 
+# ── 集中化配置目录：仅提交 *.example 模板，真实值不进库 ──
+# 真实文件：config/common.env、config/backend.env、config/graphrag.env
+config/*.env
+!config/*.env.example
+
 # ── 前端 / Node ─────────────────────────────────────────
 node_modules/
 dist/

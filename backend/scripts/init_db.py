@@ -69,11 +69,12 @@ def init_database():
             )
 
         # 创建管理员用户（忽略已存在的）
+        # 账号/口令来自集中化配置 config/backend.env（见 config/README.md）
         print("创建管理员用户...")
         admin_user = {
-            "username": "admin",
-            "email": "admin@example.com",
-            "password_hash": get_password_hash("admin123"),
+            "username": settings.ADMIN_USERNAME,
+            "email": f"{settings.ADMIN_USERNAME}@example.com",
+            "password_hash": get_password_hash(settings.ADMIN_PASSWORD),
             "full_name": "系统管理员",
             "role": "admin",
             "is_active": 1,
@@ -108,8 +109,8 @@ def init_database():
 
     print("数据库初始化完成!")
     print("\n默认管理员账号:")
-    print("用户名: admin")
-    print("密码: admin123")
+    print(f"用户名: {settings.ADMIN_USERNAME}")
+    print(f"密码: {settings.ADMIN_PASSWORD}")
     print("\n请及时修改管理员密码!")
 
 

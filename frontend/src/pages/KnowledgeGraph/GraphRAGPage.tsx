@@ -362,6 +362,19 @@ export default function GraphRAGPage() {
       {/* 聊天区域 */}
       <Card
         style={{ height: 480, display: "flex", flexDirection: "column" }}
+        // 关键：让 .ant-card-body 成为**受约束**的 flex 列。
+        // 否则 body 默认是 block 且高度随内容增长，内层"flex:1 + overflowY:auto"
+        // 的消息列表拿不到高度约束 → 不滚动，内容撑破 480px 卡片，
+        // 把输入框挤出卡片外并与下方"示例问题"重叠（跑版）。
+        styles={{
+          body: {
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          },
+        }}
         title={
           <span>
             <RobotOutlined /> 问答对话
@@ -383,7 +396,16 @@ export default function GraphRAGPage() {
         }
       >
         {/* 消息列表 */}
-        <div style={{ flex: 1, overflowY: "auto", marginBottom: 12 }}>
+        <div
+          style={{
+            flex: 1,
+            // minHeight:0 是让 flex 子项能收缩到内容高度以下、从而触发滚动的必要条件
+            minHeight: 0,
+            overflowY: "auto",
+            marginBottom: 12,
+            paddingRight: 4, // 给滚动条留出间距，避免贴住气泡
+          }}
+        >
           {messages.length === 0 && (
             <div style={{ textAlign: "center", marginTop: 48, color: "#999" }}>
               <div
@@ -453,6 +475,7 @@ export default function GraphRAGPage() {
               <div
                 style={{
                   maxWidth: "78%",
+                  minWidth: 0, // 允许收缩，避免长内容把气泡顶宽
                   display: "flex",
                   gap: 10,
                   flexDirection: msg.role === "user" ? "row-reverse" : "row",
@@ -481,6 +504,7 @@ export default function GraphRAGPage() {
                 </div>
                 <div
                   style={{
+                    minWidth: 0, // 同上：让内部气泡可收缩，长串换行而非溢出
                     display: "flex",
                     flexDirection: "column",
                     alignItems: msg.role === "user" ? "flex-end" : "flex-start",
@@ -496,6 +520,11 @@ export default function GraphRAGPage() {
                         msg.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
                       padding: "10px 14px",
                       whiteSpace: "pre-wrap",
+                      // 长 URL / DOI / 无空格串也能强制换行，避免撑破气泡
+                      overflowWrap: "anywhere",
+                      wordBreak: "break-word",
+                      minWidth: 0,
+                      maxWidth: "100%",
                       lineHeight: 1.6,
                       fontSize: 14,
                       boxShadow:

@@ -2,6 +2,7 @@ import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from "axios";
 import { message } from "antd";
 import { mapErrorToChineseMessage } from "./errorMessage";
 import { shouldSuppress } from "./errorNotify";
+import { isLlmPath, LLM_TIMEOUT_MS } from "./timeouts";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "/api/v1",
@@ -14,6 +15,14 @@ api.interceptors.request.use(
     const token = localStorage.getItem("access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // LLM 生成类接口统一放宽超时（原因见 timeouts.ts 的 LLM_TIMEOUT_MS 注释）。
+    // 调用方若已显式指定更长的超时，则尊重其设置。
+    if (isLlmPath(config.url || "")) {
+      const current = typeof config.timeout === "number" ? config.timeout : 0;
+      if (current < LLM_TIMEOUT_MS) {
+        config.timeout = LLM_TIMEOUT_MS;
+      }
     }
     return config;
   },

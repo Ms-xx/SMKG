@@ -29,6 +29,8 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT / "GraphRAGTest"))
 sys.path.insert(0, str(_REPO_ROOT / "backend"))
 
+from _env import ADMIN_PASSWORD, ADMIN_USERNAME  # noqa: E402
+
 
 def _login(session, base_url: str, username: str, password: str) -> dict[str, str]:
     resp = session.post(
@@ -294,8 +296,8 @@ def main(args: argparse.Namespace) -> int:
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="图谱数据态复测（步骤 16.3）")
     p.add_argument("--base-url", type=str, default="http://127.0.0.1:8000")
-    p.add_argument("--username", type=str, default="admin")
-    p.add_argument("--password", type=str, default="admin123")
+    p.add_argument("--username", type=str, default=ADMIN_USERNAME)
+    p.add_argument("--password", type=str, default=ADMIN_PASSWORD)
     p.add_argument("--out", type=str, default=None)
     return p.parse_args()
 

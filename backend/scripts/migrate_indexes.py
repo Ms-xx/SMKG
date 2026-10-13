@@ -2,7 +2,7 @@
 """
 XiangMu 步骤 10.1：为存量 MySQL 幂等补充性能索引（基于 information_schema 判断，已存在则跳过）。
 
-用法（在 backend 目录，需本地 backend/.env 提供 DATABASE_URL）：
+用法（在 backend 目录；DATABASE_URL 来自集中化配置 config/backend.env）：
     python -m scripts.migrate_indexes
 """
 import sys

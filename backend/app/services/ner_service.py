@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import os
+import re
 import time
 from typing import Any
 
@@ -19,6 +20,201 @@ from loguru import logger
 
 from app.core.config import settings
 from app.utils.business_metrics import observe_model_inference
+
+_GAZETTEER_TERMS: dict[str, set[str]] = {
+    "MATERIAL": {
+        "perovskite",
+        "methylammonium lead iodide",
+        "graphene",
+        "silicon",
+        "titanium dioxide",
+        "tio2",
+        "mapbi3",
+        "zinc oxide",
+        "cesium lead",
+        "formamidinium",
+        "gallium arsenide",
+        "indium tin oxide",
+        "nickel oxide",
+        "spiro-ometad",
+        "mof",
+        "metal-organic framework",
+        "quantum dot",
+        "electrolyte",
+        "cathode",
+        "anode",
+        "polymer",
+        "composite",
+        "nanowire",
+        "nanoparticle",
+        "carbon nanotube",
+        "cnt",
+        "graphite",
+        "copper",
+        "aluminum",
+        "cadmium telluride",
+    },
+    "METHOD": {
+        "spin-coating",
+        "spin coating",
+        "chemical vapor deposition",
+        "cvd",
+        "physical vapor deposition",
+        "solvothermal",
+        "hydrothermal",
+        "synthesis",
+        "synthesized",
+        "fabrication",
+        "characterization",
+        "raman spectroscopy",
+        "x-ray diffraction",
+        "xrd",
+        "sem",
+        "tem",
+        "edx",
+        "purification",
+        "atomic layer deposition",
+        "magnetron sputtering",
+        "electrospinning",
+        "thermal evaporation",
+        "annealing",
+        "calcination",
+        "doctor-blade",
+        "slurry casting",
+        "binding",
+        "deposition",
+    },
+    "METRIC": {
+        "efficiency",
+        "power conversion efficiency",
+        "carrier mobility",
+        "mobility",
+        "bandgap",
+        "open-circuit voltage",
+        "short-circuit current",
+        "fill factor",
+        "capacity",
+        "conductivity",
+        "accuracy",
+        "f1",
+        "cross-entropy loss",
+        "loss",
+        "specific capacity",
+        "energy density",
+        "charge-discharge",
+    },
+    "TASK": {
+        "classification",
+        "sentiment classification",
+        "translation",
+        "text generation",
+        "generation",
+        "detection",
+        "segmentation",
+        "summarization",
+        "named entity recognition",
+        "question answering",
+        "retrieval-augmented generation",
+        "text summarization",
+        "lora",
+        "fine-tuning",
+        "fine tune",
+        "knowledge graph construction",
+    },
+    "OTHERSCIENTIFICTERM": {
+        "transistor",
+        "field-effect transistor",
+        "sentiment",
+        "semiconductor",
+        "dielectric",
+        "ferromagnet",
+        "superconductor",
+        "quantum",
+        "qubit",
+        "word embedding",
+        "transformer",
+        "bert",
+        "attention mechanism",
+        "token classification",
+    },
+}
+
+# 数值+单位模式（效率/迁移率/电容/带隙等）
+_GAZETTEER_METRIC_NUM_RE = re.compile(
+    r"\b\d+(?:\.\d+)?\s*(?:%|MPa|GPa|eV|nm|GHz|T|cm2/V/s|cm2 v/s|mAh/g|W/m2|mV|mA/cm2)\b",
+    re.IGNORECASE,
+)
+# 化学式：元素大写起始 + 可选数字/小写（如 TiO2、MAPbI3、CH3NH3PbI3、H2O）。
+# 前瞻要求命中串含至少一个小写字母或数字，排除纯大写缩写（BERT/AI/USA/CNN 等被误判为 MATERIAL）。
+_GAZETTEER_CHEM_RE = re.compile(r"\b(?=[A-Za-z0-9]*[a-z\d])(?:[A-Z][a-z]?\d*){2,}\b")
+
+
+def _word_delimited(text: str, m: "re.Match[str]") -> bool:
+    """判断匹配 m 是否被单词边界 / 文本首尾包围（避免命中长词子串）。"""
+    before = "" if m.start() == 0 else text[m.start() - 1]
+    after = "" if m.end() == len(text) else text[m.end()]
+    return not (before.isalnum() or after.isalnum())
+
+
+def _gazetteer_add(
+    hits: dict[str, dict[str, Any]],
+    text: str,
+    t: str,
+    type_: str,
+    start: int,
+    end: int,
+) -> None:
+    """把一个 (词, 类型) 加入去重字典（纯函数辅助，降低主函数圈复杂度）。
+
+    start/end 由调用方传入实际匹配区间，避免重复用全局 find 定位导致 span 错位。
+    """
+    if not t or len(t) < 2 or type_ not in _GAZETTEER_TERMS:
+        return
+    key = f"{type_}:{t.lower()}"
+    if key in hits:
+        return
+    hits[key] = {
+        "text": t,
+        "type": type_,
+        "start": start,
+        "end": end,
+        "confidence": 0.85,
+    }
+
+
+def extract_english_gazetteer(text: str) -> list[dict[str, Any]]:
+    """
+    确定性英文科学实体抽取（回退层）。
+
+    ML NER 模型不可用、或对英文句子预测全 O 时使用，保证英文科学文献也能得到**非0**的
+    真实实体（材料/方法/指标/任务/科学术语），修复"英文 arXiv 论文实体=0"这一最短板。
+
+    类型与 `moulds/scibert` 的标签集一致（MATERIAL / METHOD / METRIC / TASK /
+    OTHERSCIENTIFICTERM），写入 Neo4j 时节点类型可与 SciBERT 输出自然合并。
+    纯函数、确定性、零依赖（可插拔可降级：模型可用时结果仍以模型优先）。
+    """
+    if not text or not text.strip():
+        return []
+
+    found: dict[str, dict[str, Any]] = {}
+
+    # 正则类（化学式 / 数值单位）
+    for pattern, type_ in (
+        (_GAZETTEER_CHEM_RE, "MATERIAL"),
+        (_GAZETTEER_METRIC_NUM_RE, "METRIC"),
+    ):
+        for m in pattern.finditer(text):
+            tok = text[m.start() : m.end()]
+            if _word_delimited(text, m):
+                _gazetteer_add(found, text, tok, type_, m.start(), m.end())
+
+    # 词表类（材料 / 方法 / 指标 / 任务 / 科学术语）
+    for type_, terms in _GAZETTEER_TERMS.items():
+        for t in terms:
+            for m in re.finditer(rf"\b{re.escape(t)}\b", text, re.IGNORECASE):
+                _gazetteer_add(found, text, text[m.start() : m.end()], type_, m.start(), m.end())
+
+    return sorted(found.values(), key=lambda e: e["start"])
 
 
 def merge_bio_spans(
@@ -131,30 +327,32 @@ class NERService:
         if not text or not text.strip():
             return []
         self._load()
-        if self._pipe is None:
-            return []
-        try:
-            t0 = time.perf_counter()
-            results = self._pipe(text)
-            observe_model_inference("ner", time.perf_counter() - t0)
-            entities: list[dict[str, Any]] = []
-            for r in results:
-                entity_type = r.get("entity_group") or r.get("entity") or "ENTITY"
-                start = int(r.get("start", 0))
-                end = int(r.get("end", start))
-                entities.append(
-                    {
-                        "text": text[start:end],
-                        "type": entity_type,
-                        "start": start,
-                        "end": end,
-                        "confidence": round(float(r.get("score", 1.0)), 4),
-                    }
-                )
-            return entities
-        except Exception as e:  # pragma: no cover
-            logger.warning("NER 推理失败：%s", e)
-            return []
+        entities: list[dict[str, Any]] = []
+        if self._pipe is not None:
+            try:
+                t0 = time.perf_counter()
+                results = self._pipe(text)
+                observe_model_inference("ner", time.perf_counter() - t0)
+                for r in results:
+                    entity_type = r.get("entity_group") or r.get("entity") or "ENTITY"
+                    start = int(r.get("start", 0))
+                    end = int(r.get("end", start))
+                    entities.append(
+                        {
+                            "text": text[start:end],
+                            "type": entity_type,
+                            "start": start,
+                            "end": end,
+                            "confidence": round(float(r.get("score", 1.0)), 4),
+                        }
+                    )
+            except Exception as e:  # pragma: no cover
+                logger.warning("NER 推理失败：%s", e)
+                entities = []
+        # 模型不可用 / 全 O（无实体）时，用确定性英文科学抽取兜底，保证英文文献实体非0
+        if not entities:
+            entities = extract_english_gazetteer(text)
+        return entities
 
 
 # 全局单例（懒加载，构造时不触发模型加载）

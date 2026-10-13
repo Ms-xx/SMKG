@@ -13,6 +13,8 @@ import sys
 
 import requests
 
+from _env import ADMIN_PASSWORD, ADMIN_USERNAME
+
 BASE = "http://localhost:8000/api/v1"
 SAMPLES = r"D:\work\VSCodeWork\LX\download_data\SciERC\data\samples\train.jsonl"
 
@@ -20,7 +22,7 @@ SAMPLES = r"D:\work\VSCodeWork\LX\download_data\SciERC\data\samples\train.jsonl"
 def login() -> str:
     r = requests.post(
         f"{BASE}/auth/login",
-        json={"username": "admin", "password": "admin123"},
+        json={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD},
         timeout=15,
     )
     r.raise_for_status()

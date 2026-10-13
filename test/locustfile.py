@@ -39,9 +39,15 @@ except ImportError:
         return (a + b) / 2
 
 
-# 测试账号（与 test/citation_graph_e2e.py:22-24 对齐）
-TEST_USERNAME = os.environ.get("PERF_USERNAME", "admin")
-TEST_PASSWORD = os.environ.get("PERF_PASSWORD", "admin123")
+# 测试账号：从集中化配置 config/ 读取，环境变量优先（供压测覆盖）
+try:
+    from _env import ADMIN_PASSWORD, ADMIN_USERNAME  # noqa: F401
+except ImportError:  # locust 加载路径异常时回退为开发默认
+    ADMIN_USERNAME = "admin"
+    ADMIN_PASSWORD = "admin123"
+
+TEST_USERNAME = os.environ.get("PERF_USERNAME", ADMIN_USERNAME)
+TEST_PASSWORD = os.environ.get("PERF_PASSWORD", ADMIN_PASSWORD)
 API_PREFIX = "/api/v1"
 
 

@@ -35,6 +35,8 @@ from typing import Any
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT / "backend"))
 
+from _env import ADMIN_PASSWORD, ADMIN_USERNAME  # noqa: E402
+
 _ARXIV_API = "http://export.arxiv.org/api/query"
 _ATOM_NS = {"atom": "http://www.w3.org/2005/Atom"}
 
@@ -215,8 +217,8 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--ids", type=str, default=",".join(DEFAULT_IDS))
     p.add_argument("--base-url", type=str, default=None)
-    p.add_argument("--username", type=str, default="admin")
-    p.add_argument("--password", type=str, default="admin123")
+    p.add_argument("--username", type=str, default=ADMIN_USERNAME)
+    p.add_argument("--password", type=str, default=ADMIN_PASSWORD)
     p.add_argument("--sleep", type=float, default=3.5)
     p.add_argument("--timeout", type=int, default=180)
     p.add_argument("--out", type=str, default=None)

@@ -13,6 +13,8 @@ import traceback
 
 import requests
 
+from _env import ADMIN_PASSWORD, ADMIN_USERNAME
+
 BASE = "http://localhost:8000/api/v1"
 
 
@@ -21,7 +23,7 @@ def main() -> dict:
     s = requests.Session()
     login = s.post(
         f"{BASE}/auth/login",
-        json={"username": "admin", "password": "admin123"},
+        json={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD},
         timeout=30,
     )
     login.raise_for_status()

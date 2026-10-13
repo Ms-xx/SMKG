@@ -289,6 +289,44 @@ class Neo4jClient:
                 paths.append({"nodes": nodes, "relationships": rels})
             return {"node": node_value, "neighbors": paths}
 
+    async def get_connection_strength(
+        self,
+        node_keys: list[str],
+        depth: int = 2,
+        limit: int = 200,
+    ) -> dict[str, int]:
+        """计算候选节点的图谱连接强度（邻居频次/度）。
+
+        对给定节点 keys（按 `id` 或 `name` 属性匹配），统计其在 depth 跳内能到达的
+        邻居节点数作为连接强度——连接越密说明该实体越"中心"，供扩跳重排提升上下文权重。
+        图不可用或匹配为空时返回空 dict，由调用方降级为原序。
+
+        Returns: {node_key: 邻居计数}
+        """
+        cleaned = [str(k) for k in node_keys if k]
+        if not cleaned or depth < 1:
+            return {}
+        driver = await self.get_driver()
+        depth = int(min(depth, 3))  # 变量长度关系不支持参数化，内联字面量
+        # 用 id/name 任一属性匹配（Document 节点用 id，实体用 name 统一），跨深度数邻居
+        query = (
+            "UNWIND $keys AS key "
+            "MATCH (n) WHERE n.id = key OR n.name = key "
+            "WITH n, key "
+            f"MATCH (n)-[*1..{depth}]-(neighbor) "
+            "WITH key, count(DISTINCT neighbor) AS strength "
+            "RETURN key, strength"
+        )
+        try:
+            async with driver.session(database=settings.NEO4J_DATABASE) as session:
+                result = await session.run(query, keys=cleaned)
+                return {
+                    record["key"]: int(record["strength"]) async for record in result
+                }
+        except Exception as e:  # pragma: no cover - 图不可用降级
+            logger.warning(f"计算连接强度失败（将按原序）: {e}")
+            return {}
+
     async def get_node_by_id(self, internal_id: int) -> Optional[dict[str, Any]]:
         """根据内部 ID 获取节点"""
         driver = await self.get_driver()

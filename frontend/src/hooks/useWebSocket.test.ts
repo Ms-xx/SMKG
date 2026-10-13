@@ -4,7 +4,9 @@ import { useWebSocket } from "./useWebSocket";
 
 // jsdom 不提供完整 WebSocket，用可控的 mock 替换
 class MockWebSocket {
+  static CONNECTING = 0;
   static OPEN = 1;
+  static CLOSED = 3;
   static instances: MockWebSocket[] = [];
 
   url: string;
@@ -14,6 +16,7 @@ class MockWebSocket {
   onmessage: ((event: any) => void) | null = null;
   onclose: (() => void) | null = null;
   onerror: (() => void) | null = null;
+  closeCalls = 0;
 
   constructor(url: string) {
     this.url = url;
@@ -25,8 +28,15 @@ class MockWebSocket {
   }
 
   close() {
+    this.closeCalls += 1;
     this.readyState = 3;
     this.onclose?.();
+  }
+
+  /** 模拟握手完成 */
+  simulateOpen() {
+    this.readyState = 1;
+    this.onopen?.();
   }
 }
 
@@ -96,5 +106,91 @@ describe("useWebSocket", () => {
       result.current.disconnect();
     });
     expect(result.current.isConnected).toBe(false);
+  });
+
+  it("onMessage 变化不会重建连接", () => {
+    const first = vi.fn();
+    const { rerender } = renderHook(
+      ({ cb }: { cb: (d: any) => void }) => useWebSocket({ url: "ws://test", onMessage: cb }),
+      { initialProps: { cb: first } },
+    );
+    expect(MockWebSocket.instances).toHaveLength(1);
+
+    // 传入新的回调（模拟父组件因数据加载导致 handleWsMessage 身份变化）
+    const second = vi.fn();
+    rerender({ cb: second });
+
+    // 连接不应被拆掉重建
+    expect(MockWebSocket.instances).toHaveLength(1);
+
+    // 且调用的是最新回调
+    act(() => {
+      MockWebSocket.instances[0].onmessage?.({ data: JSON.stringify({ n: 1 }) });
+    });
+    expect(second).toHaveBeenCalledWith({ n: 1 });
+    expect(first).not.toHaveBeenCalled();
+  });
+
+  it("主动 disconnect 后不再自动重连", () => {
+    const { result } = renderHook(() => useWebSocket({ url: "ws://test" }));
+    const ws = MockWebSocket.instances[0];
+    act(() => {
+      ws.simulateOpen();
+    });
+
+    act(() => {
+      result.current.disconnect();
+    });
+
+    // 关闭触发的 onclose 不应再排重连定时器
+    act(() => {
+      vi.advanceTimersByTime(20000);
+    });
+    expect(MockWebSocket.instances).toHaveLength(1);
+  });
+
+  it("卸载后不再重连（修复前会在卸载后无限重连）", () => {
+    const { unmount } = renderHook(() => useWebSocket({ url: "ws://test" }));
+    const ws = MockWebSocket.instances[0];
+    act(() => {
+      ws.simulateOpen();
+    });
+
+    unmount();
+    act(() => {
+      vi.advanceTimersByTime(30000);
+    });
+    expect(MockWebSocket.instances).toHaveLength(1);
+  });
+
+  it("握手未完成时不立即 close（避免 closed before established 告警）", () => {
+    const { unmount } = renderHook(() => useWebSocket({ url: "ws://test" }));
+    const ws = MockWebSocket.instances[0];
+    expect(ws.readyState).toBe(MockWebSocket.CONNECTING);
+
+    unmount();
+    // 仍处于 CONNECTING，不应调用 close()，而是等 open 后再关
+    expect(ws.closeCalls).toBe(0);
+    act(() => {
+      ws.simulateOpen();
+    });
+    expect(ws.closeCalls).toBe(1);
+  });
+
+  it("异常关闭时会自动重连", () => {
+    renderHook(() => useWebSocket({ url: "ws://test", reconnectInterval: 1000 }));
+    const ws = MockWebSocket.instances[0];
+    act(() => {
+      ws.simulateOpen();
+    });
+
+    // 模拟服务端断开（非主动关闭）
+    act(() => {
+      ws.close();
+    });
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(MockWebSocket.instances).toHaveLength(2);
   });
 });
