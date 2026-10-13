@@ -4,6 +4,7 @@ from .annotation import Annotation, AnnotationVersion, OperationLog
 from .comment import AnnotationComment, Notification
 from .document import Document, DocumentElement, DocumentPage
 from .model import Model, TrainingExperiment
+from .recommend import RecommendFeedback, RecommendRecord
 from .role import Role
 from .system_config import SystemConfig
 from .task import Task
@@ -24,4 +25,6 @@ __all__ = [
     "Model",
     "TrainingExperiment",
     "SystemConfig",
+    "RecommendRecord",
+    "RecommendFeedback",
 ]

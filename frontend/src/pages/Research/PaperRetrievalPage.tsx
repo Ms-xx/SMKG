@@ -15,6 +15,7 @@ import {
 import { SearchOutlined, BulbOutlined, DownloadOutlined } from "@ant-design/icons";
 import { paperRetrievalApi } from "@api/modules";
 import type { PaperResult, PaperRecommendation } from "@/types";
+import RepoRecommendPanel from "@/components/RepoRecommend/RepoRecommendPanel";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -284,6 +285,8 @@ export default function PaperRetrievalPage() {
           />
         )}
       </Card>
+
+      <RepoRecommendPanel candidates={results} localRefsRaw={localRefs} />
     </div>
   );
 }

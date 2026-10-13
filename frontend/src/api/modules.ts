@@ -23,6 +23,7 @@ import type {
   CitationMapResult,
   PaperSearchResult,
   PaperRecommendation,
+  RepoRecommendResult,
   CitationNetwork,
   KeyPaper,
   SurveyResult,
@@ -415,4 +416,23 @@ export const writingAssistantApi = {
     max_tokens?: number;
   }): Promise<{ backend: string; model?: string; content: string; note?: string }> =>
     api.post("/writing-assistant/llm-generate", data),
+};
+
+// ── 步骤 21：GitHub 开源复现性优先推荐（在线抓取 + 点赞/踩） ──────────────────────────
+
+export const repoRecommendApi = {
+  recommend: async (data: {
+    local_references: Record<string, any>[];
+    candidates: Record<string, any>[];
+  }): Promise<RepoRecommendResult> => api.post("/repo-recommend/recommend", data),
+  feedback: async (data: {
+    repo: string;
+    sentiment: "like" | "dislike";
+    record_id?: string | null;
+    comment?: string | null;
+  }): Promise<{ ok: boolean; feedback: Record<string, any> }> =>
+    api.post("/repo-recommend/feedback", data),
+  online: async (): Promise<{ github_online: boolean }> => api.get("/repo-recommend/online"),
+  records: async (limit = 100): Promise<Record<string, any>> =>
+    api.get("/repo-recommend/records", { params: { limit } }),
 };

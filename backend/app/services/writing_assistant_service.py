@@ -26,9 +26,39 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
-def generate_outline(idea: str, references: list[dict[str, Any]]) -> dict[str, Any]:
-    idea = (idea or "").strip() or "（未提供主题）"
-    sections = [
+def _norm_title(title: str) -> str:
+    """标题归一化：空白折叠 + 小写，用于宽松子串匹配。"""
+    return " ".join(str(title or "").lower().split())
+
+
+def _match_whitelist(
+    ref_title: str, whitelist: list[dict[str, Any]]
+) -> dict[str, Any] | None:
+    """在 verified 白名单中为引用标题定位真实来源（双向子串匹配，防引用格式差异）。
+
+    whitelist 每一项：{title, document_id, node_id, page}。
+    """
+    nt = _norm_title(ref_title)
+    if not nt:
+        return None
+    for wl in whitelist or []:
+        wt = _norm_title(wl.get("title"))
+        if not wt:
+            continue
+        if wt in nt or nt in wt:
+            return wl
+    return None
+
+
+def _outline_sections(idea: str, ref_titles: list[str]) -> list[dict[str, Any]]:
+    """生成论文骨架小节；Related Work 用 [n] 标记与参考文献一一对应。"""
+    rw = (
+        "相关工作综述，引用标记与 References 一一对应："
+        + "、".join(f"[{i + 1}]" for i in range(len(ref_titles)))
+        if ref_titles
+        else "相关工作综述，需与参考文献条目一一对应（见 References）。"
+    )
+    return [
         {
             "title": "Abstract",
             "content": f"围绕「{idea}」的动机、方法、主要结果与结论（摘要要点占位）。",
@@ -37,10 +67,7 @@ def generate_outline(idea: str, references: list[dict[str, Any]]) -> dict[str, A
             "title": "Introduction",
             "content": f"研究背景与动机：{idea}。问题定义与本文贡献（占位）。",
         },
-        {
-            "title": "Related Work",
-            "content": "相关工作综述，需与参考文献条目一一对应（见 References）。",
-        },
+        {"title": "Related Work", "content": rw},
         {"title": "Method", "content": "方法框架与实现要点（占位）。"},
         {
             "title": "Experiments",
@@ -48,17 +75,92 @@ def generate_outline(idea: str, references: list[dict[str, Any]]) -> dict[str, A
         },
         {"title": "Conclusion", "content": "结论与后续工作（Future Work 占位）。"},
     ]
-    ref_items = [
-        {"index": r.get("index"), "text": r.get("raw") or r.get("title")} for r in references or []
-    ]
+
+
+def generate_outline(
+    idea: str,
+    references: list[dict[str, Any]],
+    verified_references: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """论文框架生成（无幻觉，仅使用真实条目）。
+
+    新增 `verified_references` 校验层（对应 23.1）：
+    - 传入白名单（本地 MySQL `documents` / Neo4j Document 节点真实存在条目）时，
+      对每条引用做存在性 + 去重校验，命中才保留并绑定 `source` 溯源字段；
+      未命中来源的（编造）项剔除并计入 `dropped_references`，`[n]` 依保留项重新编号，
+      与 References 列表严格一一对应；LLM 未启用/不可用时后端标注 `template`。
+    - 未传入白名单时保持原回显行为（兼容旧调用，不强制过滤）。
+    """
+    idea = (idea or "").strip() or "（未提供主题）"
+
+    # 旧路径：无白名单 → 原样回显（兼容 test_writing_assistant_service.py）
+    if verified_references is None:
+        ref_items = [
+            {"index": r.get("index"), "text": r.get("raw") or r.get("title")}
+            for r in references or []
+        ]
+        return {
+            "backend": "rule",
+            "idea": idea,
+            "sections": _outline_sections(idea, []),
+            # 无幻觉：只回显真实传入的参考文献，不生成不存在的引用
+            "references": ref_items,
+            "reference_count": len(ref_items),
+            "note": "本输出为规则模板；接入 LLM 后可生成成段正文，但 References 仍仅限真实条目。",
+        }
+
+    # 新路径：存在性 + 去重校验 + 溯源绑定
+    dropped: list[dict[str, Any]] = []
+    kept: list[dict[str, Any]] = []
+    used_sources: set[tuple[str, str]] = set()
+    for r in references or []:
+        title = r.get("title") or r.get("raw") or ""
+        wl = _match_whitelist(title, verified_references)
+        if wl is None:
+            dropped.append(
+                {
+                    "index": r.get("index"),
+                    "title": str(title)[:200],
+                    "reason": "not_in_whitelist",
+                }
+            )
+            continue
+        src_key = (str(wl.get("document_id")), str(wl.get("node_id")))
+        if src_key in used_sources:
+            dropped.append(
+                {
+                    "index": r.get("index"),
+                    "title": str(title)[:200],
+                    "reason": "duplicate_source",
+                }
+            )
+            continue
+        used_sources.add(src_key)
+        kept.append(
+            {
+                "index": len(kept) + 1,  # [n] 依保留项重新编号 → 与列表一一对应
+                "text": r.get("raw") or wl.get("title") or title,
+                "source": {
+                    "document_id": wl.get("document_id"),
+                    "node_id": wl.get("node_id"),
+                    "page": wl.get("page"),
+                },
+            }
+        )
+
+    citation_map = [{"n": ref["index"], "title": ref["text"]} for ref in kept]
     return {
-        "backend": "rule",
+        "backend": "template",
         "idea": idea,
-        "sections": sections,
-        # 无幻觉：只回显真实传入的参考文献，不生成不存在的引用
-        "references": ref_items,
-        "reference_count": len(ref_items),
-        "note": "本输出为规则模板；接入 LLM 后可生成成段正文，但 References 仍仅限真实条目。",
+        "sections": _outline_sections(idea, [ref["text"] for ref in kept]),
+        "references": kept,
+        "reference_count": len(kept),
+        "citation_map": citation_map,
+        "dropped_references": {"count": len(dropped), "items": dropped},
+        "note": (
+            "已做存在性校验：仅保留可溯源引用，编造/无来源项剔除并统计；"
+            "LLM 未启用，降级为模板骨架 + 真实引用（backend=template）。"
+        ),
     }
 
 
@@ -200,7 +302,9 @@ def _render_line(
         f"{_chart_x(i, pad_l, plot_w, n_labels):.1f},{_chart_y(v, pad_t, plot_h, vmax, vmin):.1f}"
         for i, v in enumerate(values)
     )
-    shapes = [f'<polyline points="{pts}" fill="none" stroke="#3b82f6" stroke-width="2"/>']
+    shapes = [
+        f'<polyline points="{pts}" fill="none" stroke="#3b82f6" stroke-width="2"/>'
+    ]
     for i, v in enumerate(values):
         shapes.append(
             f'<circle cx="{_chart_x(i, pad_l, plot_w, n_labels):.1f}" cy="{_chart_y(v, pad_t, plot_h, vmax, vmin):.1f}" r="3" fill="#3b82f6"/>'
@@ -227,13 +331,17 @@ def _render_radar(
         ang = -math.pi / 2 + 2 * math.pi * i / n
         ratio = (v - vmin) / ((vmax - vmin) or 1.0)
         pts.append(f"{cx + r*ratio*math.cos(ang):.1f},{cy + r*ratio*math.sin(ang):.1f}")
-    return [f'<polygon points="{" ".join(pts)}" fill="rgba(59,130,246,0.3)" stroke="#3b82f6"/>']
+    return [
+        f'<polygon points="{" ".join(pts)}" fill="rgba(59,130,246,0.3)" stroke="#3b82f6"/>'
+    ]
 
 
 _CHART_RENDERERS = {"bar": _render_bar, "line": _render_line, "radar": _render_radar}
 
 
-def _render_table(header: list[str], data: list[list[str]], width: int) -> dict[str, Any]:
+def _render_table(
+    header: list[str], data: list[list[str]], width: int
+) -> dict[str, Any]:
     cells: list[str] = []
     all_rows = [header] + data
     row_h = 24
@@ -288,7 +396,11 @@ def csv_to_chart(
         )
 
     renderer = _CHART_RENDERERS.get(chart_type)
-    shapes = renderer(values, labels, pad_l, pad_t, plot_w, plot_h, vmax, vmin) if renderer else []
+    shapes = (
+        renderer(values, labels, pad_l, pad_t, plot_w, plot_h, vmax, vmin)
+        if renderer
+        else []
+    )
 
     body = "".join(axis + marks + shapes)
     return {
@@ -318,7 +430,9 @@ def _chat_completion(
 ) -> str:
     """调用 OpenAI 兼容 /v1/chat/completions，返回回复文本。失败抛异常由调用方降级。"""
     url = endpoint.rstrip("/") + "/chat/completions"
-    payload = json.dumps({"model": model, "messages": messages, "temperature": 0.3}).encode("utf-8")
+    payload = json.dumps(
+        {"model": model, "messages": messages, "temperature": 0.3}
+    ).encode("utf-8")
     req = urllib.request.Request(
         url,
         data=payload,
@@ -339,7 +453,9 @@ def translate_text(text: str, target: str = "zh") -> dict[str, Any]:
     text = (text or "").strip()
     backend = "rule"
     translated = text
-    note = "未配置翻译端点（TRANSLATION_ENABLED/TRANSLATION_ENDPOINT），已降级回显原文。"
+    note = (
+        "未配置翻译端点（TRANSLATION_ENABLED/TRANSLATION_ENDPOINT），已降级回显原文。"
+    )
     if settings.TRANSLATION_ENABLED and settings.TRANSLATION_ENDPOINT:
         try:
             # target 语义：'zh' 英→中，'en' 中→英（前端「英→中」即 target='zh'）
@@ -414,8 +530,13 @@ class WritingAssistantService:
     def available(self) -> bool:
         return settings.WRITING_ASSISTANT_ENABLED
 
-    def outline(self, idea: str, references: list[dict[str, Any]]) -> dict[str, Any]:
-        return generate_outline(idea, references)
+    def outline(
+        self,
+        idea: str,
+        references: list[dict[str, Any]],
+        verified_references: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        return generate_outline(idea, references, verified_references)
 
     def diagram(self, diagram_type: str, spec: dict[str, Any]) -> dict[str, Any]:
         return generate_diagram_script(diagram_type, spec)

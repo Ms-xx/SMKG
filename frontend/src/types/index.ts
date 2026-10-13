@@ -408,3 +408,39 @@ export interface OutlineResult {
   reference_count: number;
   note: string;
 }
+
+// ── 步骤 21：GitHub 开源复现性优先推荐 ────────────────────────────────
+
+export interface RepoMeta {
+  repo: string;
+  html_url: string | null;
+  source: "online" | "offline";
+  star_count: number | null;
+  license: string | null;
+  latest_push: string | null;
+  open_issues: number | null;
+  updated_at: string | null;
+  error?: string | null;
+}
+
+export interface RepoRecommendation {
+  title: string | null;
+  source: string | null;
+  arxiv_id?: string | null;
+  open_source: boolean;
+  repos: RepoMeta[];
+  correlation_score: number;
+  reproducibility_score: number;
+  feedback_score: number;
+  feedback_net: number;
+  total_score: number;
+  reason: string;
+}
+
+export interface RepoRecommendResult {
+  backend: string;
+  github_online: boolean;
+  count: number;
+  recommendations: RepoRecommendation[];
+  records: Record<string, any>[];
+}
