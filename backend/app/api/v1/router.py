@@ -24,6 +24,7 @@ from app.api.v1 import (
     source_anchor,
     statistics,
     system,
+    system_plugins,
     tasks,
     users,
     version_management,
@@ -63,6 +64,9 @@ router.include_router(
 router.include_router(ab_test.router, prefix="/ab-test", tags=["A/B 测试"])
 router.include_router(multi_agent.router, prefix="/multi-agent", tags=["多 Agent 协作"])
 router.include_router(system.router, prefix="/system", tags=["系统运维"])
+router.include_router(
+    system_plugins.router, prefix="/system", tags=["系统运维"]
+)
 router.include_router(
     calibration_drift.router, prefix="/calibration-drift", tags=["校准与漂移检测"]
 )

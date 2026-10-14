@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.router import router as api_router
 from app.core.config import settings
 from app.core.logging import setup_logging
+from app.core.plugin.manager import PluginManager
 from app.middleware.logging import LoggingMiddleware
 from app.services.graphrag_integration import _close_async_client
 from app.utils.business_metrics import setup_business_metrics
@@ -41,9 +42,28 @@ setup_business_metrics(app)
 
 app.include_router(api_router, prefix=settings.API_PREFIX)
 
+# ── 插件化架构（见 others/PROJECT/08-插件化架构设计.md）─────────────
+# 默认关闭：不改变既有启动行为；显式 PLUGIN_ENABLED=true 时启用框架。
+# app.state.plugin_manager 供管理接口 /system/plugins 与门面寻址使用。
+app.state.plugin_manager = None
+if settings.PLUGIN_ENABLED:
+    app.state.plugin_manager = PluginManager(settings)
+    app.state.plugin_manager.pm.hook.on_app_startup(ctx={"app": app})
+
 
 @app.on_event("startup")
 async def startup():
+    # 插件框架启动：发现 + 依赖解析 + 按拓扑激活
+    if app.state.plugin_manager is not None:
+        try:
+            await app.state.plugin_manager.boot()
+            logger.info(
+                "plugin framework booted: %d plugins",
+                len(app.state.plugin_manager.list_plugins()),
+            )
+        except Exception as e:
+            logger.error(f"plugin framework boot failed: {e}", exc_info=True)
+
     # 尝试连接 Neo4j（非阻塞）
     try:
         neo4j_client = Neo4jClient()
@@ -63,6 +83,15 @@ async def startup():
 
 @app.on_event("shutdown")
 async def shutdown():
+    # 插件框架收尾：逆序停用已激活插件
+    if app.state.plugin_manager is not None:
+        try:
+            await app.state.plugin_manager.shutdown()
+            logger.info("plugin framework shutdown complete")
+        except Exception as e:
+            logger.warning(f"plugin framework shutdown error: {e}")
+        app.state.plugin_manager.pm.hook.on_app_shutdown(ctx={"app": app})
+
     # 关闭 Neo4j 连接
     try:
         neo4j_client = Neo4jClient()

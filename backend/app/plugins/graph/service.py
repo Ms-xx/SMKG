@@ -1,0 +1,93 @@
+from loguru import logger
+
+from app.core.plugin.base import Plugin
+from app.utils.neo4j_client import Neo4jClient
+
+
+class GraphService:
+    # ─── 插件协议 ──────────────────────────────────────────────────────────
+    async def on_start(self) -> None:
+        logger.info("graph plugin started")
+
+    async def on_stop(self) -> None:
+        logger.info("graph plugin stopped")
+
+    def health(self) -> dict:
+        return {"backend": "graph", "available": True}
+
+    def __init__(self):
+        self.neo4j_client = Neo4jClient()
+
+    async def search(self, query: str, entity_type: str = None, limit: int = 20):
+        if entity_type:
+            cypher = f"""
+            MATCH (n:{entity_type})
+            WHERE n.name CONTAINS $query OR n.formula CONTAINS $query
+            RETURN n
+            LIMIT $limit
+            """
+        else:
+            cypher = """
+            MATCH (n)
+            WHERE n.name CONTAINS $query OR n.formula CONTAINS $query
+            RETURN n
+            LIMIT $limit
+            """
+        results = await self.neo4j_client.execute_query(cypher, {"query": query, "limit": limit})
+        return results
+
+    async def get_entity(self, entity_id: str):
+        cypher = """
+        MATCH (n)
+        WHERE id(n) = $entity_id OR n.id = $entity_id
+        RETURN n
+        """
+        results = await self.neo4j_client.execute_query(cypher, {"entity_id": entity_id})
+        return results[0] if results else None
+
+    async def get_entity_relations(self, entity_id: str, depth: int = 1):
+        cypher = f"""
+        MATCH path = (n {{id: $entity_id}})-[*1..{depth}]-(m)
+        RETURN nodes(path) AS nodes, relationships(path) AS links
+        """
+        results = await self.neo4j_client.execute_query(cypher, {"entity_id": entity_id})
+        return results
+
+    async def execute_cypher(self, cypher: str, params: dict = None):
+        return await self.neo4j_client.execute_query(cypher, params)
+
+    async def get_statistics(self):
+        import asyncio
+
+        cypher = """
+        MATCH (n)
+        RETURN labels(n) AS labels, count(*) AS count
+        """
+        cypher_rel = """
+        MATCH ()-[r]->()
+        RETURN type(r) AS type, count(*) AS count
+        """
+
+        node_stats, rel_stats = await asyncio.gather(
+            self.neo4j_client.execute_query(cypher),
+            self.neo4j_client.execute_query(cypher_rel),
+        )
+
+        return {"node_stats": node_stats, "relation_stats": rel_stats}
+
+
+class GraphPlugin(Plugin):
+    """官方插件：graph —— 图谱服务（存量迁移自 app/services/graph_service.py）。"""
+
+    name = "graph"
+    version = "1.0.0"
+    config_prefix = ""
+    requires: list[str] = []
+    type = "service"
+    legacy_module = "app.services.graph_service"
+
+    def create(self, registry, settings) -> GraphService:
+        return GraphService()
+
+
+plugin = GraphPlugin()

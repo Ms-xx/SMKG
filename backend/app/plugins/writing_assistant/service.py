@@ -1,0 +1,568 @@
+# -*- coding: utf-8 -*-
+"""
+写作辅助与可视化 Copilot 服务（对应 XiangMu 10.2 模块六）
+
+职责：
+1. 论文框架生成：基于 idea + 真实参考文献（无幻觉：仅使用传入的真实条目，不编造）；
+2. 拓扑图脚本生成：TikZ / Graphviz / Mermaid / Matplotlib 脚本字符串模板；
+3. CSV 可视化：纯 Python 解析 CSV，生成零依赖 SVG（折线/柱状/雷达/表格）+ 学术图注。
+
+依赖策略（可插拔、可降级）：
+- 纯 Python（csv + 字符串模板）零第三方依赖，永远可用；
+- 中英学术翻译与真实 LLM 生成预留，未接入时降级模板。
+"""
+from __future__ import annotations
+
+import csv
+import html
+import io
+import json
+import logging
+import urllib.request
+from typing import Any
+
+from app.core.config import settings
+from app.core.plugin.base import Plugin
+
+logger = logging.getLogger(__name__)
+
+
+def _norm_title(title: str) -> str:
+    """标题归一化：空白折叠 + 小写，用于宽松子串匹配。"""
+    return " ".join(str(title or "").lower().split())
+
+
+def _match_whitelist(ref_title: str, whitelist: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """在 verified 白名单中为引用标题定位真实来源（双向子串匹配，防引用格式差异）。
+
+    whitelist 每一项：{title, document_id, node_id, page}。
+    """
+    nt = _norm_title(ref_title)
+    if not nt:
+        return None
+    for wl in whitelist or []:
+        wt = _norm_title(wl.get("title"))
+        if not wt:
+            continue
+        if wt in nt or nt in wt:
+            return wl
+    return None
+
+
+def _outline_sections(idea: str, ref_titles: list[str]) -> list[dict[str, Any]]:
+    """生成论文骨架小节；Related Work 用 [n] 标记与参考文献一一对应。"""
+    rw = (
+        "相关工作综述，引用标记与 References 一一对应："
+        + "、".join(f"[{i + 1}]" for i in range(len(ref_titles)))
+        if ref_titles
+        else "相关工作综述，需与参考文献条目一一对应（见 References）。"
+    )
+    return [
+        {
+            "title": "Abstract",
+            "content": f"围绕「{idea}」的动机、方法、主要结果与结论（摘要要点占位）。",
+        },
+        {
+            "title": "Introduction",
+            "content": f"研究背景与动机：{idea}。问题定义与本文贡献（占位）。",
+        },
+        {"title": "Related Work", "content": rw},
+        {"title": "Method", "content": "方法框架与实现要点（占位）。"},
+        {
+            "title": "Experiments",
+            "content": "实验设置、数据集、基线对比与消融（占位）。",
+        },
+        {"title": "Conclusion", "content": "结论与后续工作（Future Work 占位）。"},
+    ]
+
+
+def generate_outline(
+    idea: str,
+    references: list[dict[str, Any]],
+    verified_references: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """论文框架生成（无幻觉，仅使用真实条目）。
+
+    新增 `verified_references` 校验层（对应 23.1）：
+    - 传入白名单（本地 MySQL `documents` / Neo4j Document 节点真实存在条目）时，
+      对每条引用做存在性 + 去重校验，命中才保留并绑定 `source` 溯源字段；
+      未命中来源的（编造）项剔除并计入 `dropped_references`，`[n]` 依保留项重新编号，
+      与 References 列表严格一一对应；LLM 未启用/不可用时后端标注 `template`。
+    - 未传入白名单时保持原回显行为（兼容旧调用，不强制过滤）。
+    """
+    idea = (idea or "").strip() or "（未提供主题）"
+
+    # 旧路径：无白名单 → 原样回显（兼容 test_writing_assistant_service.py）
+    if verified_references is None:
+        ref_items = [
+            {"index": r.get("index"), "text": r.get("raw") or r.get("title")}
+            for r in references or []
+        ]
+        return {
+            "backend": "rule",
+            "idea": idea,
+            "sections": _outline_sections(idea, []),
+            # 无幻觉：只回显真实传入的参考文献，不生成不存在的引用
+            "references": ref_items,
+            "reference_count": len(ref_items),
+            "note": "本输出为规则模板；接入 LLM 后可生成成段正文，但 References 仍仅限真实条目。",
+        }
+
+    # 新路径：存在性 + 去重校验 + 溯源绑定
+    dropped: list[dict[str, Any]] = []
+    kept: list[dict[str, Any]] = []
+    used_sources: set[tuple[str, str]] = set()
+    for r in references or []:
+        title = r.get("title") or r.get("raw") or ""
+        wl = _match_whitelist(title, verified_references)
+        if wl is None:
+            dropped.append(
+                {
+                    "index": r.get("index"),
+                    "title": str(title)[:200],
+                    "reason": "not_in_whitelist",
+                }
+            )
+            continue
+        src_key = (str(wl.get("document_id")), str(wl.get("node_id")))
+        if src_key in used_sources:
+            dropped.append(
+                {
+                    "index": r.get("index"),
+                    "title": str(title)[:200],
+                    "reason": "duplicate_source",
+                }
+            )
+            continue
+        used_sources.add(src_key)
+        kept.append(
+            {
+                "index": len(kept) + 1,  # [n] 依保留项重新编号 → 与列表一一对应
+                "text": r.get("raw") or wl.get("title") or title,
+                "source": {
+                    "document_id": wl.get("document_id"),
+                    "node_id": wl.get("node_id"),
+                    "page": wl.get("page"),
+                },
+            }
+        )
+
+    citation_map = [{"n": ref["index"], "title": ref["text"]} for ref in kept]
+    return {
+        "backend": "template",
+        "idea": idea,
+        "sections": _outline_sections(idea, [ref["text"] for ref in kept]),
+        "references": kept,
+        "reference_count": len(kept),
+        "citation_map": citation_map,
+        "dropped_references": {"count": len(dropped), "items": dropped},
+        "note": (
+            "已做存在性校验：仅保留可溯源引用，编造/无来源项剔除并统计；"
+            "LLM 未启用，降级为模板骨架 + 真实引用（backend=template）。"
+        ),
+    }
+
+
+def _render_mermaid(title: str, nodes: list, edges: list) -> str:
+    lines = ["graph TD;"]
+    for i, n in enumerate(nodes):
+        lines.append(f"    n{i}[{n}];")
+    for a, b in edges:
+        lines.append(f"    n{a} --> n{b};")
+    return "\n".join(lines)
+
+
+def _render_graphviz(title: str, nodes: list, edges: list) -> str:
+    lines = ["digraph G {"]
+    for i, n in enumerate(nodes):
+        lines.append(f'    n{i} [label="{n}"];')
+    for a, b in edges:
+        lines.append(f"    n{a} -> n{b};")
+    lines.append("}")
+    return "\n".join(lines)
+
+
+def _render_tikz(title: str, nodes: list, edges: list) -> str:
+    lines = ["\\begin{tikzpicture}[auto, node distance=2cm]"]
+    for i, n in enumerate(nodes):
+        lines.append(f"    \\node[draw] (n{i}) {{{n}}};")
+    for a, b in edges:
+        lines.append(f"    \\draw[->] (n{a}) -- (n{b});")
+    lines.append("\\end{tikzpicture}")
+    return "\n".join(lines)
+
+
+def _render_matplotlib(title: str, nodes: list, edges: list) -> str:
+    lines = [
+        "import matplotlib.pyplot as plt",
+        "import networkx as nx",
+        "",
+        "G = nx.DiGraph()",
+        f"G.add_nodes_from(range({len(nodes)}))",
+    ]
+    for a, b in edges:
+        lines.append(f"G.add_edge({a}, {b})")
+    lines.append("nx.draw(G, with_labels=True)")
+    lines.append("plt.show()")
+    return "\n".join(lines)
+
+
+_DIAGRAM_RENDERERS = {
+    "mermaid": _render_mermaid,
+    "graphviz": _render_graphviz,
+    "tikz": _render_tikz,
+    "matplotlib": _render_matplotlib,
+}
+
+
+def generate_diagram_script(diagram_type: str, spec: dict[str, Any]) -> dict[str, Any]:
+    """spec: {title, nodes: [...], edges: [[a,b], ...]}，生成脚本字符串。"""
+    diagram_type = (diagram_type or "mermaid").lower()
+    title = spec.get("title") or "Architecture"
+    nodes = spec.get("nodes") or []
+    edges = spec.get("edges") or []
+
+    renderer = _DIAGRAM_RENDERERS.get(diagram_type)
+    if renderer:
+        script = renderer(title, nodes, edges)
+    else:
+        script = f"# unsupported diagram_type: {diagram_type}"
+
+    return {
+        "backend": "rule",
+        "diagram_type": diagram_type,
+        "title": title,
+        "script": script,
+    }
+
+
+def parse_csv(csv_text: str) -> tuple[list[str], list[list[str]]]:
+    reader = csv.reader(io.StringIO(csv_text or ""))
+    rows = [row for row in reader if any((c or "").strip() for c in row)]
+    if not rows:
+        return [], []
+    return rows[0], rows[1:]
+
+
+def _numbers(row: list[str]) -> list[float]:
+    out: list[float] = []
+    for c in row:
+        try:
+            out.append(float(c))
+        except (TypeError, ValueError):
+            out.append(0.0)
+    return out
+
+
+def _chart_x(i: int, pad_l: int, plot_w: int, n_labels: int) -> float:
+    return pad_l + plot_w * (i + 0.5) / max(1, n_labels)
+
+
+def _chart_y(v: float, pad_t: int, plot_h: int, vmax: float, vmin: float) -> float:
+    span = (vmax - vmin) or 1.0
+    return pad_t + plot_h * (1 - (v - vmin) / span)
+
+
+def _render_bar(
+    values: list[float],
+    labels: list[str],
+    pad_l: int,
+    pad_t: int,
+    plot_w: int,
+    plot_h: int,
+    vmax: float,
+    vmin: float,
+) -> list[str]:
+    n_labels = len(labels)
+    bw = plot_w / max(1, n_labels) * 0.6
+    shapes: list[str] = []
+    for i, v in enumerate(values):
+        y = _chart_y(v, pad_t, plot_h, vmax, vmin)
+        y0 = _chart_y(0, pad_t, plot_h, vmax, vmin)
+        x = _chart_x(i, pad_l, plot_w, n_labels)
+        shapes.append(
+            f'<rect x="{x-bw/2:.1f}" y="{min(y,y0):.1f}" width="{bw:.1f}" height="{abs(y0-y):.1f}" fill="#3b82f6"/>'
+        )
+    return shapes
+
+
+def _render_line(
+    values: list[float],
+    labels: list[str],
+    pad_l: int,
+    pad_t: int,
+    plot_w: int,
+    plot_h: int,
+    vmax: float,
+    vmin: float,
+) -> list[str]:
+    n_labels = len(labels)
+    pts = " ".join(
+        f"{_chart_x(i, pad_l, plot_w, n_labels):.1f},{_chart_y(v, pad_t, plot_h, vmax, vmin):.1f}"
+        for i, v in enumerate(values)
+    )
+    shapes = [f'<polyline points="{pts}" fill="none" stroke="#3b82f6" stroke-width="2"/>']
+    for i, v in enumerate(values):
+        shapes.append(
+            f'<circle cx="{_chart_x(i, pad_l, plot_w, n_labels):.1f}" cy="{_chart_y(v, pad_t, plot_h, vmax, vmin):.1f}" r="3" fill="#3b82f6"/>'
+        )
+    return shapes
+
+
+def _render_radar(
+    values: list[float],
+    labels: list[str],
+    pad_l: int,
+    pad_t: int,
+    plot_w: int,
+    plot_h: int,
+    vmax: float,
+    vmin: float,
+) -> list[str]:
+    import math
+
+    cx, cy, r = pad_l + plot_w / 2, pad_t + plot_h / 2, min(plot_w, plot_h) / 2 * 0.8
+    n = max(1, len(values))
+    pts = []
+    for i, v in enumerate(values):
+        ang = -math.pi / 2 + 2 * math.pi * i / n
+        ratio = (v - vmin) / ((vmax - vmin) or 1.0)
+        pts.append(f"{cx + r*ratio*math.cos(ang):.1f},{cy + r*ratio*math.sin(ang):.1f}")
+    return [f'<polygon points="{" ".join(pts)}" fill="rgba(59,130,246,0.3)" stroke="#3b82f6"/>']
+
+
+_CHART_RENDERERS = {"bar": _render_bar, "line": _render_line, "radar": _render_radar}
+
+
+def _render_table(header: list[str], data: list[list[str]], width: int) -> dict[str, Any]:
+    cells: list[str] = []
+    all_rows = [header] + data
+    row_h = 24
+    for ri, row in enumerate(all_rows):
+        for ci, cell in enumerate(row[:4]):
+            cells.append(
+                f'<text x="{60+ci*130}" y="{40+ri*row_h}" font-size="11">{html.escape(str(cell)[:20])}</text>'
+            )
+    return {
+        "backend": "rule",
+        "chart_type": "table",
+        "svg": _svg(width, max(100, 40 + len(all_rows) * row_h), "".join(cells)),
+    }
+
+
+def csv_to_chart(
+    csv_text: str, chart_type: str = "bar", width: int = 600, height: int = 320
+) -> dict[str, Any]:
+    header, data = parse_csv(csv_text)
+    chart_type = (chart_type or "bar").lower()
+    if not data:
+        return {
+            "backend": "rule",
+            "chart_type": chart_type,
+            "error": "CSV 无有效数据行",
+            "svg": "",
+        }
+
+    if chart_type == "table":
+        return _render_table(header, data, width)
+
+    labels = [row[0] for row in data]
+    values = _numbers([row[1] if len(row) > 1 else "0" for row in data])
+
+    pad_l, pad_b, pad_t, pad_r = 50, 40, 20, 20
+    plot_w = max(100, width - pad_l - pad_r)
+    plot_h = max(100, height - pad_t - pad_b)
+    vmax = max(values) if values else 1.0
+    vmin = min(values + [0.0])
+
+    # 坐标轴
+    axis = [
+        f'<line x1="{pad_l}" y1="{pad_t}" x2="{pad_l}" y2="{pad_t+plot_h}" stroke="#888"/>',
+        f'<line x1="{pad_l}" y1="{pad_t+plot_h}" x2="{pad_l+plot_w}" y2="{pad_t+plot_h}" stroke="#888"/>',
+    ]
+    marks: list[str] = []
+    n_labels = len(labels)
+    for i, label in enumerate(labels):
+        label = html.escape(str(label)[:12])
+        marks.append(
+            f'<text x="{_chart_x(i, pad_l, plot_w, n_labels):.1f}" y="{pad_t+plot_h+16}" font-size="10" text-anchor="middle">{label}</text>'
+        )
+
+    renderer = _CHART_RENDERERS.get(chart_type)
+    shapes = renderer(values, labels, pad_l, pad_t, plot_w, plot_h, vmax, vmin) if renderer else []
+
+    body = "".join(axis + marks + shapes)
+    return {
+        "backend": "rule",
+        "chart_type": chart_type,
+        "svg": _svg(width, height, body),
+    }
+
+
+def _svg(width: int, height: int, body: str) -> str:
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}" font-family="sans-serif">{body}</svg>'
+    )
+
+
+def figure_caption(chart_meta: dict[str, Any]) -> str:
+    title = chart_meta.get("title") or "Figure"
+    x = chart_meta.get("x_label") or "X"
+    y = chart_meta.get("y_label") or "Y"
+    n = chart_meta.get("series_count") or chart_meta.get("point_count") or 1
+    return f"Figure: {title}. {y} 随 {x} 的变化，共 {n} 个数据点。"
+
+
+def _chat_completion(
+    endpoint: str, model: str, messages: list[dict[str, str]], timeout: float
+) -> str:
+    """调用 OpenAI 兼容 /v1/chat/completions，返回回复文本。失败抛异常由调用方降级。"""
+    url = endpoint.rstrip("/") + "/chat/completions"
+    payload = json.dumps({"model": model, "messages": messages, "temperature": 0.3}).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        data = json.loads(resp.read().decode("utf-8", errors="replace"))
+    return (data.get("choices") or [{}])[0].get("message", {}).get("content") or ""
+
+
+def translate_text(text: str, target: str = "zh") -> dict[str, Any]:
+    """中英学术翻译（9.1，可插拔）。
+
+    配置 TRANSLATION_ENABLED + TRANSLATION_ENDPOINT 时调用 OpenAI 兼容端点；
+    否则降级回显原文并标注 backend=rule。
+    """
+    text = (text or "").strip()
+    backend = "rule"
+    translated = text
+    note = "未配置翻译端点（TRANSLATION_ENABLED/TRANSLATION_ENDPOINT），已降级回显原文。"
+    if settings.TRANSLATION_ENABLED and settings.TRANSLATION_ENDPOINT:
+        try:
+            # target 语义：'zh' 英→中，'en' 中→英（前端「英→中」即 target='zh'）
+            if target == "en":
+                direction = "将中文翻译为地道的英文学术用语"
+            else:
+                direction = "将英文翻译为准确的中文学术表达"
+            messages = [
+                {
+                    "role": "system",
+                    "content": "你是学术翻译助手。保持术语准确、句式正式，仅输出译文。",
+                },
+                {"role": "user", "content": f"{direction}：\n{text}"},
+            ]
+            translated = _chat_completion(
+                settings.TRANSLATION_ENDPOINT,
+                settings.TRANSLATION_MODEL,
+                messages,
+                settings.LLM_TIMEOUT,
+            ).strip()
+            backend = "llm"
+            note = ""
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"翻译服务不可用，降级回显: {e}")
+            backend = "rule"
+            note = "翻译端点调用失败，已降级回显原文。"
+
+    return {"backend": backend, "text": translated, "target": target, "note": note}
+
+
+def llm_generate(prompt: str, max_tokens: int = 500) -> dict[str, Any]:
+    """真实 LLM 文本生成（9.2，可插拔）。
+
+    配置 LLM_ENABLED + LLM_ENDPOINT 时调用 OpenAI 兼容端点；
+    否则降级为规则注释占位，标注 backend=rule。
+    """
+    prompt = (prompt or "").strip()
+    if settings.LLM_ENABLED and settings.LLM_ENDPOINT:
+        try:
+            content = _chat_completion(
+                settings.LLM_ENDPOINT,
+                settings.LLM_MODEL,
+                [
+                    {
+                        "role": "system",
+                        "content": "你是学术写作助手。依据用户输入给出严谨、可用的正文。",
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    },
+                ],
+                settings.LLM_TIMEOUT,
+            )
+            return {"backend": "llm", "model": settings.LLM_MODEL, "content": content}
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"LLM 服务不可用，降级为规则占位: {e}")
+            return {
+                "backend": "rule",
+                "note": "LLM 端点（LLM_ENABLE/LLM_ENDPOINT）调用失败或未配置，已降级为规则占位。",
+                "content": f"【规则占位】{prompt[:300]}",
+            }
+    return {
+        "backend": "rule",
+        "note": "未配置 LLM 端点（LLM_ENABLED/LLM_ENDPOINT），已降级为规则占位。",
+        "content": f"【规则占位】{prompt[:300]}",
+    }
+
+
+class WritingAssistantService:
+
+    # ─── 插件协议 ──────────────────────────────────────────────────────────
+    async def on_start(self) -> None:
+        pass
+
+    async def on_stop(self) -> None:
+        pass
+
+    def health(self) -> dict:
+        return {"backend": "writing_assistant", "available": True}
+
+    @property
+    def available(self) -> bool:
+        return settings.WRITING_ASSISTANT_ENABLED
+
+    def outline(
+        self,
+        idea: str,
+        references: list[dict[str, Any]],
+        verified_references: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        return generate_outline(idea, references, verified_references)
+
+    def diagram(self, diagram_type: str, spec: dict[str, Any]) -> dict[str, Any]:
+        return generate_diagram_script(diagram_type, spec)
+
+    def csv_chart(self, csv_text: str, chart_type: str = "bar") -> dict[str, Any]:
+        return csv_to_chart(csv_text, chart_type)
+
+    def translate(self, text: str, target: str = "zh") -> dict[str, Any]:
+        return translate_text(text, target)
+
+    def llm_generate(self, prompt: str, max_tokens: int = 500) -> dict[str, Any]:
+        return llm_generate(prompt, max_tokens)
+
+
+# 全局单例
+writing_assistant_service = WritingAssistantService()
+
+
+class WritingAssistantServicePlugin(Plugin):
+    """官方插件：writing_assistant —— 存量迁移自 app.services（门面再导出）。"""
+
+    name = "writing_assistant"
+    version = "1.0.0"
+    config_prefix = ""
+    requires: list[str] = []
+    type = "service"
+    legacy_module = "app.services.writing_assistant"
+
+    def create(self, registry, settings) -> WritingAssistantService:
+        return WritingAssistantService()
+
+
+plugin = WritingAssistantServicePlugin()

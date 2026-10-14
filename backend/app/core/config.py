@@ -27,6 +27,16 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     API_PREFIX: str = "/api/v1"
 
+    # ── 插件化架构（见 others/PROJECT/08-插件化架构设计.md）────────────
+    PLUGIN_ENABLED: bool = False  # 插件框架开关（默认关闭，避免破坏既有启动；显式开启后启用）
+    PLUGIN_OFFICIAL_DIR: str = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        "app",
+        "plugins",
+    )
+    PLUGIN_EXTRA_DIR: str = os.path.join(PROJECT_ROOT, "third_party_plugins")
+    PLUGIN_DISABLED: str = ""  # 逗号分隔的禁用插件名
+
     # 初始管理员账号（仅本地开发默认值，生产环境务必改为强口令，见 config/backend.env）
     ADMIN_USERNAME: str = "admin"
     ADMIN_PASSWORD: str = "admin123"

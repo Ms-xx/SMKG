@@ -1,35 +1,12 @@
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+"""
+认证服务门面（插件化架构迁移：实现已迁至 `app/plugins/auth/service.py`）。
 
-from app.core.security import get_password_hash, verify_password
-from app.models.user import User
-from app.schemas.user import UserCreate
+- 兼容再导出：既有 `from app.services.auth_service import AuthService` 不受影响。
+- 运行期消费者应经 `registry.get("auth")` 动态寻址。
+"""
 
+from __future__ import annotations
 
-class AuthService:
-    async def authenticate_user(self, db: AsyncSession, username: str, password: str):
-        result = await db.execute(select(User).where(User.username == username))
-        user = result.scalar_one_or_none()
-        if not user or not verify_password(password, user.password_hash):
-            return None
-        return user
+from app.plugins.auth.service import AuthService
 
-    async def create_user(self, db: AsyncSession, user_data: UserCreate) -> User:
-        user = User(
-            username=user_data.username,
-            email=user_data.email,
-            password_hash=get_password_hash(user_data.password),
-            full_name=user_data.full_name,
-        )
-        db.add(user)
-        await db.flush()
-        await db.refresh(user)
-        return user
-
-    async def get_user_by_username(self, db: AsyncSession, username: str):
-        result = await db.execute(select(User).where(User.username == username))
-        return result.scalar_one_or_none()
-
-    async def get_user_by_email(self, db: AsyncSession, email: str):
-        result = await db.execute(select(User).where(User.email == email))
-        return result.scalar_one_or_none()
+__all__ = ["AuthService"]

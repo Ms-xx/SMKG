@@ -1,37 +1,13 @@
-from typing import List, Optional
+"""
+权限服务门面（插件化架构迁移：实现已迁至 `app/plugins/permission/service.py`）。
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+- 兼容再导出：既有 `from app.services.permission_service import PermissionService`
+  不受影响。
+- 运行期消费者应经 `registry.get("permission")` 动态寻址。
+"""
 
-from app.core.permissions import ALL_PERMISSIONS
-from app.models.role import Role
+from __future__ import annotations
 
+from app.plugins.permission.service import PermissionService
 
-class PermissionService:
-    async def list_roles(self, db: AsyncSession):
-        result = await db.execute(select(Role).order_by(Role.name))
-        roles = result.scalars().all()
-        return roles
-
-    async def get_role_by_name(self, db: AsyncSession, name: str) -> Optional[Role]:
-        result = await db.execute(select(Role).where(Role.name == name))
-        return result.scalar_one_or_none()
-
-    async def update_role_permissions(
-        self, db: AsyncSession, name: str, permissions: List[str]
-    ) -> Optional[Role]:
-        role = await self.get_role_by_name(db, name)
-        if not role:
-            return None
-
-        # 仅接受合法权限码，去重
-        allowed = set(ALL_PERMISSIONS)
-        cleaned = []
-        for p in permissions:
-            if p in allowed and p not in cleaned:
-                cleaned.append(p)
-
-        role.permissions = cleaned
-        await db.flush()
-        await db.refresh(role)
-        return role
+__all__ = ["PermissionService"]
