@@ -21,8 +21,14 @@ vi.mock("@api/modules", () => ({
   documentApi: { getById: vi.fn(), getPageElements: vi.fn() },
 }));
 
+// 捕获 DualPaneView 收到的 props，用于验证选中/清除高亮是否贯穿到视图层（用 hoisted 避免 TDZ）
+const dualPaneMock = vi.hoisted(() => ({ props: undefined as any }));
+
 vi.mock("./components/DualPaneView", () => ({
-  default: () => <div data-testid="dual-pane" />,
+  default: (props: any) => {
+    dualPaneMock.props = props;
+    return <div data-testid="dual-pane" />;
+  },
 }));
 
 const renderWorkspace = () =>
@@ -67,6 +73,7 @@ describe("AnnotationWorkspace", () => {
     vi.mocked(documentApi.getPageElements)
       .mockReset()
       .mockResolvedValue({ elements: [] } as any);
+    dualPaneMock.props = undefined;
   });
 
   afterEach(() => {
@@ -143,5 +150,20 @@ describe("AnnotationWorkspace", () => {
     renderWorkspace();
     fireEvent.click(await screen.findByText("提交审核"));
     expect(await screen.findByText("没有待提交的标注")).toBeInTheDocument();
+  });
+
+  it("点击右侧解析元素把选中项传给视图以驱动文件页跳转，且无高亮清除监听", async () => {
+    renderWorkspace();
+    await screen.findByText("保存");
+    const el = { id: "e1", page: 2, bbox: [0, 0, 100, 100] };
+    // 模拟在右侧解析元素列表上点击选中 → 透传 selectedElement（含 page，供 PDF 视图跳页）
+    dualPaneMock.props.onElementSelect(el);
+    await waitFor(() => expect(dualPaneMock.props.selectedElement).toBe(el));
+    // 高亮系列能力已移除：点击页面空白区域不应清空 selectedElement（无残留清高亮逻辑）
+    fireEvent.click(document.body);
+    await waitFor(() => expect(dualPaneMock.props.selectedElement).toBe(el));
+    // 切换选中元素正常更新，无状态残留
+    dualPaneMock.props.onElementSelect({ ...el, id: "e2", page: 3 });
+    await waitFor(() => expect(dualPaneMock.props.selectedElement.id).toBe("e2"));
   });
 });

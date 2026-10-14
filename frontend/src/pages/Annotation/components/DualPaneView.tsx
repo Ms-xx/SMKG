@@ -21,16 +21,8 @@ export default function DualPaneView({
   return (
     <Splitter style={{ height: "calc(100vh - 120px)" }}>
       <Splitter.Panel collapsible>
-        <PDFViewer
-          fileUrl={fileUrl}
-          onElementClick={(bbox) => {
-            const el = elements.find((e: any) => {
-              const [x0, y0, x1, y1] = e.bbox;
-              return bbox[0] >= x0 && bbox[1] >= y0 && bbox[0] <= x1 && bbox[1] <= y1;
-            });
-            if (el) onElementSelect(el);
-          }}
-        />
+        {/* 仅把选中元素所在页作为文件页跳转目标传给 PDF 视图（不触发任何内容高亮） */}
+        <PDFViewer fileUrl={fileUrl} targetPage={selectedElement?.page} />
       </Splitter.Panel>
       <Splitter.Panel>
         <AnnotationPanel

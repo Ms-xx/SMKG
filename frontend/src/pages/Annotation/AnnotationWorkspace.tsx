@@ -55,7 +55,7 @@ export default function AnnotationWorkspace() {
           Array.from({ length: pages }, (_, i) => i + 1).map((p) =>
             documentApi
               .getPageElements(documentId, p)
-              .then((res: any) => res?.elements || [])
+              .then((res: any) => (res?.elements || []).map((el: any) => ({ ...el, page: p })))
               .catch(() => [] as any[]),
           ),
         );

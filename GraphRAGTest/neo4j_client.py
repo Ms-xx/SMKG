@@ -307,22 +307,27 @@ class Neo4jClient:
         if not cleaned or depth < 1:
             return {}
         driver = await self.get_driver()
-        depth = int(min(depth, 3))  # 变量长度关系不支持参数化，内联字面量
-        # 用 id/name 任一属性匹配（Document 节点用 id，实体用 name 统一），跨深度数邻居
+        # 深度限制为配置上限（可变长关系字面量不支持参数化，须安全内联）
+        max_depth = max(1, int(getattr(settings, "GRAPH_HOP_MAX_DEPTH", 3)))
+        depth = int(min(depth, max_depth))
+        safe_limit = max(1, int(limit))
+        # 用 id/name 任一属性匹配（Document 节点用 id，实体用 name 统一），跨深度数邻居；
+        # 每个 key 限制 distinct 邻居数上限（P2①：limit 真正进入 Cypher，防大图爆炸）
         query = (
-            "UNWIND $keys AS key "
-            "MATCH (n) WHERE n.id = key OR n.name = key "
-            "WITH n, key "
-            f"MATCH (n)-[*1..{depth}]-(neighbor) "
-            "WITH key, count(DISTINCT neighbor) AS strength "
-            "RETURN key, strength"
+            "MATCH (n) WHERE n.id = $key OR n.name = $key "
+            f"CALL {{ WITH n MATCH (n)-[*1..{depth}]-(neighbor) "
+            "WITH DISTINCT neighbor LIMIT $limit RETURN count(*) AS strength } "
+            "RETURN $key AS key, strength"
         )
+        strengths: dict[str, int] = {}
         try:
             async with driver.session(database=settings.NEO4J_DATABASE) as session:
-                result = await session.run(query, keys=cleaned)
-                return {
-                    record["key"]: int(record["strength"]) async for record in result
-                }
+                # 子查询需单 key 入参 → 逐 key 分别执行，保证缺失节点也计入 0
+                for k in cleaned:
+                    result = await session.run(query, key=k, limit=safe_limit)
+                    rec = await result.single()
+                    strengths[k] = int(rec["strength"]) if rec is not None else 0
+            return strengths
         except Exception as e:  # pragma: no cover - 图不可用降级
             logger.warning(f"计算连接强度失败（将按原序）: {e}")
             return {}

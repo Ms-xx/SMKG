@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { Spin, Button, Space } from "antd";
 import { ZoomInOutlined, ZoomOutOutlined } from "@ant-design/icons";
@@ -10,15 +10,27 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 interface PDFViewerProps {
   fileUrl: string | Blob;
   onPageChange?: (page: number) => void;
-  onElementClick?: (bbox: number[]) => void;
+  // 文件页之间跳转的目标页（如右侧选中解析元素所在页）。仅用于页面切换定位，不做任何内容高亮。
+  targetPage?: number;
 }
 
-export default function PDFViewer({ fileUrl, onPageChange }: PDFViewerProps) {
+export default function PDFViewer({ fileUrl, onPageChange, targetPage }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.5);
 
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => setNumPages(numPages);
+  const onDocumentLoadSuccess = ({ numPages: n }: { numPages: number }) => setNumPages(n);
+
+  // 文件页之间跳转：targetPage 变化时自动切换到对应页（仅跳页，不绘制高亮）
+  useEffect(() => {
+    if (typeof targetPage === "number" && targetPage >= 1 && targetPage !== pageNumber) {
+      setPageNumber(targetPage);
+    }
+  }, [targetPage, pageNumber]);
+
+  const handlePageLoad = () => {
+    onPageChange?.(pageNumber);
+  };
 
   return (
     <div className="pdf-viewer">
@@ -50,16 +62,14 @@ export default function PDFViewer({ fileUrl, onPageChange }: PDFViewerProps) {
         <Document
           file={fileUrl}
           onLoadSuccess={onDocumentLoadSuccess}
-          onItemClick={({ pageNumber }) => {
-            if (typeof pageNumber === "number" && pageNumber >= 1) setPageNumber(pageNumber);
+          onItemClick={({ pageNumber: p }) => {
+            if (typeof p === "number" && p >= 1) setPageNumber(p);
           }}
           loading={<Spin size="large" />}
         >
-          <Page
-            pageNumber={pageNumber}
-            scale={scale}
-            onLoadSuccess={() => onPageChange?.(pageNumber)}
-          />
+          <div className="pdf-page-wrap" style={{ position: "relative", display: "inline-block" }}>
+            <Page pageNumber={pageNumber} scale={scale} onLoadSuccess={handlePageLoad} />
+          </div>
         </Document>
       </div>
     </div>

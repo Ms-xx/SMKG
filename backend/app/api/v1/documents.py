@@ -16,6 +16,7 @@ from app.schemas.document import (
     DocumentResponse,
     DocumentUpdate,
     PageElementsResponse,
+    TitleTreeResponse,
 )
 from app.services import reference_service
 from app.services.document_service import DocumentService
@@ -160,7 +161,10 @@ async def export_document_jats(
     file_path = getattr(doc, "file_path", None)
     if file_path:
         references = reference_service.reference_service.extract_references(file_path) or []
-        references = reference_service.enhance_references_with_grobid(references)
+        # GROBID 增强（可插拔）：传入本地 PDF 路径，仅当启用且可达时用其解析结果回填缺失字段
+        references = reference_service.enhance_references_with_grobid(
+            references, pdf_path=file_path
+        )
 
     ref_list = reference_service.references_to_jats(references)
     if ref_list.startswith("<?xml"):
@@ -205,3 +209,14 @@ async def get_page_elements(
         page_number=page.page_number,
         elements=elements,
     )
+
+
+@router.get("/{document_id}/title-tree", response_model=TitleTreeResponse)
+async def get_title_tree(
+    document_id: str,
+    current_user: dict = Depends(require_permission(DOCUMENT_READ)),
+    db: AsyncSession = Depends(get_db),
+):
+    scope_all = has_permission(current_user, DOCUMENT_WRITE)
+    tree = await doc_service.get_title_tree(db, document_id, current_user["user_id"], scope_all)
+    return TitleTreeResponse(backend="elements", tree=tree)

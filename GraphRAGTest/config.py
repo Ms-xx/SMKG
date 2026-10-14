@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     #    连接强度（频次/度）加权重排上下文，突出"中心实体"。
     GRAPH_HOP_RERANK_ENABLED: bool = True
     GRAPH_HOP_DEPTH: int = 2  # 邻居扩跳深度（1=一跳，2=一跳+二跳）
+    GRAPH_HOP_MAX_DEPTH: int = 3  # 扩跳深度安全上限（可变长关系字面量，防止过深）
     GRAPH_HOP_BOOST_WEIGHT: float = 0.5  # 图谱邻居分相对原始检索分的权重(0~1)
     # 2) grounding_score：评估"最终答案"是否被检索到的证据（页码片段/图节点名）支撑。
     GROUNDING_ENABLED: bool = True

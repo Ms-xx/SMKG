@@ -12,18 +12,16 @@ import {
   Segmented,
   Tooltip,
   Alert,
+  InputNumber,
+  Tree,
 } from "antd";
-import {
-  ArrowLeftOutlined,
-  DownloadOutlined,
-  PlayCircleOutlined,
-  SwapOutlined,
-} from "@ant-design/icons";
+import { ArrowLeftOutlined, DownloadOutlined, PlayCircleOutlined } from "@ant-design/icons";
 import { useDocumentStore } from "@store/documentStore";
 import { citationLinkApi, documentApi, writingAssistantApi } from "@api/modules";
-import type { CitationMapResult, InlineCitation } from "@/types";
+import type { CitationMapResult, InlineCitation, TitleTreeItem } from "@/types";
 import LatexFormula from "@components/Formula/LatexFormula";
 import dayjs from "dayjs";
+import { buildTitleTree } from "@utils/titleTree";
 
 const statusMap: Record<string, { color: string; text: string }> = {
   uploaded: { color: "default", text: "已上传" },
@@ -51,13 +49,6 @@ interface DocumentFormulaItem {
 
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "center" });
-}
-
-function scrollWithRatio(source: HTMLDivElement, target: HTMLDivElement) {
-  const srcRange = source.scrollHeight - source.clientHeight;
-  const dstRange = target.scrollHeight - target.clientHeight;
-  if (srcRange <= 0) return;
-  target.scrollTop = (source.scrollTop / srcRange) * dstRange;
 }
 
 function extractCiteNumbers(text: string): number[] {
@@ -173,22 +164,23 @@ export default function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentDocument, fetchDocument, triggerParse } = useDocumentStore();
-  const [titleTree, setTitleTree] = useState<
-    { level: number; title: string; page_number: number }[]
-  >([]);
+  const [titleTree, setTitleTree] = useState<TitleTreeItem[]>([]);
+  const [titleTreeBackend, setTitleTreeBackend] = useState("");
   const [fulltextPages, setFulltextPages] = useState<{ page_number: number; text: string }[]>([]);
   const [citationMap, setCitationMap] = useState<CitationMapResult | null>(null);
   const [formulas, setFormulas] = useState<DocumentFormulaItem[]>([]);
   const [bilingual, setBilingual] = useState(false);
   const [translations, setTranslations] = useState<Record<number, string>>({});
   const [translateBackend, setTranslateBackend] = useState("");
-  const [translating, setTranslating] = useState(false);
   // 划词翻译
   const [selAnchor, setSelAnchor] = useState<{ text: string; x: number; y: number } | null>(null);
   const [selResult, setSelResult] = useState<{ text: string; backend: string } | null>(null);
   const [selLoading, setSelLoading] = useState(false);
-  const leftScrollRef = useRef<HTMLDivElement | null>(null);
-  const rightScrollRef = useRef<HTMLDivElement | null>(null);
+  // ── 单页翻译缓存/在途守卫 ref（避免重复请求、避免回调闭包过期） ──
+  const requestedRef = useRef<Set<number>>(new Set());
+  const translationsRef = useRef<Record<number, string>>({});
+  const [currentPage, setCurrentPageState] = useState(1);
+  const [jumpInput, setJumpInput] = useState<number | null>(null);
 
   useEffect(() => {
     if (id) fetchDocument(id);
@@ -219,6 +211,11 @@ export default function DocumentDetailPage() {
       .then((res) => {
         if (cancelled) return;
         setFulltextPages(res.pages || []);
+        // 新文档全文重载：清空翻译缓存与在途集合，避免跨文档串页
+        requestedRef.current.clear();
+        translationsRef.current = {};
+        setTranslations({});
+        setCurrentPageState(1);
         const refs = currentDocument.references || [];
         if (res.pages?.length && refs.length) {
           return citationLinkApi
@@ -275,45 +272,89 @@ export default function DocumentDetailPage() {
   }, [id, currentDocument?.status, currentDocument?.id, pageCount]);
 
   useEffect(() => {
-    if (currentDocument?.file_path) {
-      citationLinkApi
-        .titleTree(currentDocument.file_path)
-        .then((res) => setTitleTree(res.tree || []))
-        .catch(() => setTitleTree([]));
-    } else {
-      setTitleTree([]);
-    }
-  }, [currentDocument?.file_path]);
-
-  // 整篇翻译（5.3）：逐页并行调 /translate，写缓存并开启对照视图
-  const translateAll = useCallback(
-    async (target = "zh") => {
-      if (!fulltextPages.length) return;
-      setTranslating(true);
-      try {
-        const results = await Promise.all(
-          fulltextPages.map((p) =>
-            writingAssistantApi.translate({ text: p.text, target }).catch(() => null),
-          ),
-        );
-        const map: Record<number, string> = {};
-        let backend = "rule";
-        fulltextPages.forEach((p, i) => {
-          const r = results[i];
-          if (r && r.text && r.text.trim()) {
-            map[p.page_number] = r.text;
-            if (r.backend) backend = r.backend;
-          }
-        });
-        setTranslations(map);
-        setTranslateBackend(backend);
-        setBilingual(true);
-      } finally {
-        setTranslating(false);
+    if (!id) return;
+    const fallback = () => {
+      if (currentDocument?.file_path) {
+        citationLinkApi
+          .titleTree(currentDocument.file_path)
+          .then((res) => {
+            setTitleTree(res.tree || []);
+            setTitleTreeBackend("pdf");
+          })
+          .catch(() => setTitleTree([]));
+      } else {
+        setTitleTree([]);
       }
-    },
+    };
+    documentApi
+      .getTitleTree(id)
+      .then((res) => {
+        if (res.tree?.length) {
+          setTitleTree(res.tree);
+          setTitleTreeBackend(res.backend || "elements");
+        } else {
+          fallback();
+        }
+      })
+      .catch(() => fallback());
+  }, [id, currentDocument?.file_path]);
+
+  const treeData = useMemo(() => buildTitleTree(titleTree), [titleTree]);
+
+  // 译文缓存同步到 ref，供翻译回调读取最新值，避免闭包过期
+  useEffect(() => {
+    translationsRef.current = translations;
+  }, [translations]);
+
+  const totalPages = Math.max(1, fulltextPages.length);
+  const displayedPage = Math.min(currentPage, totalPages);
+
+  const pageTextOf = useCallback(
+    (pageNumber: number) => fulltextPages.find((p) => p.page_number === pageNumber)?.text || "",
     [fulltextPages],
   );
+
+  // 翻译指定单页：未译且不在途才请求，写缓存；不预翻译其它页
+  const translatePage = useCallback(
+    (pageNumber: number) => {
+      const text = pageTextOf(pageNumber).trim();
+      if (!text || translationsRef.current[pageNumber] || requestedRef.current.has(pageNumber)) {
+        return;
+      }
+      requestedRef.current.add(pageNumber);
+      writingAssistantApi
+        .translate({ text: pageTextOf(pageNumber), target: "zh" })
+        .then((r) => {
+          if (r && r.text && r.text.trim()) {
+            translationsRef.current[pageNumber] = r.text;
+            if (r.backend) setTranslateBackend(r.backend);
+            setTranslations({ ...translationsRef.current });
+          }
+        })
+        .catch(() => {
+          /* 翻译失败保留占位，不阻塞 */
+        })
+        .finally(() => {
+          requestedRef.current.delete(pageNumber);
+        });
+    },
+    [pageTextOf],
+  );
+
+  // 翻页：钳制到 [1, totalPages]，切换当前页；对照模式下翻译新页
+  const goPage = useCallback(
+    (p: number) => {
+      if (!totalPages) return;
+      const raw = Number.isFinite(p) ? Math.floor(p) : 1;
+      const next = Math.max(1, Math.min(totalPages, raw || 1));
+      setCurrentPageState(next);
+      if (bilingual) translatePage(next);
+    },
+    [totalPages, bilingual, translatePage],
+  );
+
+  const handlePrevPage = useCallback(() => goPage(displayedPage - 1), [goPage, displayedPage]);
+  const handleNextPage = useCallback(() => goPage(displayedPage + 1), [goPage, displayedPage]);
 
   const handleBodyMouseUp = useCallback((e: React.MouseEvent) => {
     const sel = window.getSelection();
@@ -358,28 +399,13 @@ export default function DocumentDetailPage() {
     }
   }, [id, currentDocument?.title]);
 
-  const syncScroll = useCallback((source: "left" | "right") => {
-    const left = leftScrollRef.current;
-    const right = rightScrollRef.current;
-    if (!left || !right) return;
-    if (source === "left") scrollWithRatio(left, right);
-    else scrollWithRatio(right, left);
-  }, []);
-
   const handleViewChange = useCallback(
     (v: string | number) => {
-      const targetBilingual = v === "zh";
-      setBilingual(targetBilingual);
-      if (
-        targetBilingual &&
-        !translating &&
-        fulltextPages.length &&
-        Object.keys(translations).length === 0
-      ) {
-        translateAll("zh");
-      }
+      const isBilingual = v === "zh";
+      setBilingual(isBilingual);
+      if (isBilingual) translatePage(displayedPage);
     },
-    [fulltextPages, translating, translations, translateAll],
+    [translatePage, displayedPage],
   );
 
   const effectiveBackToBody = useMemo(() => {
@@ -548,18 +574,39 @@ export default function DocumentDetailPage() {
         </Card>
       )}
 
-      {titleTree.length > 0 && (
-        <Card title="标题树（版式联动阅读）" style={{ marginTop: 16 }}>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {titleTree.map((t, i) => (
-              <li key={i} style={{ padding: "4px 0", paddingLeft: (t.level - 1) * 20 }}>
-                <Typography.Text type="secondary" style={{ marginRight: 8 }}>
-                  p{t.page_number}
-                </Typography.Text>
-                {t.title}
-              </li>
-            ))}
-          </ul>
+      {titleTree.length > 0 && treeData.length > 0 && (
+        <Card
+          title="标题树（目录导航）"
+          style={{ marginTop: 16 }}
+          extra={
+            <Typography.Text type="secondary">
+              来源 {titleTreeBackend === "pdf" ? "PDF" : "elements"}
+            </Typography.Text>
+          }
+        >
+          <Tree
+            showLine
+            defaultExpandAll
+            treeData={treeData}
+            onSelect={(_keys, info) => {
+              const page = (info.node as { page?: number })?.page;
+              if (typeof page === "number") goPage(page);
+            }}
+            titleRender={(node) => {
+              const n = node as unknown as {
+                title: string;
+                page?: number;
+              };
+              return (
+                <Space size={6}>
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                    p{n.page}
+                  </Typography.Text>
+                  <span>{n.title}</span>
+                </Space>
+              );
+            }}
+          />
         </Card>
       )}
 
@@ -577,14 +624,6 @@ export default function DocumentDetailPage() {
                   { label: "中英对照", value: "zh" },
                 ]}
               />
-              <Button
-                icon={<SwapOutlined />}
-                loading={translating}
-                disabled={!fulltextPages.length}
-                onClick={() => translateAll("zh")}
-              >
-                整篇翻译
-              </Button>
             </Space>
           }
         >
@@ -601,59 +640,108 @@ export default function DocumentDetailPage() {
               )}
               <div style={{ display: "flex", gap: 16 }}>
                 <div
-                  ref={leftScrollRef}
-                  onScroll={() => syncScroll("left")}
                   data-testid="body-original"
                   style={{
                     flex: 1,
-                    maxHeight: 560,
-                    overflow: "auto",
-                    paddingRight: 8,
                     lineHeight: 1.8,
+                    paddingRight: 8,
+                    borderRight: bilingual ? "1px solid #f0f0f0" : "none",
                   }}
                 >
-                  {fulltextPages.map((p) => (
-                    <div key={p.page_number} style={{ marginBottom: 16 }}>
-                      <Typography.Text type="secondary" style={{ fontWeight: 600 }}>
-                        — 第 {p.page_number} 页 —
-                      </Typography.Text>
-                      <Typography.Paragraph style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>
-                        <BodyPageText
-                          pageNumber={p.page_number}
-                          text={p.text}
-                          citations={byPageCites(p.page_number)}
-                          renderTooltip={(n) => `跳转到参考文献 [${n}]`}
-                        />
-                      </Typography.Paragraph>
-                    </div>
-                  ))}
+                  <Typography.Text type="secondary" style={{ fontWeight: 600 }}>
+                    — 第 {displayedPage} 页 —
+                  </Typography.Text>
+                  <Typography.Paragraph style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>
+                    <BodyPageText
+                      pageNumber={displayedPage}
+                      text={pageTextOf(displayedPage)}
+                      citations={byPageCites(displayedPage)}
+                      renderTooltip={(n) => `跳转到参考文献 [${n}]`}
+                    />
+                  </Typography.Paragraph>
                 </div>
                 {bilingual && (
                   <div
-                    ref={rightScrollRef}
-                    onScroll={() => syncScroll("right")}
                     data-testid="body-translation"
                     style={{
                       flex: 1,
-                      maxHeight: 560,
-                      overflow: "auto",
+                      lineHeight: 1.8,
                       paddingLeft: 8,
                       borderLeft: "1px solid #f0f0f0",
-                      lineHeight: 1.8,
                     }}
                   >
-                    {fulltextPages.map((p) => (
-                      <div key={p.page_number} style={{ marginBottom: 16 }}>
-                        <Typography.Text type="secondary" style={{ fontWeight: 600 }}>
-                          — 第 {p.page_number} 页 —
-                        </Typography.Text>
-                        <Typography.Paragraph style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>
-                          {translations[p.page_number] ?? "（翻译中…）"}
-                        </Typography.Paragraph>
-                      </div>
-                    ))}
+                    <Typography.Text type="secondary" style={{ fontWeight: 600 }}>
+                      — 第 {displayedPage} 页 —
+                    </Typography.Text>
+                    <Typography.Paragraph style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>
+                      {translations[displayedPage] ?? "（翻译中…）"}
+                    </Typography.Paragraph>
                   </div>
                 )}
+              </div>
+              <div
+                data-testid="page-jumper"
+                style={{
+                  marginTop: 12,
+                  paddingTop: 12,
+                  borderTop: "1px solid #f0f0f0",
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "4px 8px",
+                    borderRadius: 8,
+                    border: "1px solid #d9d9d9",
+                    background: "#fafafa",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                  }}
+                >
+                  <Button size="small" onClick={handlePrevPage} disabled={displayedPage <= 1}>
+                    上一页
+                  </Button>
+                  <Typography.Text
+                    style={{
+                      minWidth: 70,
+                      textAlign: "center",
+                      color: "rgba(0,0,0,0.65)",
+                    }}
+                    data-testid="page-info"
+                  >
+                    {displayedPage} / {totalPages}
+                  </Typography.Text>
+                  <Button
+                    size="small"
+                    onClick={handleNextPage}
+                    disabled={displayedPage >= totalPages}
+                  >
+                    下一页
+                  </Button>
+                  <InputNumber
+                    size="small"
+                    min={1}
+                    max={totalPages}
+                    value={jumpInput ?? displayedPage}
+                    onChange={setJumpInput}
+                    onPressEnter={() => goPage(jumpInput ?? displayedPage)}
+                    controls={false}
+                    placeholder={"页码"}
+                    style={{ width: 76 }}
+                    aria-label="跳转页码"
+                  />
+                  <Button
+                    size="small"
+                    type="primary"
+                    onClick={() => goPage(jumpInput ?? displayedPage)}
+                    data-testid="jump-btn"
+                  >
+                    跳转
+                  </Button>
+                </div>
               </div>
             </div>
           )}

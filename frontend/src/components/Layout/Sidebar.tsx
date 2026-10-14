@@ -38,7 +38,17 @@ export default function AppSidebar() {
       ? [{ key: "/documents", icon: <FileTextOutlined />, label: "文档管理" }]
       : []),
     ...(hasPerm("annotation:read")
-      ? [{ key: "/active-learning", icon: <AimOutlined />, label: "优先标注" }]
+      ? [
+          {
+            key: "/annotation-menu",
+            icon: <AimOutlined />,
+            label: "标注",
+            children: [
+              { key: "/active-learning", label: "优先标注" },
+              { key: "/annotation-doc-list", label: "人工标注" },
+            ],
+          },
+        ]
       : []),
     ...(hasPerm("document:read")
       ? [
@@ -113,7 +123,7 @@ export default function AppSidebar() {
         mode="inline"
         selectedKeys={[location.pathname.split("/").slice(0, 3).join("/")]}
         items={menuItems}
-        onClick={({ key }) => navigate(key)}
+        onClick={({ key }) => navigate(key === "/annotation-doc-list" ? "/documents" : key)}
       />
     </Sider>
   );

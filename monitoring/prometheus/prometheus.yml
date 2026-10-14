@@ -21,20 +21,14 @@ scrape_configs:
   - job_name: "backend"
     metrics_path: /metrics
     static_configs:
-      # 本机独立进程路径（步骤 7.1）：127.0.0.1:8000
+      # 宿主机后端进程路径（后端以 host 进程运行，容器内经 host-gateway 可达）：host.docker.internal:8000
       # 全容器部署时改为：backend:8000
-      - targets: ["127.0.0.1:8000"]
+      - targets: ["host.docker.internal:8000"]
 
   - job_name: "backend-business"
     metrics_path: /metrics/business
     static_configs:
-      # 本机独立进程路径（步骤 7.1）：127.0.0.1:8000
-      # 全容器部署时改为：backend:8000
-      - targets: ["127.0.0.1:8000"]
-
-  - job_name: "backend-business"
-    metrics_path: /metrics/business
-    static_configs:
+      # 宿主机后端进程路径：host.docker.internal:8000；全容器部署改为 backend:8000
       - targets: ["host.docker.internal:8000"]
 
   - job_name: "alertmanager"

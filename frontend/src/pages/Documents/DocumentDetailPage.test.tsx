@@ -244,7 +244,7 @@ describe("DocumentDetailPage", () => {
     expect(screen.getAllByLabelText("复制 LaTeX 公式").length).toBe(2);
   });
 
-  it("整篇翻译触发 translate 并展示对照译文（5.3）", async () => {
+  it("切换中英对照仅翻译当前页，重复切换不重复请求（缓存守卫）", async () => {
     vi.mocked(documentApi.getFullText).mockResolvedValue({
       document_id: "d1",
       page_count: 1,
@@ -257,15 +257,85 @@ describe("DocumentDetailPage", () => {
     });
     useDocumentStore.setState({ currentDocument: { ...doc, status: "parsed" } });
     renderPage();
+    vi.mocked(writingAssistantApi.translate).mockClear();
 
-    const btn = await screen.findByRole("button", { name: /整篇翻译/ });
-    fireEvent.click(btn);
+    fireEvent.click(await screen.findByText("中英对照"));
+    fireEvent.click(await screen.findByText("原文"));
+    fireEvent.click(await screen.findByText("中英对照")); // 已译页走缓存，不重复请求
 
     expect(await screen.findByText("图神经网络可预测材料性质。")).toBeInTheDocument();
+    expect(writingAssistantApi.translate).toHaveBeenCalledTimes(1);
     expect(writingAssistantApi.translate).toHaveBeenCalledWith({
       text: "Graph neural networks predict properties.",
       target: "zh",
     });
+  });
+
+  it("页码跳转：翻页仅单页显示并只译当前页，跳转越界被钳制", async () => {
+    vi.mocked(documentApi.getFullText).mockResolvedValue({
+      document_id: "d1",
+      page_count: 3,
+      pages: [
+        { page_number: 1, text: "Page one content." },
+        { page_number: 2, text: "Page two content." },
+        { page_number: 3, text: "Page three content." },
+      ],
+    });
+    vi.mocked(writingAssistantApi.translate).mockImplementation((args: { text: string }) =>
+      Promise.resolve({ backend: "llm", text: `译文:${args.text}`, target: "zh" }),
+    );
+    useDocumentStore.setState({ currentDocument: { ...doc, status: "parsed" } });
+    renderPage();
+    vi.mocked(writingAssistantApi.translate).mockClear();
+
+    // 页码信息实时显示「当前/总页数」；单页只渲染第 1 页
+    const pageInfo = await screen.findByTestId("page-info");
+    expect(pageInfo).toHaveTextContent("1 / 3");
+    expect(screen.getByText("Page one content.")).toBeInTheDocument();
+    expect(screen.queryByText("Page two content.")).not.toBeInTheDocument();
+
+    // 切换到中英对照 → 只请求当前页(1)
+    fireEvent.click(await screen.findByText("中英对照"));
+    await waitFor(() =>
+      expect(writingAssistantApi.translate).toHaveBeenCalledWith({
+        text: "Page one content.",
+        target: "zh",
+      }),
+    );
+    const callAfterPage1 = vi.mocked(writingAssistantApi.translate).mock.calls.length;
+    expect(callAfterPage1).toBe(1);
+
+    // 下一页 → 第 2 页，只译该页
+    fireEvent.click(screen.getByRole("button", { name: /下一页/ }));
+    expect(await screen.findByText("Page two content.")).toBeInTheDocument();
+    expect(screen.getByTestId("page-info")).toHaveTextContent("2 / 3");
+    await waitFor(() =>
+      expect(writingAssistantApi.translate).toHaveBeenCalledWith({
+        text: "Page two content.",
+        target: "zh",
+      }),
+    );
+
+    // 输入页码 3 并跳转
+    fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "3" } });
+    fireEvent.click(screen.getByTestId("jump-btn"));
+    expect(await screen.findByText("Page three content.")).toBeInTheDocument();
+    expect(screen.getByTestId("page-info")).toHaveTextContent("3 / 3");
+    await waitFor(() =>
+      expect(writingAssistantApi.translate).toHaveBeenCalledWith({
+        text: "Page three content.",
+        target: "zh",
+      }),
+    );
+
+    // 翻回第 1 页不重复请求（缓存守卫）
+    fireEvent.click(screen.getByRole("button", { name: /上一页/ }));
+    fireEvent.click(screen.getByRole("button", { name: /上一页/ }));
+    expect(await screen.findByText("Page one content.")).toBeInTheDocument();
+    const callsOne = vi
+      .mocked(writingAssistantApi.translate)
+      .mock.calls.filter((c: any[]) => c[0]?.text === "Page one content.");
+    expect(callsOne.length).toBe(1);
   });
 
   it("切换中英对照自动逐页翻译（5.2）", async () => {

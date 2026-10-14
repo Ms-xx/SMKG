@@ -4,6 +4,7 @@ import type {
   User,
   Document,
   DocumentListResponse,
+  TitleTreeItem,
   OperationLogListResponse,
   WorkloadStats,
   TeamDashboard,
@@ -69,6 +70,8 @@ export const documentApi = {
     api.post(`/documents/${id}/parse`),
   getPageElements: async (documentId: string, pageNumber: number) =>
     api.get(`/documents/${documentId}/pages/${pageNumber}/elements`),
+  getTitleTree: async (id: string): Promise<{ backend: string; tree: TitleTreeItem[] }> =>
+    api.get(`/documents/${id}/title-tree`),
   getFullText: async (
     documentId: string,
   ): Promise<{

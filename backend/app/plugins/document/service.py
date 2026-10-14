@@ -283,6 +283,41 @@ class DocumentService:
         elements = elements_result.scalars().all()
         return page, elements
 
+    async def get_title_tree(
+        self,
+        db: AsyncSession,
+        document_id: str,
+        user_id: str = None,
+        scope_all: bool = False,
+    ):
+        """返回文档全部 title 元素（含页码），按页/位置有序。
+
+        先做存在性+权限校验（与 :meth:`get_page_elements` 调用方一致）。
+        """
+        await self.get_document(db, document_id, user_id, scope_all)
+
+        result = await db.execute(
+            select(DocumentElement, DocumentPage.page_number)
+            .join(DocumentPage, DocumentElement.page_id == DocumentPage.id)
+            .where(
+                DocumentPage.document_id == document_id,
+                DocumentElement.element_type == "title",
+            )
+            .order_by(DocumentPage.page_number, DocumentElement.id)
+        )
+        tree = []
+        for el, page_number in result.all():
+            meta = el.element_metadata or {}
+            level = int(meta.get("level") or 3)
+            tree.append(
+                {
+                    "level": level,
+                    "title": el.content,
+                    "page_number": page_number,
+                }
+            )
+        return tree
+
 
 class DocumentPlugin(Plugin):
     """官方插件：document —— 文档服务（存量迁移自 app/services/document_service.py）。"""

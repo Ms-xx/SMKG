@@ -35,35 +35,34 @@ describe("DualPaneView", () => {
     expect(screen.getByTestId("annotation-panel")).toBeInTheDocument();
   });
 
-  it("点击页面区域命中元素时回调", () => {
-    const onElementSelect = vi.fn();
+  it("将选中元素所在页作为文件页跳转目标透传给 PDF 视图", () => {
+    const selected = { id: "e1", page: 3, bbox: [0, 0, 100, 100] };
     render(
       <DualPaneView
         documentId="d1"
         fileUrl="http://example.com/x.pdf"
         elements={elements}
-        selectedElement={null}
-        onElementSelect={onElementSelect}
+        selectedElement={selected}
+        onElementSelect={vi.fn()}
         onAnnotationChange={vi.fn()}
       />,
     );
-    pdfProps.onElementClick([50, 50]);
-    expect(onElementSelect).toHaveBeenCalledWith(elements[0]);
+    expect(pdfProps.targetPage).toBe(3);
   });
 
-  it("点击空白区域不回调", () => {
-    const onElementSelect = vi.fn();
+  it("无选中时不传跳页目标，且不请求内容高亮", () => {
     render(
       <DualPaneView
         documentId="d1"
         fileUrl="http://example.com/x.pdf"
         elements={elements}
         selectedElement={null}
-        onElementSelect={onElementSelect}
+        onElementSelect={vi.fn()}
         onAnnotationChange={vi.fn()}
       />,
     );
-    pdfProps.onElementClick([999, 999]);
-    expect(onElementSelect).not.toHaveBeenCalled();
+    expect(pdfProps.targetPage).toBeUndefined();
+    expect("highlightEl" in pdfProps).toBe(false);
+    expect("onElementClick" in pdfProps).toBe(false);
   });
 });

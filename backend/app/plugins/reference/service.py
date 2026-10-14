@@ -10,9 +10,12 @@
 纯 Python 实现，无外部模型依赖；缺失降级返回空列表。
 """
 
+import os
 import re
 from typing import Dict, List, Optional, Tuple
+from urllib.parse import urljoin
 from urllib.request import urlopen
+from xml.etree import ElementTree as ET
 
 from app.core.config import settings
 from app.core.plugin.base import Plugin
@@ -561,6 +564,106 @@ def references_to_jats(references: List[Dict]) -> str:
 # ---------------------------------------------------------------------------
 
 
+TEI_NS = "http://www.tei-c.org/ns/1.0"
+
+
+def _tei_tag(name: str) -> str:
+    return f"{{{TEI_NS}}}{name}"
+
+
+def _grobid_parse_bibl(xml_bytes: bytes) -> List[Dict]:
+    """解析 GROBID processReferences 返回的 TEI，抽取每条参考文献的 doi/volume/issue/pages/作者/标题/年份/期刊。"""
+    root = ET.fromstring(xml_bytes)
+
+    def texts(parent, tag):
+        return [n.text or "" for n in parent.iter(_tei_tag(tag))]
+
+    def author_of(pers):
+        fore = " ".join(p for p in texts(pers, "forename") if p.strip())
+        surname = " ".join(p for p in texts(pers, "surname") if p.strip())
+        return (fore + (" " if fore and surname else "") + surname).strip()
+
+    entries: List[Dict] = []
+    for bs in root.iter(_tei_tag("biblStruct")):
+        analytic = bs.find(_tei_tag("analytic"))
+        monogr = bs.find(_tei_tag("monogr"))
+        imprint = bs.find(".//" + _tei_tag("imprint"))
+
+        # 作者
+        authors = [author_of(p) for p in bs.iter(_tei_tag("persName"))]
+        authors = [a for a in authors if a]
+        # 标题：优先 analytic 的文章题名，否则 monogr 的期刊题名全文
+        title = ""
+        if analytic is not None:
+            title = (analytic.findtext(_tei_tag("title")) or "").strip()
+        journal = ""
+        if monogr is not None:
+            journal = (monogr.findtext(_tei_tag("title")) or "").strip()
+        if not title and journal:
+            title, journal = journal, ""
+
+        year, volume, issue, pages = _grobid_imprint_fields(imprint)
+
+        doi = ""
+        for idno in bs.iter(_tei_tag("idno")):
+            if (idno.get("type") or "").upper() == "DOI":
+                doi = (idno.text or "").strip()
+                break
+
+        entries.append(
+            {
+                "authors": ", ".join(authors),
+                "title": title,
+                "journal": journal,
+                "year": year,
+                "volume": volume,
+                "issue": issue,
+                "pages": pages,
+                "doi": doi,
+            }
+        )
+    return entries
+
+
+def _grobid_imprint_fields(imprint) -> Tuple[str, str, str, str]:
+    """从 imprint 提取 (year, volume, issue, pages)。imprint 为 None 时返回全空。"""
+    year = volume = issue = pages = ""
+    if imprint is None:
+        return year, volume, issue, pages
+    date_el = imprint.find(_tei_tag("date"))
+    if date_el is not None:
+        year = (date_el.get("when") or date_el.get("from") or date_el.text or "").strip()
+    for scope in imprint.iter(_tei_tag("biblScope")):
+        unit = (scope.get("unit") or "").lower()
+        if unit == "volume":
+            volume = (scope.text or "").strip()
+        elif unit == "issue":
+            issue = (scope.text or "").strip()
+        elif unit in ("page", "pages"):
+            frm = scope.get("from")
+            ton = scope.get("to")
+            if frm and ton:
+                pages = f"{frm}–{ton}" if frm != ton else frm
+            elif scope.text:
+                pages = scope.text.strip()
+    return year, volume, issue, pages
+
+
+def _grobid_process_references(pdf_path: str, endpoint: str) -> bytes:
+    """向 GROBID processReferences 提交 PDF，返回 TEI XML 字节串（httpx 多部分表单）。"""
+    import httpx
+
+    url = urljoin(endpoint.rstrip("/") + "/", "api/processReferences")
+    with open(pdf_path, "rb") as f:
+        resp = httpx.post(
+            url,
+            files={"input": (os.path.basename(pdf_path), f, "application/pdf")},
+            timeout=180,
+        )
+    resp.raise_for_status()
+    return resp.content
+
+
 def grobid_available() -> bool:
     """GROBID 是否配置且端口可达。未配置/不可达均返回 False，不产生误配置的网络调用。"""
     if not settings.GROBID_ENABLED or not settings.GROBID_ENDPOINT:
@@ -572,19 +675,39 @@ def grobid_available() -> bool:
         return False
 
 
-def enhance_references_with_grobid(references: List[Dict]) -> List[Dict]:
+def enhance_references_with_grobid(
+    references: List[Dict], pdf_path: Optional[str] = None
+) -> List[Dict]:
     """
-    尝试用 GROBID 返回的条目标注增强结构化引用列表。
-    本机未部署 GROBID；任何异常一律降级返回原列表（可插拔可降级）。
+    用 GROBID processReferences 解析本地 PDF，将抽出的 DOI/卷/期/页码等字段回填到结构化引用列表。
+
+    - 未启用 GROBID / endpoint 不可达 / 无本地 pdf_path -> 原样返回（可插拔）。
+    - GROBID 调用或解析任何异常 -> 降级返回原列表，不产生网络阻塞。
+    - 按序号（顺序）与 GROBID 返回条目对应，仅回填"缺失"字段，绝不覆盖已有抽取结果。
     """
     if not grobid_available():
         return references
-    try:
-        # 预留骨架：请求 GROBID 解析 PDF 并回填条目缺失字段。未启用时不产生网络调用。
-        # 仅作可插拔增强器占位，不替代规则抽取结果。
+    if not pdf_path or not os.path.isfile(pdf_path):
         return references
+    try:
+        xml_bytes = _grobid_process_references(pdf_path, settings.GROBID_ENDPOINT)
+        parsed = _grobid_parse_bibl(xml_bytes)
     except Exception:
         return references
+
+    enhanced: List[Dict] = []
+    for i, ref in enumerate(references):
+        out = dict(ref)
+        if i < len(parsed):
+            g = parsed[i]
+            for field in ("doi", "volume", "issue", "pages", "year"):
+                if (not out.get(field)) and g.get(field):
+                    out[field] = g[field]
+            for field in ("authors", "title", "journal"):
+                if (not out.get(field)) and g.get(field):
+                    out[field] = g[field]
+        enhanced.append(out)
+    return enhanced
 
 
 # 全局单例

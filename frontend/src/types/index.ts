@@ -51,6 +51,17 @@ export interface DocumentListResponse {
   page_size: number;
 }
 
+export interface TitleTreeItem {
+  level: number;
+  title: string;
+  page_number: number;
+}
+
+export interface TitleTreeResponse {
+  backend: string;
+  tree: TitleTreeItem[];
+}
+
 export interface Task {
   id: string;
   task_type: string;

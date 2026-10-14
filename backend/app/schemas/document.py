@@ -152,3 +152,14 @@ class PageElementResponse(BaseModel):
 class PageElementsResponse(BaseModel):
     page_number: int
     elements: List[PageElementResponse]
+
+
+class TitleTreeItem(BaseModel):
+    level: int
+    title: str
+    page_number: int
+
+
+class TitleTreeResponse(BaseModel):
+    backend: str = "elements"
+    tree: List[TitleTreeItem]

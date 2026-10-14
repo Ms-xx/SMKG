@@ -40,4 +40,37 @@ describe("AnnotationPanel", () => {
     fireEvent.click(screen.getByText("标题一"));
     expect(onElementSelect).toHaveBeenCalledWith(elements[0]);
   });
+
+  it("快速连续点击不同解析元素都触发回调（无状态残留）", () => {
+    const onElementSelect = vi.fn();
+    render(
+      <AnnotationPanel
+        elements={elements}
+        selectedElement={null}
+        onElementSelect={onElementSelect}
+        onAnnotationChange={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByText("标题一"));
+    fireEvent.click(screen.getByText("表格"));
+    fireEvent.click(screen.getByText("正文"));
+    expect(onElementSelect).toHaveBeenCalledTimes(3);
+    expect(onElementSelect.mock.calls[0][0]).toBe(elements[0]);
+    expect(onElementSelect.mock.calls[1][0]).toBe(elements[1]);
+    expect(onElementSelect.mock.calls[2][0]).toBe(elements[3]);
+  });
+
+  it("高亮当前选中元素（背景变色）", () => {
+    const { container } = render(
+      <AnnotationPanel
+        elements={elements}
+        selectedElement={elements[1]}
+        onElementSelect={vi.fn()}
+        onAnnotationChange={vi.fn()}
+      />,
+    );
+    const items = container.querySelectorAll<HTMLElement>(".ant-list-item");
+    expect(items[1].style.background).toBe("rgb(230, 247, 255)");
+    expect(items[0].style.background).toBe("transparent");
+  });
 });

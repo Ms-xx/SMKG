@@ -90,6 +90,9 @@ services:
     image: docker.elastic.co/beats/filebeat:8.12.2
     container_name: sdp-filebeat
     user: root
+    # Windows 绑定挂载使 filebeat.yml 权限为 777，filebeat 默认拒绝过宽松权限；
+    # 关闭严格权限校验以支持开发环境挂载（仅本机，不降低采集功能）。
+    command: ["--strict.perms=false"]
     volumes:
       - ./monitoring/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
       - ./logs:/var/log/app:ro

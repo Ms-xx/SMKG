@@ -118,13 +118,16 @@ def main() -> None:
         ),
     }
 
-    # 3. 判定：有了证据后 iOS 支撑分应为非0（若 LLM 正常更能拿到高值）
-    grounding_ok = g.get("enabled") is True and isinstance(g.get("score"), float)
+    # 3. 判定：本次已索引含实体/关系/chunk 的文档并命中证据，支撑分应为 (0,1] 的非0值；
+    #    若 LLM 在线（已配置 LLM_ENDPOINT）得分更高，离线仅校验"有证据支撑时 score>0"。
+    score = g.get("score")
+    grounding_ok = g.get("enabled") is True and isinstance(score, float) and score > 0.0
     rerank_ok = isinstance(rerank, dict) and rerank.get("enabled") is True
 
     result["pass"] = grounding_ok and rerank_ok
     result["note"] = (
-        "grounding_score 已随 /query 返回；LLM 在线时 score 更高，离线仅验证输出结构与降级路径。"
+        "grounding_score 已随 /query 返回且在有证据支撑时>0；"
+        "LLM 在线时 score 更高，离线仅验证输出结构与降级路径。"
     )
 
     out_path = os.path.join(BASE_DIR, "outputs", "innovB_e2e_service.json")
