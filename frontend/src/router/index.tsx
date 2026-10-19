@@ -13,6 +13,7 @@ import MultiAgentPage from "@pages/KnowledgeGraph/MultiAgentPage";
 import CitationGraphPage from "@pages/KnowledgeGraph/CitationGraphPage";
 import PaperRetrievalPage from "@pages/Research/PaperRetrievalPage";
 import WritingAssistantPage from "@pages/Research/WritingAssistantPage";
+import ResearchInsightsPage from "@pages/Research/ResearchInsightsPage";
 import DeduplicationPage from "@pages/Documents/DeduplicationPage";
 import TaskListPage from "@pages/Tasks/TaskListPage";
 import ProfilePage from "@pages/Settings/ProfilePage";
@@ -51,6 +52,7 @@ export const router = createBrowserRouter(
         { path: "citation-graph", element: authGuard(<CitationGraphPage />) },
         { path: "paper-retrieval", element: authGuard(<PaperRetrievalPage />) },
         { path: "writing-assistant", element: authGuard(<WritingAssistantPage />) },
+        { path: "research-insights", element: authGuard(<ResearchInsightsPage />) },
         { path: "deduplication", element: authGuard(<DeduplicationPage />) },
         { path: "tasks", element: authGuard(<TaskListPage />) },
         { path: "settings/profile", element: authGuard(<ProfilePage />) },

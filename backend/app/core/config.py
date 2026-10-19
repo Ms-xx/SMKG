@@ -1,6 +1,7 @@
 import os
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # 项目根目录（backend/app/core/config.py 之上三级）
@@ -26,6 +27,21 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     API_PREFIX: str = "/api/v1"
+
+    # ── 部署模式 ────────────────────────────────────────────────────────
+    # 本项目**唯一官方支持的部署模式为本地部署**（单机/本地计算环境）。
+    # local = 本地部署（官方支持）；cloud = 云上部署（非官方支持，仅代码层扩展预留）。
+    # 默认 local，不改变既有启动行为；取 cloud 时仅启动期告警，不阻断运行。
+    DEPLOY_MODE: str = "local"
+
+    @field_validator("DEPLOY_MODE")
+    @classmethod
+    def _normalize_deploy_mode(cls, v: str) -> str:
+        mode = (v or "local").strip().lower()
+        if mode not in {"local", "cloud"}:
+            # 非法取值回退为官方支持的本地模式，避免误配置影响启动
+            return "local"
+        return mode
 
     # ── 插件化架构（见 others/PROJECT/08-插件化架构设计.md）────────────
     PLUGIN_ENABLED: bool = False  # 插件框架开关（默认关闭，避免破坏既有启动；显式开启后启用）
@@ -94,9 +110,7 @@ class Settings(BaseSettings):
     # 公式识别（LaTeX-OCR / pix2tex，公式图 → LaTeX；前端 KaTeX 已有渲染）
     FORMULA_ENABLED: bool = True
     FORMULA_MODEL: str = "lukas-blecher/LaTeX-OCR"  # 回退模型名（pix2tex 内置下载权重）
-    FORMULA_MODEL_PATH: str = os.path.join(
-        MODELS_DIR, "latex-ocr"
-    )  # 本地 checkpoint 目录
+    FORMULA_MODEL_PATH: str = os.path.join(MODELS_DIR, "latex-ocr")  # 本地 checkpoint 目录
     FORMULA_DEVICE: str = "cpu"
 
     # 图表/公式检测（YOLOv8；检测 figure/table/formula 区域）
@@ -182,13 +196,22 @@ class Settings(BaseSettings):
 
     # 数据/模型版本管理（DVC 数据版本 + MLflow 实验追踪/模型注册 + 自动重训管道；纯 Python 零依赖可降级）
     VERSION_MGMT_ENABLED: bool = True
-    VERSION_MGMT_BACKEND: str = (
-        "builtin"  # builtin（内存注册表）| dvc_mlflow（预留，外部工具）
-    )
+    VERSION_MGMT_BACKEND: str = "builtin"  # builtin（内存注册表）| dvc_mlflow（外部 DVC/MLflow）
     VERSION_MGMT_STORE_PATH: str = ""  # 留空 = 内存存储；否则 JSON 文件路径
     RETRAIN_THRESHOLD: int = 100  # 新标注数据达到阈值触发自动重训
     RETRAIN_PERIODIC_DAYS: int = 7  # 定期触发间隔（天）
     RETRAIN_MAX_RETRIES: int = 3  # 单分段失败最大重试次数
+
+    # MLflow 本地 tracking server 接入（步骤 14.3；官方本地部署口径）
+    # 独立存储目录缺省 = <仓库根>/mlflow（backend/artifacts/logs 三个子目录，与项目其他资源隔离）。
+    # 服务端启动脚本 deploy/mlflow/start_mlflow_server.ps1 由该目录参数化推导路径；
+    # 客户端（后端）仅需 MLFLOW_TRACKING_URI 即可把全部追踪请求统一指向本地 server。
+    # 关闭或 server 不可达时自动降级为内置内存注册表（builtin），接口不变。
+    MLFLOW_ENABLED: bool = False  # 总开关（与服务端可达性联合判定；关闭即纯 builtin）
+    MLFLOW_TRACKING_URI: str = "http://127.0.0.1:5000"  # 所有 MLflow 追踪请求统一指向此本地地址
+    MLFLOW_STORE_DIR: str = os.path.join(PROJECT_ROOT, "mlflow")  # 服务端独立存储根目录
+    MLFLOW_EXPERIMENT_NAME: str = "sdp-version-management"  # 实验追踪写入的默认实验名
+    MLFLOW_TRACKING_TIMEOUT: float = 5.0  # 客户端健康探测/连接超时（秒）
 
     # A/B 测试（流量分流 + 指标采集 + 统计显著性判定；纯 Python 零依赖）
     AB_TEST_ENABLED: bool = True
@@ -229,23 +252,15 @@ class Settings(BaseSettings):
     PAPER_TRACKING_INTERVAL_MINUTES: int = 60  # beat_schedule 轮询周期（分钟）
     # 检出新论文后是否自动「下载→入库→解析」；需配置一个系统用户承担归属，否则仅记录
     PAPER_TRACKING_AUTO_INGEST: bool = True
-    PAPER_TRACKING_DEFAULT_USER: str = (
-        ""  # 建议服务端预置调度用户 UUID，留空则自动入库置为跳过
-    )
+    PAPER_TRACKING_DEFAULT_USER: str = ""  # 建议服务端预置调度用户 UUID，留空则自动入库置为跳过
 
     # 步骤 21：GitHub 开源复现性优先推荐 + 互动与多用户推荐
     # github.com 网页/raw 在本机不可达，但 api.github.com（REST API）可达，故在线抓取以 API 为准。
     REPO_RECOMMEND_ENABLED: bool = True
-    GITHUB_API_ENDPOINT: str = (
-        "https://api.github.com"  # 仓库元数据 API 宿主（可达优先）
-    )
+    GITHUB_API_ENDPOINT: str = "https://api.github.com"  # 仓库元数据 API 宿主（可达优先）
     GITHUB_API_TIMEOUT: float = 10.0
-    GITHUB_API_TOKEN: str = (
-        ""  # 可选 PAT，用于提升一小时内未认证速率上限（60/小时）；留空用匿名
-    )
-    GITHUB_REPO_LINK_PATTERNS: list[str] = (
-        []
-    )  # 额外可控的前缀白名单，默认内置 github.com/gitlab.*
+    GITHUB_API_TOKEN: str = ""  # 可选 PAT，用于提升一小时内未认证速率上限（60/小时）；留空用匿名
+    GITHUB_REPO_LINK_PATTERNS: list[str] = []  # 额外可控的前缀白名单，默认内置 github.com/gitlab.*
     # 推荐排序权重：总分 = corr_w*相关性 + repro_w*复现性(star 归一化) + feedback_w*用户反馈
     REPO_RECOMMEND_CORR_WEIGHT: float = 1.0
     REPO_RECOMMEND_REPRO_WEIGHT: float = 0.3
@@ -277,15 +292,11 @@ class Settings(BaseSettings):
     WRITING_ASSISTANT_ENABLED: bool = True
     # 中英学术翻译（9.1：可插拔。配置 OPENAI 兼容翻译端点即启用；未配置则降级回显）。
     TRANSLATION_ENABLED: bool = False
-    TRANSLATION_ENDPOINT: str = (
-        ""  # 例：LM Studio/本地模型 OpenAI 兼容 /v1/chat/completions 地址
-    )
+    TRANSLATION_ENDPOINT: str = ""  # 例：LM Studio/本地模型 OpenAI 兼容 /v1/chat/completions 地址
     TRANSLATION_MODEL: str = "qwen2.5-7b-instruct"
     # 真实 LLM 生成（9.2：可插拔。配置端点即启用；未配置则降级为规则模板）。
     LLM_ENABLED: bool = False
-    LLM_ENDPOINT: str = (
-        ""  # 例：http://127.0.0.1:8001/v1（LM Studio / vLLM / Ollama /v1）
-    )
+    LLM_ENDPOINT: str = ""  # 例：http://127.0.0.1:8001/v1（LM Studio / vLLM / Ollama /v1）
     LLM_MODEL: str = "qwen2.5-7b-instruct"
     LLM_TIMEOUT: float = 60.0
 
@@ -296,9 +307,7 @@ class Settings(BaseSettings):
     DRIFT_PSI_ALERT: float = 0.25  # PSI/卡方 ≥ 0.25 显著漂移
 
     # 监控告警（Alertmanager → 后端 webhook → 外部渠道转发）
-    ALERT_WEBHOOK_URL: str = (
-        ""  # 钉钉/企业微信/通用 webhook 地址；留空仅本地日志（进入 ELK）
-    )
+    ALERT_WEBHOOK_URL: str = ""  # 钉钉/企业微信/通用 webhook 地址；留空仅本地日志（进入 ELK）
     ALERT_WEBHOOK_SECRET: str = ""  # 机器人加签密钥（可选，钉钉/企业微信）
 
     MAX_UPLOAD_SIZE: int = 100 * 1024 * 1024
@@ -307,9 +316,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     LOG_JSON: bool = False  # 为 True 时输出 JSON 结构化日志（供 Filebeat/ELK 采集）
-    LOG_FILE: str = (
-        ""  # 留空 = 仅 stdout；否则追加写 JSON 日志到该文件（供 Filebeat 采集）
-    )
+    LOG_FILE: str = ""  # 留空 = 仅 stdout；否则追加写 JSON 日志到该文件（供 Filebeat 采集）
 
     model_config = SettingsConfigDict(
         # 依次加载共享配置与后端专有配置（后者优先级更高）。

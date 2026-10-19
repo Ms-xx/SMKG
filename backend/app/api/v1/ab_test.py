@@ -39,6 +39,20 @@ class EvaluateRequest(BaseModel):
     variant_a: Optional[str] = Field(None, description="对照组变体，缺省取第一个变体")
     variant_b: Optional[str] = Field(None, description="实验组变体，缺省取第二个变体")
     alpha: Optional[float] = Field(None, description="显著水平覆盖")
+    minimize: Optional[bool] = Field(None, description="指标方向覆盖（延迟类指标传 true）")
+
+
+class ResolveModelVersionRequest(BaseModel):
+    model_name: str = Field(..., description="模型名称（变体约定为 `<model_name>-v<int>`）")
+    subject_id: str = Field(..., description="请求/用户标识，同一 subject 稳定路由")
+    experiment_id: Optional[str] = Field(None, description="实验 id，缺省自动匹配该模型的实验")
+
+
+class RecordInferenceRequest(BaseModel):
+    experiment_id: str = Field(..., description="实验 id")
+    variant: str = Field(..., description="变体标识")
+    latency_ms: Optional[float] = Field(None, description="推理延迟（毫秒，越小越优）")
+    f1: Optional[float] = Field(None, description="评估指标 F1/准确率（越大越优）")
 
 
 @router.post("/experiments")
@@ -108,4 +122,33 @@ async def evaluate(
         variant_a=body.variant_a,
         variant_b=body.variant_b,
         alpha=body.alpha,
+        minimize=body.minimize,
+    )
+
+
+@router.post("/resolve-model-version")
+async def resolve_model_version(
+    body: ResolveModelVersionRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """模型版本分流（14.4）：按 A/B 分流结果选择模型注册表中的具体版本。
+
+    失败时降级为模型 Production/最新版本，并在结果中标注 `degraded` 与 `reason`。
+    """
+    return ab_test_service.resolve_model_version(
+        body.model_name, body.subject_id, body.experiment_id
+    )
+
+
+@router.post("/record-inference")
+async def record_inference(
+    body: RecordInferenceRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """推理观测采集（14.4）：记录推理延迟与评估指标 F1/准确率。"""
+    return ab_test_service.record_inference_observation(
+        body.experiment_id,
+        body.variant,
+        latency_ms=body.latency_ms,
+        f1=body.f1,
     )

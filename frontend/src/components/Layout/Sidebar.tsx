@@ -14,6 +14,7 @@ import {
   FileSearchOutlined,
   EditOutlined,
   CopyOutlined,
+  BulbOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUIStore } from "@store/uiStore";
@@ -72,6 +73,7 @@ export default function AppSidebar() {
             label: "科研工具",
             children: [
               { key: "/citation-graph", label: "引用图谱", icon: <ApartmentOutlined /> },
+              { key: "/research-insights", label: "研究洞察", icon: <BulbOutlined /> },
               { key: "/paper-retrieval", label: "论文检索推荐", icon: <FileSearchOutlined /> },
               { key: "/writing-assistant", label: "写作辅助", icon: <EditOutlined /> },
               { key: "/deduplication", label: "语义去重", icon: <CopyOutlined /> },

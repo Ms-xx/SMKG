@@ -5,6 +5,8 @@
 #  Redis / MySQL / Neo4j are expected as Windows local services (auto-start if
 #  they are installed but stopped); MinIO is launched as a foreground process.
 #  Prerequisites: LM Studio(qwen3-4b:1234) OPEN for GraphRAG/LLM features.
+#  Deploy mode: LOCAL only (the sole officially supported mode); cloud is an
+#  unsupported extension point. See DEPLOYMENT.md.
 # ============================================================================
 
 $ErrorActionPreference = "Continue"

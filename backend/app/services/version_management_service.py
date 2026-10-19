@@ -16,6 +16,8 @@ from app.plugins.version_management.service import (
     data_quality,
     dataset_hash,
     evaluate_retrain_trigger,
+    mlflow_module_info,
+    probe_mlflow_server,
     version_management_service,
 )
 
@@ -26,6 +28,8 @@ __all__ = [
     "data_quality",
     "evaluate_retrain_trigger",
     "compare_metrics",
+    "mlflow_module_info",
+    "probe_mlflow_server",
     "VersionManagementService",
     "version_management_service",
 ]

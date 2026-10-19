@@ -87,6 +87,7 @@ jobs:
         run: docker build -t sdp-frontend:ci ./frontend
 
   # ── 自动部署：未配置镜像仓库与部署目标，暂不启用 ──────────────────────────
+  # 本项目为本地部署项目，云端部署不纳入官方支持范围；此 job 仅为代码层扩展预留。
   # 启用步骤：
   #   1) 在 GitHub 仓库 Settings → Secrets and variables → Actions 配置
   #      CONTAINER_REGISTRY_USER / CONTAINER_REGISTRY_PASSWORD；

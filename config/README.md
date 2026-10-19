@@ -29,6 +29,16 @@ cp config/backend.env.example   config/backend.env
 cp config/graphrag.env.example  config/graphrag.env
 ```
 
+## 部署模式
+
+**本项目当前唯一官方支持的部署模式为本地部署**（单机 / 本地计算环境）；云端部署不属于官方支持范围。
+
+- 后端配置项 `DEPLOY_MODE`（写入 `backend.env`）取值：`local`（默认，官方支持）/ `cloud`（非官方支持，仅代码层扩展预留）。
+- 取 `cloud` 时后端仍可启动，仅在启动日志打印「非官方支持」告警。
+- 按官方支持口径，本目录下所有连接串（MySQL / Redis / Neo4j / MinIO / LLM 端点）默认均指向本机回环地址。
+
+详细部署与验证流程见根目录 [DEPLOYMENT.md](../DEPLOYMENT.md)。
+
 ## 约定
 
 1. **口令/密钥只写在 `config/*.env`，绝不写进代码或提交进仓库。**

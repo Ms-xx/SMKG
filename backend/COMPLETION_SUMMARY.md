@@ -191,7 +191,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 
 # 启动Celery Worker(另一个终端)
-celery -A app.core.celery_app worker -l info -Q parsing,extraction,graph
+celery -A app.core.celery_app worker -l info -Q parsing,extraction,graph,training
 ```
 
 ### 5. 访问API文档

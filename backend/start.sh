@@ -19,7 +19,7 @@ echo "启动FastAPI服务..."
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 # 4. 启动Celery Worker(在另一个终端)
-# celery -A app.core.celery_app worker -l info -Q parsing,extraction,graph
+# celery -A app.core.celery_app worker -l info -Q parsing,extraction,graph,training
 
 # 5. 启动Celery Beat(定时任务,可选)
 # celery -A app.core.celery_app beat -l info

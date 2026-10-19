@@ -13,8 +13,10 @@
 依赖策略（可插拔、可降级）：
 - 全部能力为纯 Python 实现、零依赖、确定性，永远可用；
 - 存储默认使用进程内内存注册表，`VERSION_MGMT_STORE_PATH` 可指定 JSON 文件持久化；
-- DVC / MLflow 作为可选外部后端（`VERSION_MGMT_BACKEND=dvc_mlflow`）预留，未安装
-  或不可用自动降级为内置内存注册表，接口不变。
+- MLflow 本地 tracking server 作为可选外部后端（`VERSION_MGMT_BACKEND=dvc_mlflow` +
+  `MLFLOW_ENABLED=true`）：实验追踪写入 `MLFLOW_TRACKING_URI`（缺省 http://127.0.0.1:5000，
+  服务端见 `deploy/mlflow/start_mlflow_server.ps1`）；未安装 mlflow、服务端不可达或写入失败
+  时自动降级为内置内存注册表，接口不变。
 """
 from __future__ import annotations
 
@@ -23,6 +25,7 @@ import json
 import os
 import threading
 import time
+import urllib.request
 from typing import Any
 
 from loguru import logger
@@ -148,6 +151,45 @@ def compare_metrics(experiments: list[dict[str, Any]]) -> dict[str, Any]:
             best[m] = top_id
 
     return {"n_experiments": len(experiments), "metrics": metric_table, "best": best}
+
+
+# ── MLflow 本地 tracking server 接入（步骤 14.3）─────────────────────
+# 说明：所有 MLflow 追踪请求统一走 settings.MLFLOW_TRACKING_URI（缺省 http://127.0.0.1:5000）。
+# 服务端独立存储目录（backend store / artifacts / logs）由 deploy/mlflow/start_mlflow_server.ps1
+# 参数化推导，缺省 <仓库根>/mlflow，与项目其他资源隔离。
+# 进程级健康探测缓存：TTL 内复用结果，避免每次记录实验都发起网络探测。
+_MLFLOW_PROBE_CACHE: dict[str, Any] = {"ts": 0.0, "reachable": False, "detail": "未探测"}
+_MLFLOW_PROBE_TTL = 15.0
+
+
+def mlflow_module_info() -> dict[str, Any]:
+    """探测 mlflow 包是否可导入及版本；不可用时返回 available=False（不抛异常）。"""
+    try:
+        import mlflow
+
+        return {"available": True, "version": getattr(mlflow, "__version__", None)}
+    except Exception as exc:  # noqa: BLE001 - 依赖缺失一律降级
+        return {"available": False, "version": None, "error": str(exc)}
+
+
+def probe_mlflow_server(uri: str, timeout: float = 5.0, use_cache: bool = True) -> dict[str, Any]:
+    """探测本地 tracking server 是否可达（GET <uri>/health）。
+
+    结果按 `_MLFLOW_PROBE_TTL` 缓存，避免高频观测反复发起网络请求；`use_cache=False` 强制实时探测。
+    """
+    now = time.time()
+    if use_cache and (now - _MLFLOW_PROBE_CACHE["ts"]) < _MLFLOW_PROBE_TTL:
+        return dict(_MLFLOW_PROBE_CACHE, cached=True)
+    url = uri.rstrip("/") + "/health"
+    reachable, detail = False, ""
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:  # noqa: S310 - 仅本地回环
+            reachable = 200 <= resp.status < 300
+            detail = f"HTTP {resp.status}"
+    except Exception as exc:  # noqa: BLE001 - 不可达时降级
+        detail = str(exc)
+    _MLFLOW_PROBE_CACHE.update({"ts": now, "reachable": reachable, "detail": detail})
+    return {"ts": now, "reachable": reachable, "detail": detail, "cached": False}
 
 
 class _VersionStore:
@@ -292,6 +334,85 @@ class VersionManagementService:
             else settings.VERSION_MGMT_BACKEND
         )
 
+    # ── 0. MLflow 本地 tracking server 接入（步骤 14.3）───────────────
+    def _mlflow_configured(self) -> bool:
+        """是否「配置为」使用 MLflow 外部后端（VERSION_MGMT_BACKEND=dvc_mlflow 且 MLFLOW_ENABLED）。"""
+        return settings.VERSION_MGMT_BACKEND == "dvc_mlflow" and bool(settings.MLFLOW_ENABLED)
+
+    def mlflow_status(self, refresh: bool = False) -> dict[str, Any]:
+        """MLflow 接入状态：配置 / 模块可用性 / 服务端可达性 / 实际生效后端（供 UI 与排障）。"""
+        module = mlflow_module_info()
+        probe = probe_mlflow_server(
+            settings.MLFLOW_TRACKING_URI,
+            timeout=settings.MLFLOW_TRACKING_TIMEOUT,
+            use_cache=not refresh,
+        )
+        configured = self._mlflow_configured()
+        effective = (
+            "dvc_mlflow" if configured and module["available"] and probe["reachable"] else "builtin"
+        )
+        return {
+            "enabled": bool(settings.MLFLOW_ENABLED),
+            "backend_configured": settings.VERSION_MGMT_BACKEND,
+            "effective_backend": effective,
+            "tracking_uri": settings.MLFLOW_TRACKING_URI,
+            "store_dir": settings.MLFLOW_STORE_DIR,
+            "experiment_name": settings.MLFLOW_EXPERIMENT_NAME,
+            "mlflow_module": module,
+            "server_reachable": probe["reachable"],
+            "probe_detail": probe["detail"],
+        }
+
+    def _log_run_to_mlflow(
+        self,
+        name: str,
+        params: dict[str, Any] | None,
+        metrics: dict[str, Any] | None,
+        tags: dict[str, Any] | None,
+    ) -> str | None:
+        """把一次实验写入本地 MLflow server，返回 run_id。
+
+        未配置 MLflow 后端 / 模块缺失 / 服务端不可达 / 写入异常，一律返回 None 并降级
+        为本地注册表，绝不阻断主流程。
+        """
+        if not self._mlflow_configured():
+            return None
+        if not mlflow_module_info()["available"]:
+            return None
+        probe = probe_mlflow_server(
+            settings.MLFLOW_TRACKING_URI, timeout=settings.MLFLOW_TRACKING_TIMEOUT
+        )
+        if not probe["reachable"]:
+            logger.warning(
+                f"MLflow server 不可达（{settings.MLFLOW_TRACKING_URI}：{probe['detail']}），"
+                "本次实验降级为本地注册表"
+            )
+            return None
+        try:
+            import mlflow
+
+            mlflow.set_tracking_uri(settings.MLFLOW_TRACKING_URI)
+            mlflow.set_experiment(settings.MLFLOW_EXPERIMENT_NAME or name)
+            with mlflow.start_run(run_name=name) as run:
+                clean_params = {str(k): str(v)[:500] for k, v in (params or {}).items()}
+                if clean_params:
+                    mlflow.log_params(clean_params)
+                clean_metrics: dict[str, float] = {}
+                for k, v in (metrics or {}).items():
+                    try:
+                        clean_metrics[str(k)] = float(v)
+                    except (TypeError, ValueError):
+                        continue
+                if clean_metrics:
+                    mlflow.log_metrics(clean_metrics)
+                clean_tags = {str(k): str(v)[:500] for k, v in (tags or {}).items()}
+                if clean_tags:
+                    mlflow.set_tags(clean_tags)
+                return run.info.run_id
+        except Exception as exc:  # noqa: BLE001 - 网络/服务端异常一律降级
+            logger.warning(f"MLflow 记录失败，降级为本地注册表：{exc}")
+            return None
+
     # ── 1. 数据版本管理（DVC 风格）────────────────────────
     def record_dataset(
         self,
@@ -331,7 +452,13 @@ class VersionManagementService:
         model_version: int | None = None,
         tags: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """记录一次实验：参数 / 指标 / 关联模型版本 / 标签。"""
+        """记录一次实验：参数 / 指标 / 关联模型版本 / 标签。
+
+        MLflow 外部后端就绪（VERSION_MGMT_BACKEND=dvc_mlflow + MLFLOW_ENABLED + 本地
+        tracking server 可达）时，同时把该次实验写入本地 MLflow server，返回记录附带
+        `mlflow_run_id`；未就绪时仅写本地注册表（降级不阻断，接口不变）。
+        """
+        mlflow_run_id = self._log_run_to_mlflow(name, params, metrics, tags)
         return self._store.add_experiment(
             {
                 "name": name,
@@ -340,6 +467,7 @@ class VersionManagementService:
                 "model_name": model_name,
                 "model_version": model_version,
                 "tags": tags or {},
+                "mlflow_run_id": mlflow_run_id,
             }
         )
 

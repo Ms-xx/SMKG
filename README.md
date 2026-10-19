@@ -2,9 +2,15 @@
 
 面向科学文献的多模态智能解析与知识图谱构建平台，实现 PDF 文献“上传 → 多模态解析（文本/公式/图表/版面）→ 深度信息抽取（RAG + LLM + NER）→ 人机协同标注 → 知识图谱构建 → 智能问答/语义搜索”的完整闭环。
 
-> 当前状态：后端 612 项单测通过、前端 208 项单测 + 3 项 E2E 通过；`main` 分支为稳定开发主线。
+> 当前状态：后端 694 项单测通过、前端 228 项单测 + 3 项 E2E 通过；`main` 分支为稳定开发主线。
 >
 > **四个创新点（A/B/C/D）已全部完成并本机实测**：A 实体级图谱落地（英文 NER 兜底）、B 图谱增强检索 + grounding_score、C 主动学习闭环、D 多智能体图谱融合，详见下方[核心创新](#核心创新)与 `others/Document/XiangMu.md`。
+
+## 部署模式
+
+> **本项目当前唯一官方支持的部署模式为「本地部署」**（单机 / 本地服务器 / 本地计算环境）。
+> 所有标准使用场景均在本地完成；**云端部署仅为代码层预留的扩展接口，不纳入官方支持范围**。
+> 完整部署步骤、操作指引与验证流程见 [DEPLOYMENT.md](DEPLOYMENT.md)。
 
 ## 目录
 
@@ -22,6 +28,7 @@
 - [API 文档](#api-文档)
 - [运行测试](#运行测试)
 - [代码质量](#代码质量)
+- [部署模式](#部署模式)
 - [部署](#部署)
 - [常见问题](#常见问题)
 - [贡献指南](#贡献指南)
@@ -116,6 +123,7 @@ LX/
 ├── moulds/             # 本地模型目录（不入库，每个模型一个子目录）
 ├── database/           # 本地数据库文件（不入库）
 ├── timeout/            # 本地超时/临时文件（不入库）
+├── DEPLOYMENT.md                 # 本地部署唯一官方支持指南（部署 / 操作 / 验证）
 ├── docker-compose.yml            # 主服务编排
 ├── docker-compose.monitoring.yml # 监控栈编排
 ├── start_all.ps1                 # 一键启动（Windows）
@@ -304,12 +312,26 @@ pnpm test:e2e
 | 后端 | Ruff · Black | `ruff check .`、`black --check app scripts` |
 | 前端 | ESLint · Prettier · TypeScript | `pnpm lint`、`pnpm format`、`pnpm type-check` |
 
-CI（`.github/workflows/ci.yml`）包含 4 个 job：`backend`（ruff/black/pytest）、`frontend`（eslint/prettier/tsc/vitest）、`docker`（镜像构建）、`deploy`（部署，需凭据）。
+CI（`.github/workflows/ci.yml`）包含 4 个 job：`backend`（ruff/black/pytest）、`frontend`（eslint/prettier/tsc/vitest）、`docker`（镜像构建）、`deploy`（默认 `if: false`；云上部署非官方支持）。
 
 ## 部署
 
-- **本地/单机**：`docker-compose.yml` 编排主服务依赖；`docker-compose.monitoring.yml` 编排监控栈（需容器运行时）。
-- **Kubernetes**：`deploy/k8s/` 提供 namespace、configmap、secret 与各服务清单。
+> **本项目的唯一官方支持部署模式为本地部署**；云端部署不属于官方支持范围。
+
+### 本地部署（唯一官方支持模式）
+
+- **一键启动（推荐）**：Windows 下运行 `start_all.ps1`，自动完成依赖检查、MinIO、后端、Celery Worker/Beat、GraphRAGTest 与前端拉起与健康检查。
+- **分步启动**：见上方[启动服务](#启动服务)。
+- **容器化本地编排（可选）**：`docker-compose.yml` 编排主服务依赖；`docker-compose.monitoring.yml` 编排监控栈（需本地容器运行时）。
+- **完整部署步骤、操作指引与验证流程**：见 [DEPLOYMENT.md](DEPLOYMENT.md)。
+
+### 云上扩展点（非官方支持）
+
+- `deploy/k8s/` 提供 namespace、configmap、secret 与各服务清单；
+- `.github/workflows/ci.yml` 的 `deploy` job 默认 `if: false`（含镜像打标推送与占位部署步骤）。
+
+以上仅为**代码层扩展预留**，允许使用者自行调整配置切换云端，但**不纳入官方支持范围**；
+云端部署需自行把连接串、CORS、对象存储与 LLM 端点等改为外部地址。
 
 生产环境的密钥不应写入仓库，请通过编排平台的 Secret 或 CI/CD 变量注入（对应 `config/*.env.example` 中的各项）。
 

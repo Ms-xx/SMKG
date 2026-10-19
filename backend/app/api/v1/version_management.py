@@ -129,6 +129,18 @@ async def list_experiments(
     return version_management_service.list_experiments(name)
 
 
+@router.get("/mlflow/status")
+async def mlflow_status(
+    refresh: bool = False,
+    current_user: dict = Depends(get_current_user),
+):
+    """MLflow 本地 tracking server 接入状态（配置 / 模块 / 可达性 / 生效后端）。
+
+    `refresh=true` 强制实时健康探测（绕过 TTL 缓存）。
+    """
+    return version_management_service.mlflow_status(refresh=refresh)
+
+
 @router.post("/experiments/compare")
 async def compare_experiments(
     body: CompareExperimentsRequest,

@@ -2,6 +2,9 @@
 
 基于 Neo4j 知识图谱 + Qwen LLM (LM Studio 本地部署) 的 GraphRAG 实现。
 
+> **部署模式**：本项目**唯一官方支持的部署模式为本地部署**；云端部署不属于官方支持范围。
+> 部署与验证流程见根目录 [DEPLOYMENT.md](../DEPLOYMENT.md)。
+
 ## 环境要求
 
 - Python 3.10+

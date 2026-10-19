@@ -29,6 +29,9 @@ import type {
   KeyPaper,
   SurveyResult,
   OutlineResult,
+  CompareMatrixResult,
+  CitationQualityResult,
+  FutureWorkResult,
 } from "@/types";
 
 export const authApi = {
@@ -344,6 +347,18 @@ export const sourceAnchorApi = {
     anchors: SourceAnchorItem[];
     note?: string;
   }> => api.post("/source-anchor/rag-anchors", { question }),
+  // 步骤 19：跨文献结构化演进对比矩阵（维度 ≥6，单元必带出处锚点）
+  compareMatrix: async (data: {
+    documents: {
+      document_id?: string;
+      title?: string;
+      pages?: string[];
+      param_count?: string;
+      context_window?: string;
+      model_type?: string;
+    }[];
+    dimensions?: string[];
+  }): Promise<CompareMatrixResult> => api.post("/source-anchor/compare-matrix", data),
 };
 
 export const citationLinkApi = {
@@ -392,6 +407,18 @@ export const citationGraphApi = {
     references: Record<string, any>[];
     top_papers?: Record<string, any>[];
   }): Promise<SurveyResult> => api.post("/citation-graph/survey", data),
+  // 步骤 22：Future Work 前沿探索（按领域/时间窗过滤，排除已被后续论文解决的旧 idea）
+  futureWork: async (params: {
+    domain?: string;
+    min_year?: number;
+    max_year?: number;
+  }): Promise<FutureWorkResult> => api.get("/citation-graph/future-work", { params }),
+};
+
+// 步骤 20：引用含金量筛选（core/supporting/perfunctory 三档 + 可解释信号）
+export const citationQualityApi = {
+  score: async (document_ids: string[]): Promise<CitationQualityResult> =>
+    api.post("/citation-quality/score", { document_ids }),
 };
 
 export const writingAssistantApi = {

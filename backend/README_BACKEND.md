@@ -2,6 +2,9 @@
 
 多模态科学文献智能解析平台后端服务
 
+> **部署模式**：本项目**唯一官方支持的部署模式为本地部署**；云端部署不属于官方支持范围。
+> 部署与验证流程见根目录 [DEPLOYMENT.md](../DEPLOYMENT.md)。后端配置项 `DEPLOY_MODE` 默认 `local`。
+
 ## 项目状态
 
 ✅ **已完成的核心功能**
@@ -155,7 +158,7 @@ bash start.sh
 uvicorn app.main:app --reload --port 8000
 
 # 启动Celery Worker(另一个终端)
-celery -A app.core.celery_app worker -l info -Q parsing,extraction,graph
+celery -A app.core.celery_app worker -l info -Q parsing,extraction,graph,training
 
 # 启动Redis(如果未启动)
 redis-server

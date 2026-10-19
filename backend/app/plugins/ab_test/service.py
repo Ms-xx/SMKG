@@ -23,6 +23,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import threading
 import time
 from typing import Any
@@ -35,6 +36,26 @@ from app.core.plugin.base import Plugin
 # 指标类型
 METRIC_BINARY = "binary"
 METRIC_CONTINUOUS = "continuous"
+
+# 推理观测指标名（步骤 14.4）：延迟越小越优，评估指标 F1/准确率越大越优
+METRIC_LATENCY = "latency_ms"
+METRIC_QUALITY = "f1"
+
+# 模型版本变体命名约定：`<model_name>-v<int>`（如 `ner-v2` → 模型 ner 第 2 版）
+_VARIANT_RE = re.compile(r"^(?P<name>.+)-v(?P<version>\d+)$")
+
+
+def make_variant(model_name: str, version: int) -> str:
+    """构造模型版本变体标识：`ner` + `2` → `ner-v2`。"""
+    return f"{model_name}-v{version}"
+
+
+def parse_variant(variant: str) -> tuple[str, int] | None:
+    """解析模型版本变体标识：`ner-v2` → (`ner`, 2)；不符合约定返回 None。"""
+    m = _VARIANT_RE.match(variant or "")
+    if not m:
+        return None
+    return m.group("name"), int(m.group("version"))
 
 
 # ── 统计工具（零依赖手写：正态 CDF / t 分布 CDF / 双比例 z / Welch t）─────────
@@ -331,8 +352,13 @@ class ABTestService:
         variant_a: str | None = None,
         variant_b: str | None = None,
         alpha: float | None = None,
+        minimize: bool | None = None,
     ) -> dict[str, Any]:
-        """对比两个变体并输出结论（p 值 / 效应量 / 胜负 / 显著与否）。"""
+        """对比两个变体并输出结论（p 值 / 效应量 / 胜负 / 显著与否）。
+
+        `minimize` 缺省沿用实验方向；采集了 `<model_name>-v*` 变体的推理观测时，可对
+        `latency_ms` 指标显式传 `minimize=True` 以正确判定延迟优劣。
+        """
         exp = self._store.get(experiment_id)
         if exp is None:
             raise KeyError(f"实验 {experiment_id} 不存在")
@@ -344,6 +370,7 @@ class ABTestService:
         metric = metric_name or exp["metric_name"]
         metric_type = exp["metric_type"]
         alpha = alpha if alpha is not None else exp["alpha"]
+        minimize = exp["minimize"] if minimize is None else bool(minimize)
 
         with self._store._lock:
             obs_a = list(exp["observations"].get(a, {}).get(metric, []))
@@ -354,7 +381,7 @@ class ABTestService:
             "experiment_name": exp["name"],
             "metric": metric,
             "metric_type": metric_type,
-            "minimize": exp["minimize"],
+            "minimize": minimize,
             "alpha": alpha,
             "variant_a": a,
             "variant_b": b,
@@ -397,7 +424,7 @@ class ABTestService:
 
         significant = p_value < alpha
         # 判定胜负：continuous/binary 的 effect 更大（或更小）者胜；样本不足时不判胜负
-        better_is_b = (effect < 0) if exp["minimize"] else (effect > 0)
+        better_is_b = (effect < 0) if minimize else (effect > 0)
         if not base["min_samples_met"]:
             winner = None
             conclusion = "样本量不足，暂不判定（建议继续采集）"
@@ -420,7 +447,132 @@ class ABTestService:
             "conclusion": conclusion,
         }
 
-    # ── 5. 查询 ────────────────────────────────────────────────
+    # ── 5. 模型版本分流与推理观测（步骤 14.4）────────────────────
+    def resolve_model_version(
+        self,
+        model_name: str,
+        subject_id: str,
+        experiment_id: str | None = None,
+    ) -> dict[str, Any]:
+        """按 A/B 分流结果选择模型注册表中的具体版本，供线上推理/抽取路径使用。
+
+        约定实验变体标识为 `<model_name>-v<int>`（如 `ner-v2` → 模型 `ner` 第 2 版）：
+        变体经 `assign()` 确定性路由后解析出模型版本，再取 `version_management` 注册表
+        中该版本的产物与阶段（`artifacts`/`metrics`/`stage`）。
+
+        降级路径（任一步失败均不抛出，回退该模型 Production 或最新版本并标注原因）：
+        - `ab_test_disabled`：A/B 服务未启用；`experiment_not_found`：实验缺失；
+        - `variant_model_mismatch`：变体与所请求模型不匹配；
+        - `model_version_not_registered` / `model_not_registered`：版本未注册 / 模型无版本。
+        """
+        from app.services.version_management_service import version_management_service
+
+        result: dict[str, Any] = {
+            "model_name": model_name,
+            "subject_id": subject_id,
+            "experiment_id": experiment_id,
+            "variant": None,
+        }
+
+        def _degrade(reason: str) -> dict[str, Any]:
+            fallback = self._production_or_latest(version_management_service, model_name)
+            return {
+                **result,
+                "model_version": fallback.get("version") if fallback else None,
+                "stage": fallback.get("stage") if fallback else None,
+                "artifacts": (fallback or {}).get("artifacts", {}),
+                "metrics": (fallback or {}).get("metrics", {}),
+                "degraded": True,
+                "reason": reason,
+            }
+
+        if not self.available:
+            return _degrade("ab_test_disabled")
+
+        exp = (
+            self.get_experiment(experiment_id)
+            if experiment_id
+            else self._experiment_for_model(model_name)
+        )
+        if exp is None:
+            return _degrade("experiment_not_found")
+        result["experiment_id"] = exp["id"]
+
+        variant = self.assign(exp["id"], subject_id)["variant"]
+        result["variant"] = variant
+        parsed = parse_variant(variant)
+        if parsed is None or parsed[0] != model_name:
+            return _degrade("variant_model_mismatch")
+
+        version = parsed[1]
+        registry = version_management_service.list_models()
+        model = next(
+            (v for v in registry.get(model_name) or [] if v.get("version") == version),
+            None,
+        )
+        if model is None:
+            return _degrade(
+                "model_not_registered"
+                if not registry.get(model_name)
+                else "model_version_not_registered"
+            )
+        return {
+            **result,
+            "model_version": model.get("version"),
+            "stage": model.get("stage"),
+            "artifacts": model.get("artifacts", {}),
+            "metrics": model.get("metrics", {}),
+            "degraded": False,
+            "reason": "ab_test",
+        }
+
+    def _experiment_for_model(self, model_name: str) -> dict[str, Any] | None:
+        """查找包含 `<model_name>-v*` 变体的实验（未指定 experiment_id 时自动匹配）。"""
+        for exp in self.list_experiments():
+            for v in exp.get("variants") or []:
+                parsed = parse_variant(v)
+                if parsed and parsed[0] == model_name:
+                    return exp
+        return None
+
+    @staticmethod
+    def _production_or_latest(version_service: Any, model_name: str) -> dict[str, Any] | None:
+        """降级回退目标：优先 Production 版本，否则最新注册版本。"""
+        versions = version_service.list_models().get(model_name) or []
+        if not versions:
+            return None
+        return next(
+            (v for v in versions if v.get("stage") == "production"),
+            max(versions, key=lambda v: v.get("version", 0)),
+        )
+
+    def record_inference_observation(
+        self,
+        experiment_id: str,
+        variant: str,
+        latency_ms: float | None = None,
+        f1: float | None = None,
+    ) -> dict[str, Any]:
+        """采集一次推理观测（步骤 14.4）：延迟（越小越优）与评估指标 F1/准确率（越大越优）。
+
+        两类观测分别落入 `latency_ms` / `f1` 指标序列，故所在实验应以
+        `metric_type="continuous"` 创建；对延迟做显著性判定时以
+        `evaluate(..., metric_name="latency_ms", minimize=True)` 调用。
+        """
+        recorded: list[dict[str, Any]] = []
+        if latency_ms is not None:
+            recorded.append(
+                self.record(experiment_id, variant, latency_ms, metric_name=METRIC_LATENCY)
+            )
+        if f1 is not None:
+            recorded.append(self.record(experiment_id, variant, f1, metric_name=METRIC_QUALITY))
+        return {
+            "experiment_id": experiment_id,
+            "variant": variant,
+            "recorded": recorded,
+        }
+
+    # ── 6. 查询 ────────────────────────────────────────────────
     def get_experiment(self, experiment_id: str) -> dict[str, Any] | None:
         return self._store.get(experiment_id)
 

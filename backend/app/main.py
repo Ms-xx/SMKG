@@ -53,6 +53,15 @@ if settings.PLUGIN_ENABLED:
 
 @app.on_event("startup")
 async def startup():
+    # 部署模式声明：本项目唯一官方支持的部署模式为本地部署；
+    # cloud 取值仅作为代码层扩展预留，进入后仅告警、不阻断运行。
+    logger.info("deploy mode: %s (official support: local only)", settings.DEPLOY_MODE)
+    if settings.DEPLOY_MODE != "local":
+        logger.warning(
+            "DEPLOY_MODE=%s 为非官方支持模式；本项目当前唯一官方支持的模式为本地部署",
+            settings.DEPLOY_MODE,
+        )
+
     # 插件框架启动：发现 + 依赖解析 + 按拓扑激活
     if app.state.plugin_manager is not None:
         try:
@@ -116,6 +125,7 @@ async def root():
     return {
         "name": settings.APP_NAME,
         "version": settings.APP_VERSION,
+        "deploy_mode": settings.DEPLOY_MODE,
         "docs": "/docs",
         "redoc": "/redoc",
         "api": settings.API_PREFIX,

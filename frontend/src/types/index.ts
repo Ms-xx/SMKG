@@ -455,3 +455,115 @@ export interface RepoRecommendResult {
   recommendations: RepoRecommendation[];
   records: Record<string, any>[];
 }
+
+// ── 步骤 19：跨文献结构化演进对比矩阵 ──────────────────────────────────
+
+export interface CompareMatrixAnchor {
+  document_id: string;
+  page: number | null;
+  chunk: number | null;
+  snippet: string;
+}
+
+export interface CompareMatrixCell {
+  document_id: string;
+  title: string | null;
+  value: string | null;
+  anchored: boolean;
+  anchors: CompareMatrixAnchor[];
+  note?: string;
+}
+
+export interface CompareMatrixRow {
+  dimension: string;
+  cells: CompareMatrixCell[];
+}
+
+export interface CompareMatrixInsight {
+  backend: string;
+  matrix_backend?: string | null;
+  insight: string;
+  note: string;
+}
+
+export interface CompareMatrixResult {
+  backend: string;
+  dimension_count: number;
+  document_count: number;
+  dimensions: string[];
+  document_columns: { index: number; document_id: string; title: string | null }[];
+  rows: CompareMatrixRow[];
+  anchor_coverage: { total_cells: number; anchored_cells: number; coverage_pct: number };
+  insight?: CompareMatrixInsight;
+}
+
+// ── 步骤 20：引用含金量筛选 ────────────────────────────────────────────
+
+export interface CitationQualitySignal {
+  signal: string;
+  level?: number | string;
+  hit?: boolean;
+  detail?: string;
+}
+
+export interface CitationQualityRef {
+  index: number | string | null;
+  title: string;
+  score: number;
+  label: "core" | "supporting" | "perfunctory";
+  signals: CitationQualitySignal[];
+  position?: string;
+  occurrences?: number;
+}
+
+export interface CitationQualityDoc {
+  document_id: string;
+  title: string | null;
+  total: number;
+  core_count: number;
+  supporting_count: number;
+  perfunctory_count: number;
+  thresholds: { perfunctory_threshold: number; supporting_threshold: number };
+  refs: CitationQualityRef[];
+}
+
+export interface CitationQualityResult {
+  backend: string;
+  document_count: number;
+  total_refs: number;
+  perfunctory_count: number;
+  core_count: number;
+  documents: CitationQualityDoc[];
+}
+
+// ── 步骤 22：Future Work 前沿探索 ──────────────────────────────────────
+
+export interface FutureWorkIdea {
+  document_id: string;
+  title: string | null;
+  year: number | null;
+  keyword: string | null;
+  idea: string;
+  snippet: string;
+  resolved: boolean;
+  confidence: number;
+  resolved_by: string[];
+  evidence: { document_id: string; title: string | null; year: number | null }[];
+  reason: string;
+}
+
+export interface FutureWorkResult {
+  backend: string;
+  idea_count: number;
+  excluded_count: number;
+  candidate_count: number;
+  time_buckets: { year: number; count: number }[];
+  excluded: FutureWorkIdea[];
+  candidates: FutureWorkIdea[];
+  filtered?: {
+    domain: string | null;
+    min_year: number | null;
+    max_year: number | null;
+    applied_document_count: number;
+  };
+}
