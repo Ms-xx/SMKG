@@ -17,9 +17,7 @@ doc_service = DocumentService()
 
 
 class CitationScoreRequest(BaseModel):
-    document_ids: list[str] = Field(
-        default_factory=list, description="待打分的文档 id 列表"
-    )
+    document_ids: list[str] = Field(default_factory=list, description="待打分的文档 id 列表")
 
 
 def _build_cite_edges(docs: list[Document]) -> dict[str, dict]:
@@ -71,9 +69,7 @@ async def score(
     edges = _build_cite_edges(row_docs)
     scored = []
     for rec in records:
-        scored.append(
-            citation_quality_service.analyze(rec, edges.get(rec["document_id"]))
-        )
+        scored.append(citation_quality_service.analyze(rec, edges.get(rec["document_id"])))
     # 汇总
     agg = {
         "backend": "builtin",

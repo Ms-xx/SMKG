@@ -35,6 +35,28 @@ spec:
           ports:
             - containerPort: 7474
             - containerPort: 7687
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          readinessProbe:
+            tcpSocket:
+              port: 7687
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 7474
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
           env:
             - name: NEO4J_AUTH
               value: neo4j/CHANGE_ME

@@ -11,7 +11,7 @@ data:
   NEO4J_URI: "bolt://neo4j:7687"
   NEO4J_USER: "neo4j"
   MINIO_ENDPOINT: "minio:9000"
-  MINIO_ACCESS_KEY: "minioadmin"
+  MINIO_ACCESS_KEY: "CHANGE_ME"
   MINIO_BUCKET_NAME: "documents"
   DATABASE_POOL_SIZE: "20"
   DATABASE_MAX_OVERFLOW: "10"

@@ -1,8 +1,8 @@
 # SMKG — 多模态科学文献智能解析与知识图谱构建平台
 
-面向科学文献的多模态智能解析与知识图谱构建平台，实现 PDF 文献“上传 → 多模态解析（文本/公式/图表/版面）→ 深度信息抽取（RAG + LLM + NER）→ 人机协同标注 → 知识图谱构建 → 智能问答/语义搜索”的完整闭环。
+**SMKG（Scientific Multi-modal Knowledge Graph）** — 面向科学文献的多模态智能解析与知识图谱构建平台，实现 PDF 文献“上传 → 多模态解析（文本/公式/图表/版面）→ 深度信息抽取（RAG + LLM + NER）→ 人机协同标注 → 知识图谱构建 → 智能问答/语义搜索”的完整闭环。
 
-> 当前状态：后端 694 项单测通过、前端 228 项单测 + 3 项 E2E 通过；`main` 分支为稳定开发主线。
+> 当前状态：后端 725 项 pytest（本机 **722 通过**，3 项依赖本地环境：MinIO 远端列举 / GROBID `doi` / source-anchor 前置数据）、前端 **46 个测试文件 233 项 Vitest** + 3 项 Playwright E2E 通过；接口规模 **30 个 REST 路由模块 / 166 个 HTTP 接口 + 1 个 WebSocket**；`main` 分支为稳定开发主线。
 >
 > **四个创新点（A/B/C/D）已全部完成并本机实测**：A 实体级图谱落地（英文 NER 兜底）、B 图谱增强检索 + grounding_score、C 主动学习闭环、D 多智能体图谱融合，详见下方[核心创新](#核心创新)与 `others/Document/XiangMu.md`。
 
@@ -18,6 +18,7 @@
 - [功能特性](#功能特性)
 - [核心能力](#核心能力)
 - [核心创新](#核心创新)
+- [验证结果速览](#验证结果速览)
 - [文档与状态](#文档与状态)
 - [技术栈](#技术栈)
 - [目录结构](#目录结构)
@@ -85,19 +86,39 @@
 
 > 说明：四创新点均已完成两轮代码复审（修复 A 化学式正则误报/span 错位、C 无特征降级误判、D 断言真实化，详见 `others/Document/XiangMu.md` 11.6 节）；grounding 与抽取为确定性（CPU 可跑），语义级扩展与真实 LoRA 精读路径已预留接口。
 
+## 验证结果速览
+
+以下均为**本机实测**结果（无 GPU，纯 CPU 推理）；完整方法、公式与消融见本地文档 `others/Document/开发报告.md`（该目录不入库，需在本地查看）：
+
+| 类别 | 指标 | 实测结果 |
+| --- | --- | --- |
+| 接口规模 | REST 模块 / HTTP 接口 | 30 / 166（+1 WebSocket） |
+| 后端测试 | pytest（收集 / 通过） | 725 / 722（语句覆盖率约 81%） |
+| 前端测试 | Vitest（文件 / 用例） | 46 / 233（行覆盖率 87.66%） |
+| 解析完备性 | 75 页长文 / 扫描件 OCR | 236,689 字符；8,789 字符（`ocr_pages=3`） |
+| 语义去重 | v1↔v7 同源识别 | SimHash 相似度 0.9062 |
+| 创新点 A | 唯一实体入图谱（摘要 / 长文） | 22 / 10 |
+| 创新点 B | grounding（支撑 / 无关） | 1.0 / 0.0，`rerank.applied=true` |
+| 创新点 C | 边界样本熵（单轮） | 0.9963 → 0.9553 |
+| 创新点 D | 写回关系 | HAS_ENTITY 3 + CO_OCCURS 1 |
+| 性能 | 三档并发成功率 | 10 / 50 / 100 → 100% / 100% / 99% |
+| 性能 | 吞吐量 | 7.94 → 61.87 QPS |
+
 ## 文档与状态
 
-项目规划的**执行顺序、验收标准与逐步骤完成/阻塞状态**以 `others/` 下的文档为权威依据：
+项目规划的**执行顺序、验收标准与逐步骤完成/阻塞状态**以本地 `others/` 目录下的文档为权威依据（**该目录被 `.gitignore` 排除，不推送远端**，克隆后不含这些文件）：
 
 | 文档 | 说明 |
 | --- | --- |
-| [`XiangMu.md`](others/Document/XiangMu.md) | 纵向主文档：完整实施步骤、每步状态判定、变更记录（当前 v8.0，含「十二、后续未完成步骤详细清单」） |
-| [`00-差别分析.md`](others/Document/00-差别分析.md) | 状态对照 + 更新记录表，与 XiangMu 的待办总览保持口径一致 |
-| [`PROJECT_SUMMARY.md`](others/Document/PROJECT_SUMMARY.md) | 已完成能力全貌与创新点注记总览 |
-| [`08-需求与能力对照.md`](others/Document/08-需求与能力对照.md) | 需求原文归档与逐条现状判定 |
-| `others/PROJECT/`（01–07） | 数据库 / 后端 / 前端 / 开发流程 / API 接口 / 环境 / GraphRAGTest 设计文档 |
+| `others/Document/XiangMu.md` | 纵向主文档：完整实施步骤、每步状态判定、变更记录（当前 **v9.13**，含「十二、后续未完成步骤详细清单」） |
+| `others/Document/开发报告.md` | 论文式开发报告：中英文摘要、编号公式与算法、方案对比表、实验结果与可复现清单 |
+| `others/Document/00-差别分析.md` | 状态对照 + 更新记录表，与 XiangMu 的待办总览保持口径一致 |
+| `others/Document/PROJECT_SUMMARY.md` | 已完成能力全貌与创新点注记总览 |
+| `others/Document/08-需求与能力对照.md` | 需求原文归档与逐条现状判定 |
+| `others/PROJECT/`（01–08） | 数据库 / 后端 / 前端 / 开发流程 / API 接口 / 环境配置 / GraphRAGTest / 插件化架构设计文档 |
+| `others/Q1/` | 参赛作品材料：详细应用方案、作品介绍文档 |
 
-最大程度采用官方 `git ignore` 保护：`config/*.env`、`moulds/`、`outputs/`、`database/`、`timeout/` 均不入库；`others/` 为项目文档，按需同步。
+最大程度采用官方 `git ignore` 保护：`config/*.env`、`moulds/`、`outputs/`、`database/`、`timeout/`、`others/` 均不入库；仓库仅保留代码、配置模板与 CI/部署脚本。
 
 ## 技术栈
 
@@ -134,10 +155,11 @@ LX/
 
 ### 1. 环境要求
 
-- Python 3.11+
-- Node.js 22+（前端，使用 pnpm）
-- MySQL 8.0、Redis、Neo4j 5、MinIO（本地运行）
+- Python 3.11（后端运行于 `SciMKG` conda 环境，配置与环境说明见 [`config/README.md`](config/README.md)）
+- Node.js 24 + pnpm 10（前端**必须使用 pnpm**，不使用 npm）
+- MySQL 8.0、Redis 7、Neo4j 5、MinIO（**本地常驻运行**，非容器）
 - LM Studio（本地 LLM，默认 `http://127.0.0.1:1234`，用于 RAG 问答与翻译）
+- GPU 非必需：全项目默认 CPU 推理，可在无 NVIDIA/CUDA 环境完整部署
 
 ### 2. 后端依赖
 
@@ -212,7 +234,7 @@ uvicorn app.main:app --reload --port 8000
 
 # 2) Celery Worker（另开终端）
 cd backend
-celery -A app.core.celery_app worker -l info -Q parsing,extraction,graph,training
+celery -A app.core.celery_app worker -l info -Q parsing,extraction,graph,paper,training
 
 # 3) Celery Beat（另开终端，定时任务）
 cd backend
@@ -260,7 +282,7 @@ pnpm dev
 - OpenAPI 描述：http://localhost:8000/openapi.json
 - 接口前缀统一为 `/api/v1`
 
-主要接口分组（27 个路由模块）：
+主要接口分组（30 个 REST 路由模块 / 166 个 HTTP 接口 + 1 个 WebSocket）：
 
 | 分组 | 典型路径 | 说明 |
 | --- | --- | --- |
@@ -291,10 +313,10 @@ curl -s http://localhost:8000/api/v1/documents/?page_size=1 \
 ## 运行测试
 
 ```bash
-# 后端（pytest.ini 已配置 testpaths=test）
+# 后端（pytest.ini 已配置 testpaths=test；当前 725 项，本机 722 通过）
 python -m pytest -q
 
-# 前端单测
+# 前端单测（46 个测试文件 / 233 项）
 cd frontend
 pnpm test
 
@@ -351,4 +373,10 @@ CI（`.github/workflows/ci.yml`）包含 4 个 job：`backend`（ruff/black/pyte
    - 后端：`python -m pytest -q`、`ruff check .`、`black --check app scripts`
    - 前端：`pnpm type-check`、`pnpm lint`、`pnpm test`
 4. **变更说明**：涉及行为变更、新增能力或缺陷修复时，同步更新相关文档（本项目内部规划与状态记录位于 `others/`，该目录不推送远端）。
+
+---
+
+## 许可证
+
+本项目为学术研究与学习用途。如需以开源方式对外发布，请在仓库根目录补充 `LICENSE` 文件，并在此处声明采用的许可协议（如 MIT、Apache-2.0 等）。
 

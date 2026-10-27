@@ -9,7 +9,36 @@
 #  unsupported extension point. See DEPLOYMENT.md.
 # ============================================================================
 
+param(
+    [string]$Mode
+)
+
 $ErrorActionPreference = "Continue"
+
+# ---- mode resolution (三级优先级: 显式参数 > 环境变量 > 默认 Production) ----
+function Resolve-Mode {
+    param([string]$InputVal, [string]$EnvVal)
+    $allowed = @("Development", "Production")
+    $default = "Production"
+
+    if ($InputVal -and $allowed -contains $InputVal) {
+        return $InputVal
+    }
+    if ($InputVal -and ($allowed -notcontains $InputVal)) {
+        Write-Host "[WARN] Invalid mode '$InputVal', fallback to $default" -ForegroundColor Yellow
+        return $default
+    }
+    if ($EnvVal -and $allowed -contains $EnvVal) {
+        Write-Host "[INFO] Mode from env: $EnvVal" -ForegroundColor Cyan
+        return $EnvVal
+    }
+    if ($EnvVal -and ($allowed -notcontains $EnvVal)) {
+        Write-Host "[WARN] Invalid env mode '$EnvVal', fallback to $default" -ForegroundColor Yellow
+    }
+    return $default
+}
+
+$ResolvedMode = Resolve-Mode -InputVal $Mode -EnvVal $env:LX_STARTUP_MODE
 
 # ---- configurable ----
 $RootDir      = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -79,6 +108,7 @@ function Ensure-Service {
 
 Write-Host "======== LX platform one-click start ========" -ForegroundColor Green
 Write-Host "root: $RootDir"
+Write-Host "[INFO] Mode: $ResolvedMode" -ForegroundColor Cyan
 
 # ---------- 1. databases ----------
 # Redis: local service 'Redis' (fallback: bare redis-server)
@@ -129,8 +159,15 @@ if (Test-Port 9000) {
 }
 
 # ---------- 2. backend ----------
-Open-Node -Title "Backend(uvicorn:8000)" -WorkDir "$RootDir\backend" `
-    -Command "& '$PySciMKG' -m uvicorn app.main:app --reload --port 8000"
+# ---------- 2. backend ----------
+if ($ResolvedMode -eq "Development") {
+    $uvicornCmd = "& '$PySciMKG' -m uvicorn app.main:app --reload --port 8000"
+    $backendTitle = "Backend(uvicorn:8000) [Development]"
+} else {
+    $uvicornCmd = "& '$PySciMKG' -m uvicorn app.main:app --port 8000"
+    $backendTitle = "Backend(uvicorn:8000) [Production]"
+}
+Open-Node -Title $backendTitle -WorkDir "$RootDir\backend" -Command $uvicornCmd
 
 Open-Node -Title "Celery Worker" -WorkDir "$RootDir\backend" `
     -Command "& '$PySciMKG' -m celery -A app.core.celery_app worker -l info -Q parsing,extraction,graph,training"

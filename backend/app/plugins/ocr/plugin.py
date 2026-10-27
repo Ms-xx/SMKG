@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import inspect
 import os
 from typing import Any
 
@@ -27,7 +28,7 @@ class OCRService:
 
     # ─── 插件协议 ──────────────────────────────────────────────────────────
     async def on_start(self) -> None:
-        logger.info("ocr plugin started (backend=%s)", self.backend)
+        logger.info("ocr plugin started (backend={})", self.backend)
 
     async def on_stop(self) -> None:
         logger.info("ocr plugin stopped")
@@ -45,18 +46,77 @@ class OCRService:
         return self._ocr is not None
 
     # ─── 加载 ───────────────────────────────────────────────────────────────
-    def _local_model_kwargs(self) -> dict[str, str]:
-        """若 `moulds/paddleocr` 下存在标准 PaddleOCR 检测/识别模型，则指定本地模型目录。"""
-        kwargs: dict[str, str] = {}
+    def _local_model_dirs(self) -> tuple[str | None, str | None]:
+        """在 `moulds/paddleocr` 下按 `*_det_infer` / `*_rec_infer` 后缀匹配本地模型目录。
+
+        Returns:
+            (检测模型目录, 识别模型目录)，缺失为 None（此时由 PaddleOCR 自行下载）。
+        """
         d = settings.OCR_MODEL_PATH
         if not d or not os.path.isdir(d):
-            return kwargs
-        det = os.path.join(d, "ch_PP-OCRv3_det_infer")
-        rec = os.path.join(d, "ch_PP-OCRv3_rec_infer")
-        if os.path.isdir(det):
-            kwargs["det_model_dir"] = det
-        if os.path.isdir(rec):
-            kwargs["rec_model_dir"] = rec
+            return None, None
+
+        found: dict[str, str] = {}
+        for name in sorted(os.listdir(d)):
+            full = os.path.join(d, name)
+            if not os.path.isdir(full):
+                continue
+            for kind in ("det", "rec"):
+                if kind not in found and name.endswith(f"{kind}_infer"):
+                    found[kind] = full
+        return found.get("det"), found.get("rec")
+
+    @staticmethod
+    def _signature_params(ocr_cls: Any) -> set[str]:
+        """探测构造签名参数名；不可得时退化为最小参数集。"""
+        try:
+            return set(inspect.signature(ocr_cls.__init__).parameters)
+        except (TypeError, ValueError):  # pragma: no cover - 签名不可得
+            return {"lang"}
+
+    def _model_dir_kwargs(self, params: set[str]) -> dict[str, Any]:
+        """本地模型目录 → 对应版本的参数名（2.x 与 3.x 不同）。"""
+        out: dict[str, Any] = {}
+        det, rec = self._local_model_dirs()
+        for value, candidates in (
+            (det, ("det_model_dir", "text_detection_model_dir")),
+            (rec, ("rec_model_dir", "text_recognition_model_dir")),
+        ):
+            if not value:
+                continue
+            for key in candidates:
+                if key in params:
+                    out[key] = value
+                    break
+        return out
+
+    def _build_kwargs(self, ocr_cls: Any) -> dict[str, Any]:
+        """按 PaddleOCR 版本自适应构造参数（2.x 与 3.x 的参数名不同）。
+
+        以 `__init__` 签名探测为准（不依赖版本号字符串解析）：
+        - 方向分类：2.x `use_angle_cls` / 3.x `use_textline_orientation`
+        - 日志开关 `show_log` 仅 2.x 支持
+        - 模型目录：2.x `det_model_dir`/`rec_model_dir` / 3.x
+          `text_detection_model_dir`/`text_recognition_model_dir`
+        - 3.x 额外注入 `enable_mkldnn`（经 `**kwargs` 透传），规避 CPU 推理缺陷
+        """
+        params = self._signature_params(ocr_cls)
+        # 3.x 判别：具备 3.x 独有参数（方向分类 / 检测模型目录改名）
+        is_v3 = "use_textline_orientation" in params or "text_detection_model_dir" in params
+
+        kwargs: dict[str, Any] = {}
+        if "lang" in params:
+            kwargs["lang"] = settings.OCR_LANGUAGE
+        if "use_angle_cls" in params:
+            kwargs["use_angle_cls"] = settings.OCR_USE_ANGLE_CLS
+        elif "use_textline_orientation" in params:
+            kwargs["use_textline_orientation"] = settings.OCR_USE_ANGLE_CLS
+        if "show_log" in params:
+            kwargs["show_log"] = False
+        if is_v3:
+            kwargs["enable_mkldnn"] = settings.OCR_ENABLE_MKLDNN
+
+        kwargs.update(self._model_dir_kwargs(params))
         return kwargs
 
     def _load(self) -> None:
@@ -66,23 +126,19 @@ class OCRService:
         try:
             from paddleocr import PaddleOCR  # type: ignore
 
-            self._ocr = PaddleOCR(
-                lang=settings.OCR_LANGUAGE,
-                use_angle_cls=settings.OCR_USE_ANGLE_CLS,
-                show_log=False,
-                **self._local_model_kwargs(),
-            )
+            self._ocr = PaddleOCR(**self._build_kwargs(PaddleOCR))
             self.backend = "paddleocr"
             logger.info(
-                "PaddleOCR 已加载（lang=%s, use_angle_cls=%s）",
+                "PaddleOCR 已加载（lang={}, 方向分类={}, MKL-DNN={}）",
                 settings.OCR_LANGUAGE,
                 settings.OCR_USE_ANGLE_CLS,
+                settings.OCR_ENABLE_MKLDNN,
             )
         except Exception as e:  # pragma: no cover - 依赖缺失
             self.backend = "unavailable"
             self._load_error = str(e)
             logger.warning(
-                "PaddleOCR 不可用，扫描件 OCR 将跳过（安装 `pip install paddleocr paddlepaddle`）：%s",
+                "PaddleOCR 不可用，扫描件 OCR 将跳过（安装 `pip install paddleocr paddlepaddle`）：{}",
                 e,
             )
 
@@ -112,10 +168,10 @@ class OCRService:
             try:
                 raw = self._ocr.ocr(image_path)
             except Exception as e:  # pragma: no cover
-                logger.warning("PaddleOCR 识别失败：%s", e)
+                logger.warning("PaddleOCR 识别失败：{}", e)
                 return ""
         except Exception as e:  # pragma: no cover
-            logger.warning("PaddleOCR 识别失败：%s", e)
+            logger.warning("PaddleOCR 识别失败：{}", e)
             return ""
 
         lines = self._extract_lines(raw)

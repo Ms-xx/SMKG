@@ -39,6 +39,21 @@ spec:
             limits:
               cpu: "1"
               memory: 4Gi
+          # worker 无 HTTP 端口：以 broker 控制通道回包判定「已连上 broker 且未僵死」
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "celery -A app.core.celery_app inspect ping -d celery@$HOSTNAME --timeout 10"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 20
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "celery -A app.core.celery_app inspect ping -d celery@$HOSTNAME --timeout 10"]
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 20
+            failureThreshold: 3
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler

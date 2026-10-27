@@ -63,9 +63,7 @@ async def _backfill_anchors(
         else getattr(current_user, "user_id", None)
     )
     scope_all = (
-        has_permission(current_user, DOCUMENT_WRITE)
-        if isinstance(current_user, dict)
-        else False
+        has_permission(current_user, DOCUMENT_WRITE) if isinstance(current_user, dict) else False
     )
     for doc_id in doc_ids:
         try:
@@ -157,9 +155,7 @@ async def _load_matrix_docs(
         else getattr(current_user, "user_id", None)
     )
     scope_all = (
-        has_permission(current_user, DOCUMENT_WRITE)
-        if isinstance(current_user, dict)
-        else False
+        has_permission(current_user, DOCUMENT_WRITE) if isinstance(current_user, dict) else False
     )
     out: list[dict[str, Any]] = []
     for d in docs:
@@ -168,16 +164,12 @@ async def _load_matrix_docs(
         page_pairs: list[dict[str, Any]] = []
         if pages and not isinstance(pages[0], int):
             # 纯文本页列表 → 按页序编号（页码从 1 起）
-            page_pairs = [
-                {"page_number": i + 1, "text": str(p)} for i, p in enumerate(pages)
-            ]
+            page_pairs = [{"page_number": i + 1, "text": str(p)} for i, p in enumerate(pages)]
         elif pages:
             page_pairs = [{"page_number": int(p), "text": ""} for p in pages]
         if not page_pairs and doc_id:
             try:
-                fulltext = await doc_service.get_fulltext(
-                    db, doc_id, user_id, scope_all
-                )
+                fulltext = await doc_service.get_fulltext(db, doc_id, user_id, scope_all)
                 page_pairs = [
                     {
                         "page_number": int(p["page_number"]),
@@ -212,9 +204,7 @@ async def compare_matrix(
     某篇对某维度无锚点时 `anchored=false`、`value=None`，不输出编造结论。
     LLM 易失败时洞察自动降级规则模板，接口不报错。
     """
-    docs = await _load_matrix_docs(
-        db, current_user, [d.model_dump() for d in body.documents]
-    )
+    docs = await _load_matrix_docs(db, current_user, [d.model_dump() for d in body.documents])
 
     matrix = await asyncio.to_thread(
         multi_paper_compare_service.build_matrix, docs, body.dimensions or None

@@ -13,6 +13,7 @@ if BACKEND_DIR not in sys.path:
 
 import fitz  # PyMuPDF
 
+from app.core.config import settings
 from app.services.parsing_service import ParsingService
 from app.services.ocr_service import OCRService
 
@@ -134,3 +135,77 @@ def test_ocr_extract_words_with_boxes():
     items3 = svc._extract_words_with_boxes([_Res()])
     assert items3[0] == {"text": "中文", "bbox": [0, 0, 10, 5]}
     assert items3[1] == {"text": "识别", "bbox": [0, 6, 20, 12]}
+
+
+class _FakeOCR3x:
+    """模拟 PaddleOCR 3.x 构造签名（无 use_angle_cls/show_log/det_model_dir）。
+
+    `enable_mkldnn` 并非 3.x 显式形参，而是经 `**kwargs` 透传，故这里同样用 `**kwargs`。
+    """
+
+    def __init__(
+        self,
+        lang=None,
+        use_textline_orientation=None,
+        text_detection_model_dir=None,
+        text_recognition_model_dir=None,
+        **kwargs,
+    ):
+        pass
+
+
+class _FakeOCR2x:
+    """模拟 PaddleOCR 2.x 构造签名。"""
+
+    def __init__(
+        self,
+        lang=None,
+        use_angle_cls=None,
+        show_log=None,
+        det_model_dir=None,
+        rec_model_dir=None,
+    ):
+        pass
+
+
+def test_build_kwargs_adapts_paddleocr_3x_signature():
+    """3.x 不接受 use_angle_cls/show_log/det_model_dir，必须映射为新参数名。"""
+    kwargs = OCRService()._build_kwargs(_FakeOCR3x)
+
+    assert kwargs["lang"] == settings.OCR_LANGUAGE
+    assert kwargs["use_textline_orientation"] == settings.OCR_USE_ANGLE_CLS
+    assert kwargs["enable_mkldnn"] == settings.OCR_ENABLE_MKLDNN
+    assert "use_angle_cls" not in kwargs
+    assert "show_log" not in kwargs
+    assert "det_model_dir" not in kwargs
+
+
+def test_build_kwargs_keeps_paddleocr_2x_signature():
+    """2.x 保持存量参数名与 show_log=False（无 enable_mkldnn 参数）。"""
+    kwargs = OCRService()._build_kwargs(_FakeOCR2x)
+
+    assert kwargs["use_angle_cls"] == settings.OCR_USE_ANGLE_CLS
+    assert kwargs["show_log"] is False
+    assert "use_textline_orientation" not in kwargs
+    assert "enable_mkldnn" not in kwargs
+
+
+def test_local_model_dirs_and_kwargs_mapping(tmp_path, monkeypatch):
+    """按 `*_det_infer` / `*_rec_infer` 后缀发现本地模型，并映射到对应版本的参数名。"""
+    (tmp_path / "ch_PP-OCRv3_det_infer").mkdir()
+    (tmp_path / "PP-OCRv5_mobile_rec_infer").mkdir()
+    (tmp_path / "not_a_model").mkdir()
+    monkeypatch.setattr(settings, "OCR_MODEL_PATH", str(tmp_path))
+
+    svc = OCRService()
+    det, rec = svc._local_model_dirs()
+    assert det is not None and det.endswith("ch_PP-OCRv3_det_infer")
+    assert rec is not None and rec.endswith("PP-OCRv5_mobile_rec_infer")
+
+    kwargs3 = svc._build_kwargs(_FakeOCR3x)
+    assert kwargs3["text_detection_model_dir"] == det
+    assert kwargs3["text_recognition_model_dir"] == rec
+
+    kwargs2 = svc._build_kwargs(_FakeOCR2x)
+    assert kwargs2["det_model_dir"] == det
+    assert kwargs2["rec_model_dir"] == rec

@@ -25,9 +25,7 @@ class RecommendFeedback(Base):
     """点赞/踩互动：用户对某个开源仓库的可复现性反馈，参与后续推荐排序。"""
 
     __tablename__ = "recommend_feedback"
-    __table_args__ = (
-        UniqueConstraint("user_id", "repo", name="uq_rec_feedback_user_repo"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "repo", name="uq_rec_feedback_user_repo"),)
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
     user_id = Column(String(36), nullable=False)

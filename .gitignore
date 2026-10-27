@@ -33,6 +33,9 @@ dist/
 build/
 .pnpm-store/
 .vite/
+frontend/test-results/
+frontend/playwright-report/
+frontend/coverage/
 *.tsbuildinfo
 *.local
 

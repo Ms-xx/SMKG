@@ -23,9 +23,7 @@ class OutlineRequest(BaseModel):
 
 
 class DiagramRequest(BaseModel):
-    diagram_type: str = Field(
-        "mermaid", description="tikz | graphviz | mermaid | matplotlib"
-    )
+    diagram_type: str = Field("mermaid", description="tikz | graphviz | mermaid | matplotlib")
     spec: dict = {}
 
 
@@ -93,24 +91,18 @@ async def diagram(body: DiagramRequest, current_user: dict = Depends(get_current
 
 
 @router.post("/csv-chart")
-async def csv_chart(
-    body: CsvChartRequest, current_user: dict = Depends(get_current_user)
-):
+async def csv_chart(body: CsvChartRequest, current_user: dict = Depends(get_current_user)):
     """CSV 可视化：零依赖 SVG 图表（折线/柱状/雷达/表格）。"""
     return writing_assistant_service.csv_chart(body.csv_text, body.chart_type)
 
 
 @router.post("/translate")
-async def translate(
-    body: TranslateRequest, current_user: dict = Depends(get_current_user)
-):
+async def translate(body: TranslateRequest, current_user: dict = Depends(get_current_user)):
     """中英学术翻译（9.1）：可插拔。未配置翻译端点时降级回显原文。"""
     return writing_assistant_service.translate(body.text, body.target)
 
 
 @router.post("/llm-generate")
-async def llm_generate(
-    body: LlmGenerateRequest, current_user: dict = Depends(get_current_user)
-):
+async def llm_generate(body: LlmGenerateRequest, current_user: dict = Depends(get_current_user)):
     """真实 LLM 文本生成（9.2）：可插拔。未配置 LLM 端点时降级为规则占位。"""
     return writing_assistant_service.llm_generate(body.prompt, body.max_tokens)

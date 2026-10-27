@@ -37,9 +37,7 @@ async def network(body: NetworkRequest, current_user: dict = Depends(get_current
 
 
 @router.post("/key-papers")
-async def key_papers(
-    body: KeyPapersRequest, current_user: dict = Depends(get_current_user)
-):
+async def key_papers(body: KeyPapersRequest, current_user: dict = Depends(get_current_user)):
     """基石节点挖掘：PageRank + 介数中心性。"""
     return citation_graph_service.key_papers(body.graph)
 
@@ -68,9 +66,7 @@ async def future_work(
     records: list[dict] = []
     for d in docs:
         if domain:
-            hay = " ".join(
-                [d.title or "", d.abstract or "", " ".join(d.keywords or [])]
-            ).lower()
+            hay = " ".join([d.title or "", d.abstract or "", " ".join(d.keywords or [])]).lower()
             if domain.lower() not in hay:
                 continue
         year = d.publication_date.year if d.publication_date else None

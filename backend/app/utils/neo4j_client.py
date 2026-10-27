@@ -52,3 +52,32 @@ class Neo4jClient:
             result = await session.run(query, parameters or {})
             await result.consume()
             return True
+    async def delete_nodes_by_doc(self, doc_ids: list[str]) -> int:
+        """定向删除指定文档的实体节点与 Document/Chunk 节点，返回删除节点总数。
+
+        ① 实体节点（Material/Property/... 等）：``source_document_ids`` 列表命中
+        （逐 id 参数化）；② ``Document`` 节点：``id`` 命中；③ ``Chunk`` 节点：
+        ``doc_id`` 命中。``doc_ids`` 为空时直接返回 0。
+        """
+        if not doc_ids:
+            return 0
+        ids = list(doc_ids)
+        total = 0
+        async with self.driver.session() as session:
+            # ① 实体节点：source_document_ids 列表命中（逐 id）
+            for did in ids:
+                result = await session.run(
+                    "MATCH (n) WHERE $id IN n.source_document_ids DETACH DELETE n",
+                    {"id": did},
+                )
+                summary = await result.consume()
+                total += summary.counters.nodes_deleted
+            # ② Document（id 命中）与 Chunk（doc_id 命中）节点
+            result = await session.run(
+                "MATCH (n) WHERE (n:Document AND n.id IN $ids) "
+                "OR (n:Chunk AND n.doc_id IN $ids) DETACH DELETE n",
+                {"ids": ids},
+            )
+            summary = await result.consume()
+            total += summary.counters.nodes_deleted
+        return total

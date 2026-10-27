@@ -32,12 +32,8 @@ async def recommend(
 ):
     """复现性优先推荐：相关性(步骤8) + 开源复现性(star) + 用户反馈加权排序，并持久化推荐记录。"""
     feedback = await rrs.aggregate_repo_feedback(db)
-    ranked = rrs.recommend_ranked(
-        body.local_references, body.candidates, feedback=feedback
-    )
-    online = any(
-        r.get("source") == "online" for c in ranked for r in (c.get("repos") or [])
-    )
+    ranked = rrs.recommend_ranked(body.local_references, body.candidates, feedback=feedback)
+    online = any(r.get("source") == "online" for c in ranked for r in (c.get("repos") or []))
     persisted: list[dict] = []
     for item in ranked:
         persisted.append(

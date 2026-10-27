@@ -100,6 +100,10 @@ class Settings(BaseSettings):
     OCR_DPI: int = 200
     # PaddleOCR 模型目录（可选，缺省使用 PaddleOCR 内置下载）
     OCR_MODEL_PATH: str = os.path.join(MODELS_DIR, "paddleocr")
+    # PaddleOCR 3.x 是否启用 MKL-DNN 加速：默认关闭
+    # （paddlepaddle 3.x 的 PIR/oneDNN 在部分 CPU 上抛
+    #  `ConvertPirAttribute2RuntimeAttribute not support`，关闭后可正常推理）
+    OCR_ENABLE_MKLDNN: bool = False
 
     # 版面分析（LayoutLMv3，PubLayNet 微调；LAYOUT_MODEL 为 HF 名回退，LAYOUT_MODEL_PATH 为本地 moulds 目录）
     LAYOUT_ENABLED: bool = True

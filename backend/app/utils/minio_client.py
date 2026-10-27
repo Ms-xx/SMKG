@@ -124,3 +124,63 @@ class MinioClient:
             self.client.remove_object(settings.MINIO_BUCKET_NAME, object_name)
         except Exception as e:
             logger.warning(f"Failed to delete file from MinIO: {e}")
+    def list_objects(self, prefix: str) -> list[str]:
+        """枚举 `documents` bucket 下指定前缀的全部对象名（按名称排序）。
+
+        MinIO 可用时走远程枚举；不可用时回退遍历本地回退目录
+        ``LOCAL_STORAGE_DIR/<prefix>``。异常时告警并返回空列表（不抛异常）。
+        """
+        names: list[str] = []
+        if self._check_available():
+            try:
+                for obj in self.client.list_objects(
+                    settings.MINIO_BUCKET_NAME, prefix=prefix, recursive=True
+                ):
+                    names.append(obj.object_name)
+                return sorted(names)
+            except Exception as e:  # noqa: BLE001
+                self._available = False
+                logger.warning(f"MinIO list_objects failed, fallback to local: {e}")
+        # 本地回退：遍历 LOCAL_STORAGE_DIR/<prefix>
+        rel_prefix = prefix.replace("/", os.sep).rstrip(os.sep)
+        base = os.path.join(LOCAL_STORAGE_DIR, rel_prefix)
+        if not os.path.isdir(base):
+            return []
+        out: list[str] = []
+        for root, _dirs, files in os.walk(base):
+            for file in files:
+                full = os.path.join(root, file)
+                rel = os.path.relpath(full, LOCAL_STORAGE_DIR).replace(os.sep, "/")
+                out.append(rel)
+        return sorted(out)
+
+    def remove_objects(self, prefix: str) -> int:
+        """按前缀批量删除对象，返回实际删除数。
+
+        内部复用 ``list_objects`` 枚举后逐个删除（MinIO ``remove_object`` 或本地
+        ``os.remove``），单对象不存在或删除失败时跳过并告警、不中断；幂等（重复
+        执行返回 0 且不报错）。
+        """
+        names = self.list_objects(prefix)
+        if not names:
+            return 0
+        available = self._check_available()
+        removed = 0
+        failed = 0
+        for name in names:
+            try:
+                if available:
+                    self.client.remove_object(settings.MINIO_BUCKET_NAME, name)
+                else:
+                    local_path = os.path.join(LOCAL_STORAGE_DIR, name.replace("/", os.sep))
+                    if os.path.exists(local_path):
+                        os.remove(local_path)
+                removed += 1
+            except Exception as e:  # noqa: BLE001
+                failed += 1
+                logger.warning(f"remove_object failed for {name}: {e}")
+        if failed:
+            logger.warning(
+                f"remove_objects(prefix={prefix!r}): {failed} objects failed to remove"
+            )
+        return removed
